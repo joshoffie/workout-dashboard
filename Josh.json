@@ -1,0 +1,73 @@
+{
+  "client_name": "Josh",
+  "sessions": [
+    {
+      "session_name": "Push",
+      "exercises": [
+        {
+          "exercise": "Bench",
+          "sets": [
+            {
+              "reps": 10,
+              "weight": 150.0,
+              "volume": 1500.0,
+              "notes": "",
+              "timestamp": "2025-11-04T19:38:22.364664"
+            },
+            {
+              "reps": 6,
+              "weight": 170.0,
+              "volume": 1020.0,
+              "notes": "",
+              "timestamp": "2025-11-04T19:38:29.167775"
+            },
+            {
+              "reps": 7,
+              "weight": 190.0,
+              "volume": 1330.0,
+              "notes": "",
+              "timestamp": "2025-11-04T19:38:46.799297"
+            },
+            {
+              "reps": 11,
+              "weight": 123.0,
+              "volume": 1353.0,
+              "notes": "",
+              "timestamp": "2025-11-08T19:38:56.087516"
+            },
+            {
+              "reps": 7,
+              "weight": 240.0,
+              "volume": 1680.0,
+              "notes": "big set",
+              "timestamp": "2025-11-08T19:48:23.181714"
+            },
+            {
+              "reps": 12,
+              "weight": 150.0,
+              "volume": 1800.0,
+              "notes": "",
+              "timestamp": "2025-11-08T20:42:52.906669"
+            },
+            {
+              "reps": 17,
+              "weight": 675.0,
+              "volume": 11475.0,
+              "notes": "",
+              "timestamp": "2025-11-08T20:43:13.007901"
+            }
+          ]
+        },
+        {
+          "exercise": "Dips",
+          "sets": []
+        },
+        {
+          "exercise": "Flys",
+          "sets": []
+        }
+      ],
+      "date": "2025-11-08T19:38:02.932365"
+    }
+  ]
+}
