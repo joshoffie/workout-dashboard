@@ -1,96 +1,113 @@
-const clientSelect = document.getElementById("clientSelect");
-let clientsData = {};
-const clientFiles = ["client_data/Josh.json"]; // add JSON filenames here
+document.addEventListener("DOMContentLoaded", () => {
 
-// Load all clients
-async function loadClients() {
-    for (const file of clientFiles) {
-        const resp = await fetch(file);
-        const data = await resp.json();
-        clientsData[data.client_name] = data;
-    }
+    const clientSelect = document.getElementById("clientSelect");
+    const sessionsDiv = document.getElementById("sessionsDiv");
+    const exercisesDiv = document.getElementById("exercisesDiv");
+    const progressTableDiv = document.getElementById("progressTableDiv");
+    const progressGraphDiv = document.getElementById("progressGraphDiv");
 
-    for (const name in clientsData) {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.text = name;
-        clientSelect.appendChild(opt);
-    }
-}
+    let clientsData = {};
 
-clientSelect.addEventListener("change", (e) => {
-    const name = e.target.value;
-    if (name) showSessions(name);
-});
-
-function showSessions(clientName) {
-    const client = clientsData[clientName];
-    const div = document.getElementById("sessionsDiv");
-    div.innerHTML = "<h3>Your Sessions:</h3>";
-    client.sessions.forEach((sess, idx) => {
-        const btn = document.createElement("button");
-        btn.textContent = sess.session_name;
-        btn.onclick = () => showExercises(clientName, idx);
-        div.appendChild(btn);
-    });
-
-    document.getElementById("exercisesDiv").innerHTML = "";
-    document.getElementById("progressTableDiv").innerHTML = "";
-    document.getElementById("progressGraphDiv").innerHTML = "";
-}
-
-function showExercises(clientName, sessionIdx) {
-    const client = clientsData[clientName];
-    const session = client.sessions[sessionIdx];
-    const div = document.getElementById("exercisesDiv");
-    div.innerHTML = "<h4>Exercises:</h4>";
-    
-    session.exercises.forEach((ex, idx) => {
-        const btn = document.createElement("button");
-        btn.textContent = ex.exercise;
-        btn.onclick = () => showProgress(clientName, sessionIdx, idx);
-        div.appendChild(btn);
-    });
-
-    document.getElementById("progressTableDiv").innerHTML = "";
-    document.getElementById("progressGraphDiv").innerHTML = "";
-}
-
-function showProgress(clientName, sessionIdx, exerciseIdx) {
-    const ex = clientsData[clientName].sessions[sessionIdx].exercises[exerciseIdx];
-
-    // --- Progress Table ---
-    const tableDiv = document.getElementById("progressTableDiv");
-    let html = "<h4>Set Progress:</h4><table><tr><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>";
-    ex.sets.forEach(s => {
-        html += `<tr>
-                    <td>${s.reps}</td>
-                    <td>${s.weight}</td>
-                    <td>${s.volume}</td>
-                    <td>${s.notes}</td>
-                    <td>${s.timestamp}</td>
-                 </tr>`;
-    });
-    html += "</table>";
-    tableDiv.innerHTML = html;
-
-    // --- Simple Graph ---
-    const graphDiv = document.getElementById("progressGraphDiv");
-    const dates = ex.sets.map(s => s.timestamp);
-    const reps = ex.sets.map(s => s.reps);
-    const weight = ex.sets.map(s => s.weight);
-    const volume = ex.sets.map(s => s.volume);
-    const wpr = ex.sets.map(s => s.volume / s.reps);
-
-    const traces = [
-        { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
-        { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
-        { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
-        { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
+    // --- Automatically detect all JSON files in client_data ---
+    // Note: GitHub Pages cannot dynamically list files in a folder,
+    // so you still need to provide the filenames here once.
+    // We'll make it easier: just add all client JSONs to this array
+    const clientFiles = [
+        "client_data/Josh.json",
+        // Add other clients here: "client_data/Client2.json",
     ];
 
-    Plotly.newPlot(graphDiv, traces, { title: `${ex.exercise} Progress`, hovermode: 'x unified' });
-}
+    async function loadClients() {
+        for (const file of clientFiles) {
+            try {
+                const resp = await fetch(file);
+                if (!resp.ok) throw new Error(`Failed to load ${file}`);
+                const data = await resp.json();
+                clientsData[data.client_name] = data;
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-// --- Initialize ---
-loadClients();
+        // Populate dropdown
+        for (const name in clientsData) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.text = name;
+            clientSelect.appendChild(opt);
+        }
+    }
+
+    // --- Event listener for client selection ---
+    clientSelect.addEventListener("change", (e) => {
+        const clientName = e.target.value;
+        if (clientName) showSessions(clientName);
+    });
+
+    function showSessions(clientName) {
+        const client = clientsData[clientName];
+        sessionsDiv.innerHTML = "<h3>Your Sessions:</h3>";
+        exercisesDiv.innerHTML = "";
+        progressTableDiv.innerHTML = "";
+        progressGraphDiv.innerHTML = "";
+
+        client.sessions.forEach((sess, idx) => {
+            const btn = document.createElement("button");
+            btn.textContent = sess.session_name;
+            btn.onclick = () => showExercises(clientName, idx);
+            sessionsDiv.appendChild(btn);
+        });
+    }
+
+    function showExercises(clientName, sessionIdx) {
+        const session = clientsData[clientName].sessions[sessionIdx];
+        exercisesDiv.innerHTML = "<h4>Exercises:</h4>";
+        progressTableDiv.innerHTML = "";
+        progressGraphDiv.innerHTML = "";
+
+        session.exercises.forEach((ex, idx) => {
+            const btn = document.createElement("button");
+            btn.textContent = ex.exercise;
+            btn.onclick = () => showProgress(clientName, sessionIdx, idx);
+            exercisesDiv.appendChild(btn);
+        });
+    }
+
+    function showProgress(clientName, sessionIdx, exerciseIdx) {
+        const ex = clientsData[clientName].sessions[sessionIdx].exercises[exerciseIdx];
+
+        // --- Progress Table ---
+        let html = "<h4>Set Progress:</h4><table><tr><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>";
+        ex.sets.forEach(s => {
+            html += `<tr>
+                        <td>${s.reps}</td>
+                        <td>${s.weight}</td>
+                        <td>${s.volume}</td>
+                        <td>${s.notes}</td>
+                        <td>${s.timestamp}</td>
+                     </tr>`;
+        });
+        html += "</table>";
+        progressTableDiv.innerHTML = html;
+
+        // --- Interactive Graph ---
+        const dates = ex.sets.map(s => s.timestamp);
+        const reps = ex.sets.map(s => s.reps);
+        const weight = ex.sets.map(s => s.weight);
+        const volume = ex.sets.map(s => s.volume);
+        const wpr = ex.sets.map(s => s.volume / s.reps);
+
+        const traces = [
+            { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
+            { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
+            { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
+            { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
+        ];
+
+        Plotly.newPlot(progressGraphDiv, traces, { title: `${ex.exercise} Progress`, hovermode: 'x unified' });
+    }
+
+    // --- Initialize ---
+    loadClients();
+
+});
