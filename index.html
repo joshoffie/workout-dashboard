@@ -7,22 +7,24 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         select, button { margin: 5px; }
-        #sessionsList, #exercisesList, #progressTable, #progressGraph { margin-top: 20px; }
+        table { border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid black; padding: 5px; }
     </style>
 </head>
 <body>
-    <h1>Workout Dashboard</h1>
+    <h1>Client Workout Dashboard</h1>
 
-    <label for="clientSelect">Select Client:</label>
+    <label for="clientSelect">Select Your Name:</label>
     <select id="clientSelect">
         <option value="">-- Select --</option>
     </select>
 
-    <div id="sessionsList"></div>
-    <div id="exercisesList"></div>
-    <div id="progressTable"></div>
-    <div id="progressGraph"></div>
+    <div id="sessionsDiv"></div>
+    <div id="exercisesDiv"></div>
+    <div id="progressTableDiv"></div>
+    <div id="progressGraphDiv" style="width:100%;height:400px;"></div>
 
     <script src="app.js"></script>
 </body>
 </html>
+
