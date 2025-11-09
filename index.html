@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Workout Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        select, button { margin: 5px; }
+        #sessionsList, #exercisesList, #progressTable, #progressGraph { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Workout Dashboard</h1>
+
+    <label for="clientSelect">Select Client:</label>
+    <select id="clientSelect">
+        <option value="">-- Select --</option>
+    </select>
+
+    <div id="sessionsList"></div>
+    <div id="exercisesList"></div>
+    <div id="progressTable"></div>
+    <div id="progressGraph"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
