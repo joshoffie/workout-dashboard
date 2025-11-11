@@ -313,8 +313,6 @@ editToggleBtn.onclick = () => {
   if (!editMode) {
     // Done pressed → save changes automatically
     saveUserJson();
-  }
-};
 
 // ------------------ MAKE ELEMENTS EDITABLE ------------------
 function makeEditable(element, type, parentIdx = null) {
