@@ -8,28 +8,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let clientsData = {};
 
-    // --- Automatically detect all JSON files in client_data ---
-    // Note: GitHub Pages cannot dynamically list files in a folder,
-    // so you still need to provide the filenames here once.
-    // We'll make it easier: just add all client JSONs to this array
-    const clientFiles = [
-        "client_data/Josh.json",
-        // Add other clients here: "client_data/Client2.json",
-    ];
-
-    async function loadClients() {
-        for (const file of clientFiles) {
-            try {
-                const resp = await fetch(file);
-                if (!resp.ok) throw new Error(`Failed to load ${file}`);
-                const data = await resp.json();
-                clientsData[data.client_name] = data;
-            } catch (err) {
-                console.error(err);
-            }
+    // ----------------------------
+    // ✅ Load user JSON from Firebase
+    // ----------------------------
+    async function loadUserJson() {
+        if (!window.currentUser) {
+            console.log("User not logged in yet.");
+            return;
         }
 
-        // Populate dropdown
+        const uid = window.currentUser.uid;
+        const docRef = doc(window.db, "clients", uid);
+
+        const snap = await getDoc(docRef);
+
+        if (snap.exists()) {
+            console.log("Loaded user JSON:", snap.data());
+            clientsData = { [snap.data().client_name]: snap.data() };
+            populateClientDropdown();
+        } else {
+            console.log("No profile found — creating new one...");
+
+            // Create a new empty JSON structure
+            const newJson = {
+                client_name: window.currentUser.displayName || "User",
+                sessions: []
+            };
+
+            await setDoc(docRef, newJson);
+            clientsData = { [newJson.client_name]: newJson };
+            populateClientDropdown();
+        }
+    }
+
+    // ----------------------------
+    // Populate dropdown
+    // ----------------------------
+    function populateClientDropdown() {
+        clientSelect.innerHTML = `<option value="">-- Select --</option>`;
         for (const name in clientsData) {
             const opt = document.createElement("option");
             opt.value = name;
@@ -38,7 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Event listener for client selection ---
+    // ----------------------------
+    // When user selects themselves
+    // ----------------------------
     clientSelect.addEventListener("change", (e) => {
         const clientName = e.target.value;
         if (clientName) showSessions(clientName);
@@ -76,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function showProgress(clientName, sessionIdx, exerciseIdx) {
         const ex = clientsData[clientName].sessions[sessionIdx].exercises[exerciseIdx];
 
-        // --- Progress Table ---
         let html = "<h4>Set Progress:</h4><table><tr><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>";
         ex.sets.forEach(s => {
             html += `<tr>
@@ -90,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         html += "</table>";
         progressTableDiv.innerHTML = html;
 
-        // --- Interactive Graph ---
+        // Graph
         const dates = ex.sets.map(s => s.timestamp);
         const reps = ex.sets.map(s => s.reps);
         const weight = ex.sets.map(s => s.weight);
@@ -107,7 +124,11 @@ document.addEventListener("DOMContentLoaded", () => {
         Plotly.newPlot(progressGraphDiv, traces, { title: `${ex.exercise} Progress`, hovermode: 'x unified' });
     }
 
-    // --- Initialize ---
-    loadClients();
-
+    // ----------------------------
+    // Detect login and load JSON
+    // ----------------------------
+    document.addEventListener("firebaseLoaded", loadUserJson);
+    
+    // If Firebase already fired auth state before DOM loaded
+    setTimeout(loadUserJson, 1000);
 });
