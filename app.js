@@ -274,3 +274,98 @@ document.getElementById("addSetBtn").onclick = () => {
   renderSets();
 };
 
+let editMode = false;
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+
+  // Visual cue (optional)
+  document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
+};
+
+// ------------------ EDITABLE CLICK HANDLER ------------------
+function makeEditable(element, type, parentIdx = null) {
+  element.onclick = async (e) => {
+    if (!editMode) return; // normal selection
+    e.stopPropagation();
+
+    let currentVal = element.textContent;
+    let newVal = prompt(`Edit ${type}:`, currentVal);
+    if (!newVal || newVal === currentVal) return;
+
+    switch(type) {
+      case "Client":
+        const data = clientsData[currentVal];
+        delete clientsData[currentVal];
+        data.client_name = newVal;
+        clientsData[newVal] = data;
+        if (selectedClient === currentVal) selectedClient = newVal;
+        renderClients();
+        break;
+
+      case "Session":
+        selectedSession.session_name = newVal;
+        renderSessions();
+        break;
+
+      case "Exercise":
+        selectedExercise.exercise = newVal;
+        renderExercises();
+        break;
+
+      case "SetReps":
+        selectedExercise.sets[parentIdx].reps = parseInt(newVal) || selectedExercise.sets[parentIdx].reps;
+        renderSets();
+        break;
+
+      case "SetWeight":
+        selectedExercise.sets[parentIdx].weight = parseFloat(newVal) || selectedExercise.sets[parentIdx].weight;
+        selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
+        renderSets();
+        break;
+
+      case "SetNotes":
+        selectedExercise.sets[parentIdx].notes = newVal;
+        renderSets();
+        break;
+    }
+
+    saveUserJson();
+  };
+}
+
+// ------------------ HOOK EDITABLES ------------------
+function hookEditables() {
+  // Clients
+  document.querySelectorAll("#clientList li").forEach(li => makeEditable(li, "Client"));
+
+  // Sessions
+  document.querySelectorAll("#sessionList li").forEach((li, idx) => makeEditable(li, "Session"));
+
+  // Exercises
+  document.querySelectorAll("#exerciseList li").forEach((li, idx) => makeEditable(li, "Exercise"));
+
+  // Sets table
+  setsTable.querySelectorAll("tr").forEach((tr, idx) => {
+    const tds = tr.querySelectorAll("td");
+    makeEditable(tds[1], "SetReps", idx);
+    makeEditable(tds[2], "SetWeight", idx);
+    makeEditable(tds[4], "SetNotes", idx);
+  });
+}
+
+// Re-hook after any render
+const originalRenderClients = renderClients;
+renderClients = () => { originalRenderClients(); hookEditables(); };
+const originalRenderSessions = renderSessions;
+renderSessions = () => { originalRenderSessions(); hookEditables(); };
+const originalRenderExercises = renderExercises;
+renderExercises = () => { originalRenderExercises(); hookEditables(); };
+const originalRenderSets = renderSets;
+renderSets = () => { originalRenderSets(); hookEditables(); };
+
+// Initial hook
+hookEditables();
+
