@@ -1,74 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Workout Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-    <!-- ✅ Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
-        // ✅ Your Firebase settings (replace with your actual project config)
-        window.firebaseConfig = {
-            apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
-            authDomain: "free-workout-tracker.firebaseapp.com",
-            projectId: "free-workout-tracker",
-            storageBucket: "free-workout-tracker.firebasestorage.app",
-            messagingSenderId: "797968203224",
-            appId: "1:797968203224:web:0409faf864741f9e5c86ad",
-        };
-
-        // Expose Firebase globally so app.js can use it
-        const app = initializeApp(window.firebaseConfig);
-        window.db = getFirestore(app);
-        window.auth = getAuth(app);
-        window.provider = new GoogleAuthProvider();
-
-        window.startFirebaseLogin = function () {
-            signInWithPopup(window.auth, window.provider)
-                .catch(err => alert("Login failed: " + err.message));
-        };
-
-        onAuthStateChanged(window.auth, (user) => {
-            const status = document.getElementById("loginStatus");
-            if (user) {
-                status.innerHTML = `✅ Logged in as: ${user.displayName}`;
-                window.currentUser = user;
-            } else {
-                status.innerHTML = "❌ Not logged in";
-                window.currentUser = null;
-            }
-        });
-    </script>
-
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        select, button { margin: 5px; }
-        table { border-collapse: collapse; margin-top: 10px; }
-        table, th, td { border: 1px solid black; padding: 5px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Workout Tracker Web App</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button, select { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    table, th, td { border: 1px solid black; padding: 5px; }
+    .hidden { display: none; }
+    .list-container { margin-bottom: 20px; }
+    .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+             background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+               background: rgba(0,0,0,0.5); z-index: 500; }
+  </style>
 </head>
-
 <body>
-    <h1>Client Workout Dashboard</h1>
 
-    <!-- ✅ Login UI -->
-    <button onclick="startFirebaseLogin()">Login with Google</button>
-    <p id="loginStatus">❌ Not logged in</p>
+<h1>Workout Tracker Web App</h1>
 
-    <label for="clientSelect">Select Your Name:</label>
-    <select id="clientSelect">
-        <option value="">-- Select --</option>
-    </select>
+<!-- Login / Logout -->
+<div id="authDiv">
+  <button id="loginBtn">Login</button>
+  <button id="logoutBtn" class="hidden">Logout</button>
+  <span id="userLabel"></span>
+</div>
 
-    <div id="sessionsDiv"></div>
-    <div id="exercisesDiv"></div>
-    <div id="progressTableDiv"></div>
-    <div id="progressGraphDiv" style="width:100%;height:400px;"></div>
+<!-- Clients -->
+<div class="list-container">
+  <h3>Clients</h3>
+  <button id="addClientBtn">Add Client</button>
+  <ul id="clientList"></ul>
+</div>
 
-    <script src="app.js"></script>
+<!-- Sessions -->
+<div class="list-container hidden" id="sessionsDiv">
+  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+  <button id="addSessionBtn">Add Session</button>
+  <ul id="sessionList"></ul>
+</div>
+
+<!-- Exercises -->
+<div class="list-container hidden" id="exercisesDiv">
+  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+  <button id="addExerciseBtn">Add Exercise</button>
+  <ul id="exerciseList"></ul>
+</div>
+
+<!-- Sets -->
+<div class="list-container hidden" id="setsDiv">
+  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+  <button id="addSetBtn">Add Set</button>
+  <button id="showGraphBtn">Show Progress Graph</button>
+  <table id="setsTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Graph -->
+<div id="graphDiv" style="width:100%;height:400px;"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
