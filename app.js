@@ -301,12 +301,12 @@ function makeEditable(element, type, parentIdx = null) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
 
-  element.onclick = (e) => {
-    if (!editMode) return; // normal selection
+  element.addEventListener("click", (e) => {
+    if (!editMode) return; // allow normal click to propagate
     e.stopPropagation();
 
-    let currentVal = element.textContent;
-    let newVal = prompt(`Edit ${type}:`, currentVal);
+    const currentVal = element.textContent;
+    const newVal = prompt(`Edit ${type}:`, currentVal);
     if (!newVal || newVal === currentVal) return;
 
     switch(type) {
@@ -348,8 +348,9 @@ function makeEditable(element, type, parentIdx = null) {
     }
 
     saveUserJson();
-  };
+  });
 }
+
 
 // ------------------ HOOK EDITABLES ------------------
 function hookEditables() {
