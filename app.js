@@ -81,10 +81,34 @@ function renderClients() {
     const li = document.createElement("li");
     li.textContent = name;
     li.style.cursor = "pointer";
-    li.onclick = () => selectClient(name);
+
+    // Normal click → select client
+    li.onclick = () => {
+      if (editMode) return; // skip select if editing
+      selectClient(name);
+    };
+
+    // Edit click → only in editMode
+    li.addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const currentVal = li.textContent;
+      const newVal = prompt("Edit Client:", currentVal);
+      if (!newVal || newVal === currentVal) return;
+
+      const data = clientsData[currentVal];
+      delete clientsData[currentVal];
+      data.client_name = newVal;
+      clientsData[newVal] = data;
+      if (selectedClient === currentVal) selectedClient = newVal;
+      renderClients();
+      saveUserJson();
+    });
+
     clientList.appendChild(li);
   }
 }
+
 
 // ------------------ CLIENT ACTIONS ------------------
 document.getElementById("addClientBtn").onclick = () => {
@@ -125,15 +149,34 @@ function renderSessions() {
   selectedSession = null;
   document.getElementById("selectedSessionLabel").textContent = "";
   document.getElementById("exercisesDiv").classList.add("hidden");
+
   const sessions = clientsData[selectedClient].sessions || [];
   sessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.textContent = sess.session_name;
     li.style.cursor = "pointer";
-    li.onclick = () => selectSession(idx);
+
+    // Normal click → select session
+    li.onclick = () => {
+      if (editMode) return;
+      selectSession(idx);
+    };
+
+    // Edit click → only in editMode
+    li.addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const newVal = prompt("Edit Session:", li.textContent);
+      if (!newVal || newVal === li.textContent) return;
+      selectedSession.session_name = newVal;
+      renderSessions();
+      saveUserJson();
+    });
+
     sessionList.appendChild(li);
   });
 }
+
 
 function selectSession(idx) {
   selectedSession = clientsData[selectedClient].sessions[idx];
@@ -162,11 +205,29 @@ function renderExercises() {
   selectedExercise = null;
   document.getElementById("selectedExerciseLabel").textContent = "";
   document.getElementById("setsDiv").classList.add("hidden");
+
   selectedSession.exercises.forEach((ex, idx) => {
     const li = document.createElement("li");
     li.textContent = ex.exercise;
     li.style.cursor = "pointer";
-    li.onclick = () => selectExercise(idx);
+
+    // Normal click → select exercise
+    li.onclick = () => {
+      if (editMode) return;
+      selectExercise(idx);
+    };
+
+    // Edit click → only in editMode
+    li.addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const newVal = prompt("Edit Exercise:", li.textContent);
+      if (!newVal || newVal === li.textContent) return;
+      selectedExercise.exercise = newVal;
+      renderExercises();
+      saveUserJson();
+    });
+
     exerciseList.appendChild(li);
   });
 }
@@ -197,12 +258,57 @@ document.getElementById("addSetBtn").onclick = () => {
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
+
   selectedExercise.sets.forEach((s, idx) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${idx+1}</td><td>${s.reps}</td><td>${s.weight}</td><td>${s.volume}</td><td>${s.notes}</td><td>${s.timestamp}</td>`;
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${s.reps}</td>
+      <td>${s.weight}</td>
+      <td>${s.volume}</td>
+      <td>${s.notes}</td>
+      <td>${s.timestamp}</td>
+    `;
+
+    const tds = tr.querySelectorAll("td");
+
+    // Edit only in editMode
+    tds[1].addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const val = prompt("Edit Reps:", tds[1].textContent);
+      if (!val) return;
+      s.reps = parseInt(val) || s.reps;
+      s.volume = s.reps * s.weight;
+      renderSets();
+      saveUserJson();
+    });
+
+    tds[2].addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const val = prompt("Edit Weight:", tds[2].textContent);
+      if (!val) return;
+      s.weight = parseFloat(val) || s.weight;
+      s.volume = s.reps * s.weight;
+      renderSets();
+      saveUserJson();
+    });
+
+    tds[4].addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const val = prompt("Edit Notes:", tds[4].textContent);
+      if (!val) return;
+      s.notes = val;
+      renderSets();
+      saveUserJson();
+    });
+
     setsTable.appendChild(tr);
   });
 }
+
 
 // ------------------ PLOTLY GRAPH ------------------
 document.getElementById("showGraphBtn").onclick = () => {
@@ -372,16 +478,5 @@ function hookEditables() {
   });
 }
 
-// ------------------ OVERRIDE RENDERS TO HOOK EDITABLES ------------------
-const originalRenderClients = renderClients;
-renderClients = () => { originalRenderClients(); hookEditables(); };
-const originalRenderSessions = renderSessions;
-renderSessions = () => { originalRenderSessions(); hookEditables(); };
-const originalRenderExercises = renderExercises;
-renderExercises = () => { originalRenderExercises(); hookEditables(); };
-const originalRenderSets = renderSets;
-renderSets = () => { originalRenderSets(); hookEditables(); };
 
-// Initial hook
-hookEditables();
 
