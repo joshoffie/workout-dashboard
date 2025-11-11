@@ -285,9 +285,31 @@ editToggleBtn.onclick = () => {
   document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
 };
 
-// ------------------ EDITABLE CLICK HANDLER ------------------
+let editMode = false;
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+// Toggle Edit / Done
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+
+  // Visual cue for editable text
+  document.querySelectorAll(".editable").forEach(el => {
+    el.style.color = editMode ? "red" : "black";
+  });
+
+  if (!editMode) {
+    // Done pressed → save changes automatically
+    saveUserJson();
+  }
+};
+
+// ------------------ MAKE ELEMENTS EDITABLE ------------------
 function makeEditable(element, type, parentIdx = null) {
-  element.onclick = async (e) => {
+  element.classList.add("editable");
+  element.style.cursor = "pointer";
+
+  element.onclick = (e) => {
     if (!editMode) return; // normal selection
     e.stopPropagation();
 
@@ -317,6 +339,7 @@ function makeEditable(element, type, parentIdx = null) {
 
       case "SetReps":
         selectedExercise.sets[parentIdx].reps = parseInt(newVal) || selectedExercise.sets[parentIdx].reps;
+        selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
         renderSets();
         break;
 
@@ -356,7 +379,7 @@ function hookEditables() {
   });
 }
 
-// Re-hook after any render
+// ------------------ OVERRIDE RENDERS TO HOOK EDITABLES ------------------
 const originalRenderClients = renderClients;
 renderClients = () => { originalRenderClients(); hookEditables(); };
 const originalRenderSessions = renderSessions;
