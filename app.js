@@ -286,33 +286,15 @@ editToggleBtn.onclick = () => {
     el.style.color = editMode ? "red" : "black";
   });
 
+  // Optional: subtle background color change
+  document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
+
   if (!editMode) {
     // Done pressed → save changes automatically
     saveUserJson();
   }
 };
 
-
-  // Visual cue (optional)
-  document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
-};
-
-let editMode = false;
-const editToggleBtn = document.getElementById("editToggleBtn");
-
-// Toggle Edit / Done
-editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = editMode ? "Done" : "Edit";
-
-  // Visual cue for editable text
-  document.querySelectorAll(".editable").forEach(el => {
-    el.style.color = editMode ? "red" : "black";
-  });
-
-  if (!editMode) {
-    // Done pressed → save changes automatically
-    saveUserJson();
 
 // ------------------ MAKE ELEMENTS EDITABLE ------------------
 function makeEditable(element, type, parentIdx = null) {
