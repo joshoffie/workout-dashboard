@@ -4,6 +4,46 @@
     <meta charset="UTF-8">
     <title>Workout Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <!-- ✅ Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+        // ✅ Your Firebase settings (replace with your actual project config)
+        window.firebaseConfig = {
+            apiKey: "YOUR_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        // Expose Firebase globally so app.js can use it
+        const app = initializeApp(window.firebaseConfig);
+        window.db = getFirestore(app);
+        window.auth = getAuth(app);
+        window.provider = new GoogleAuthProvider();
+
+        window.startFirebaseLogin = function () {
+            signInWithPopup(window.auth, window.provider)
+                .catch(err => alert("Login failed: " + err.message));
+        };
+
+        onAuthStateChanged(window.auth, (user) => {
+            const status = document.getElementById("loginStatus");
+            if (user) {
+                status.innerHTML = `✅ Logged in as: ${user.displayName}`;
+                window.currentUser = user;
+            } else {
+                status.innerHTML = "❌ Not logged in";
+                window.currentUser = null;
+            }
+        });
+    </script>
+
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         select, button { margin: 5px; }
@@ -11,8 +51,13 @@
         table, th, td { border: 1px solid black; padding: 5px; }
     </style>
 </head>
+
 <body>
     <h1>Client Workout Dashboard</h1>
+
+    <!-- ✅ Login UI -->
+    <button onclick="startFirebaseLogin()">Login with Google</button>
+    <p id="loginStatus">❌ Not logged in</p>
 
     <label for="clientSelect">Select Your Name:</label>
     <select id="clientSelect">
@@ -27,4 +72,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
