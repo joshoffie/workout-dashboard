@@ -230,3 +230,47 @@ function hideAllDetails() {
   document.getElementById("setsDiv").classList.add("hidden");
   document.getElementById("graphDiv").innerHTML = "";
 }
+
+// ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
+
+// Get the last set for the same exercise across previous sessions
+function getPreviousSet() {
+  if (!selectedClient || !selectedExercise) return null;
+  const sessions = clientsData[selectedClient].sessions || [];
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const sess = sessions[i];
+    if (sess === selectedSession) continue; // skip current session
+    for (const ex of sess.exercises || []) {
+      if (ex.exercise === selectedExercise.exercise && ex.sets && ex.sets.length) {
+        return ex.sets[ex.sets.length - 1]; // last set
+      }
+    }
+  }
+  return null;
+}
+
+// Override add set button
+document.getElementById("addSetBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+
+  const prevSet = getPreviousSet();
+  const prevReps = prevSet ? prevSet.reps : "";
+  const prevWeight = prevSet ? prevSet.weight : "";
+
+  let reps = prompt(`Reps (previous: ${prevReps || "N/A"}):`);
+  if (!reps || isNaN(reps)) return;
+  reps = parseInt(reps);
+
+  let weight = prompt(`Weight (previous: ${prevWeight || "N/A"}):`);
+  if (!weight || isNaN(weight)) return;
+  weight = parseFloat(weight);
+
+  let notes = prompt("Notes:") || "";
+  const timestamp = new Date().toISOString();
+  const volume = reps * weight;
+
+  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
+  saveUserJson(); // AUTO-SAVE
+  renderSets();
+};
+
