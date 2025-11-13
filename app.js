@@ -1,4 +1,4 @@
-// ------------------ Firebase Config ------------------
+// ------------------ FIREBASE CONFIG ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
   authDomain: "free-workout-tracker.firebaseapp.com",
@@ -17,29 +17,40 @@ let selectedClient = null;
 let selectedSession = null;
 let selectedExercise = null;
 
+// ------------------ HELPER: SCREEN NAVIGATION ------------------
+function showScreen(screenId) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+  document.getElementById(screenId).classList.remove("hidden");
+}
+
+// ------------------ BACK BUTTONS ------------------
+document.querySelectorAll(".backBtn").forEach(btn => {
+  btn.onclick = () => {
+    const parent = btn.closest(".screen").id;
+    if (parent === "sessionsScreen") showScreen("clientsScreen");
+    else if (parent === "exercisesScreen") showScreen("sessionsScreen");
+    else if (parent === "setsScreen") showScreen("exercisesScreen");
+  };
+});
+
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
-
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
 
-// Show modal if user is not logged in
 auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // Hide modal
     modal.classList.add("hidden");
-    
     loginBtn.classList.add("hidden");
     logoutBtn.classList.remove("hidden");
     userLabel.textContent = `Logged in as ${user.displayName}`;
     await loadUserJson();
     renderClients();
+    showScreen("clientsScreen");
   } else {
-    // Show modal
     modal.classList.remove("hidden");
-
     loginBtn.classList.remove("hidden");
     logoutBtn.classList.add("hidden");
     userLabel.textContent = "";
@@ -50,20 +61,16 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-// Login via modal button
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithPopup(provider);
-  } catch (err) {
+  } catch(err) {
     alert("Login failed: " + err.message);
   }
 };
 
-// Keep logoutBtn as is
-logoutBtn.onclick = async () => {
-  await auth.signOut();
-};
+logoutBtn.onclick = async () => await auth.signOut();
 
 
 auth.onAuthStateChanged(async (user) => {
