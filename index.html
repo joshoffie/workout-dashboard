@@ -67,8 +67,8 @@
       background: #fff;
       border-radius: 12px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-      padding: 40px 30px;
-      max-width: 400px;
+      padding: 60px 50px; /* increased padding */
+      max-width: 600px;   /* bigger box */
       width: 90%;
       text-align: center;
       transform: translateY(-30px);
@@ -80,18 +80,19 @@
     }
 
     .modal-logo {
-      width: 60px;
+      width: 80px; /* scaled up for bigger modal */
+      height: 80px;
       margin-bottom: 20px;
     }
 
     .modal h2 {
-      font-size: 24px;
+      font-size: 28px;  /* bigger title */
       margin: 0 0 10px;
       color: #333;
     }
 
     .modal-subtitle {
-      font-size: 14px;
+      font-size: 16px; /* bigger subtitle */
       color: #666;
       margin-bottom: 30px;
       line-height: 1.5;
@@ -122,13 +123,17 @@
     /* Responsive adjustments */
     @media(max-width: 480px){
       .modal {
-        padding: 30px 20px;
+        padding: 40px 20px;
       }
       .modal h2 {
-        font-size: 20px;
+        font-size: 22px;
       }
       .modal-subtitle {
-        font-size: 13px;
+        font-size: 14px;
+      }
+      .modal-logo {
+        width: 60px;
+        height: 60px;
       }
     }
 
@@ -147,7 +152,8 @@
 <div id="loginModal" class="overlay hidden">
   <div class="modal">
     <div class="modal-content">
-      <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="60" height="60">
+      <!-- Dumbbell SVG -->
+      <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
         <!-- Bar -->
         <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/>
         <!-- Left weights -->
