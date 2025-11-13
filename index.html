@@ -12,6 +12,17 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
+    /* Login modal already inherits .overlay and .modal styles */
+    #modalLoginBtn {
+      background: #4285F4; 
+      color: white; 
+      border: none; 
+      padding: 10px 20px; 
+      font-size: 16px; 
+      cursor: pointer; 
+      border-radius: 4px;
+    }
+    #modalLoginBtn:hover { background: #357ae8; }
     body { font-family: Arial, sans-serif; padding: 20px; }
     button, select { margin: 5px; padding: 5px; }
     table { border-collapse: collapse; margin-top: 10px; }
@@ -27,6 +38,16 @@
 <body>
 
 <h1>Workout Tracker Web App</h1>
+
+  <!-- Login Modal -->
+<div id="loginModal" class="overlay hidden">
+  <div class="modal">
+    <h2>Welcome to Workout Tracker</h2>
+    <p>Please log in to continue</p>
+    <button id="modalLoginBtn">Login with Google</button>
+  </div>
+</div>
+
 
 <!-- Login / Logout -->
 <div id="authDiv">
