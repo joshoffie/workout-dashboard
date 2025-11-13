@@ -8,21 +8,21 @@ const firebaseConfig = {
   appId: "1:797968203224:web:0409faf864741f9e5c86ad",
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();   // 🔹 MUST define auth
-const db = firebase.firestore(); // 🔹 MUST define db
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const loginScreen = document.getElementById("loginScreen");
-const loginBtnLarge = document.getElementById("loginBtnLarge");
-const appContainer = document.getElementById("appContainer"); // now points to the correct div
+let clientsData = {};
+let selectedClient = null;
+let selectedSession = null;
+let selectedExercise = null;
 
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
 
-loginBtn.onclick = loginBtnLarge.onclick = async () => {
+loginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithPopup(provider);
@@ -31,35 +31,27 @@ loginBtn.onclick = loginBtnLarge.onclick = async () => {
   }
 };
 
+logoutBtn.onclick = async () => {
+  await auth.signOut();
+};
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // Show main app, hide login
-    loginScreen.classList.add("hidden");
-    appContainer.classList.remove("hidden");
-
     loginBtn.classList.add("hidden");
     logoutBtn.classList.remove("hidden");
     userLabel.textContent = `Logged in as ${user.displayName}`;
-
     await loadUserJson();
     renderClients();
   } else {
-    // Show login, hide main app
-    loginScreen.classList.remove("hidden");
-    appContainer.classList.add("hidden");
-
     loginBtn.classList.remove("hidden");
     logoutBtn.classList.add("hidden");
     userLabel.textContent = "";
-
     clientsData = {};
     selectedClient = null;
     renderClients();
     hideAllDetails();
   }
 });
-
 
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
@@ -485,6 +477,8 @@ function hookEditables() {
     makeEditable(tds[4], "SetNotes", idx);
   });
 }
+
+
 
 
 
