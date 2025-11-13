@@ -10,24 +10,14 @@ const firebaseConfig = {
 
 const loginScreen = document.getElementById("loginScreen");
 const loginBtnLarge = document.getElementById("loginBtnLarge");
-const mainApp = document.body; // We'll toggle visibility of everything else
-
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let clientsData = {};
-let selectedClient = null;
-let selectedSession = null;
-let selectedExercise = null;
+const appContainer = document.getElementById("appContainer"); // now points to the correct div
 
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
 
-loginBtn.onclick = async () => {
+loginBtn.onclick = loginBtnLarge.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithPopup(provider);
@@ -35,26 +25,12 @@ loginBtn.onclick = async () => {
     alert("Login failed: " + err.message);
   }
 };
-
-logoutBtn.onclick = async () => {
-  await auth.signOut();
-};
-
-loginBtnLarge.onclick = async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  } catch (err) {
-    alert("Login failed: " + err.message);
-  }
-};
-
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // Hide login overlay, show main app
+    // Show main app, hide login
     loginScreen.classList.add("hidden");
-    document.getElementById("appContainer").classList.remove("hidden");
+    appContainer.classList.remove("hidden");
 
     loginBtn.classList.add("hidden");
     logoutBtn.classList.remove("hidden");
@@ -63,9 +39,9 @@ auth.onAuthStateChanged(async (user) => {
     await loadUserJson();
     renderClients();
   } else {
-    // Show login overlay, hide app
+    // Show login, hide main app
     loginScreen.classList.remove("hidden");
-    document.getElementById("appContainer").classList.add("hidden");
+    appContainer.classList.add("hidden");
 
     loginBtn.classList.remove("hidden");
     logoutBtn.classList.add("hidden");
@@ -77,6 +53,7 @@ auth.onAuthStateChanged(async (user) => {
     hideAllDetails();
   }
 });
+
 
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
