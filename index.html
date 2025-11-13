@@ -23,7 +23,8 @@
 
   body {
     font-family: 'Inter', Arial, sans-serif;
-    margin: 0; padding: 0;
+    margin: 0;
+    padding: 0;
     background: var(--color-bg);
     color: var(--color-text);
     overflow-x: hidden;
@@ -34,7 +35,13 @@
   h2 { font-size: 2.5rem; font-weight: 600; }
   h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; }
 
-  button { font-family: inherit; cursor: pointer; border: none; border-radius: var(--radius); transition: all var(--transition); }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius);
+    transition: all var(--transition);
+  }
   button:hover { filter: brightness(0.95); }
 
   /* ===== FULL-PAGE SECTIONS ===== */
@@ -49,9 +56,9 @@
     padding: 20px;
     transition: transform 0.4s ease;
     overflow-y: auto;
-    background: var(--color-bg);
   }
-  .section.active-page { transform: translateX(0); z-index: 1; }
+  .section.hidden { display: none; } /* Preserve app.js show/hide logic */
+  .section.active-page { display: flex; transform: translateX(0); z-index: 1; }
   .section.previous-page { transform: translateX(-100%); z-index: 0; }
   .section.next-page { transform: translateX(100%); z-index: 0; }
 
@@ -88,63 +95,38 @@
   table th { background: #f5f6fa; font-weight: 600; }
   table tr:hover { background: #f0f4ff; }
 
-  #graphDiv {
-    margin-top: 30px;
-    background: var(--color-card);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 15px;
-    width: 95%;
-    max-width: 700px;
-  }
+  #graphDiv { margin-top: 30px; background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 15px; width: 95%; max-width: 700px; }
 
-  .back-btn {
-    align-self: flex-start;
-    margin-bottom: 20px;
-    background: var(--color-accent);
-    color: white;
-    padding: 12px 18px;
-    font-size: 1.3rem;
-    font-weight: 600;
-  }
+  .back-btn { align-self: flex-start; margin-bottom: 20px; background: var(--color-accent); color: white; padding: 12px 18px; font-size: 1.3rem; font-weight: 600; }
 
   /* ===== LOGIN MODAL ===== */
   .overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s ease;
+    background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+    z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
   }
   .overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
+
   .modal {
-    background: var(--color-card);
-    border-radius: var(--radius);
-    padding: 140px 80px; max-width: 600px; width: 90%;
-    text-align: center; box-shadow: var(--shadow); position: relative;
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 140px 80px; max-width: 600px; width: 90%; text-align: center; box-shadow: var(--shadow); position: relative;
   }
-  .modal-logo {
-    width: 130px; height: 130px; margin-bottom: 30px;
-    animation: dumbbellSwing 2s infinite ease-in-out;
-  }
-  @keyframes dumbbellSwing {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(-10deg) scale(1.05); }
-    50% { transform: rotate(0deg) scale(1); }
-    75% { transform: rotate(10deg) scale(1.05); }
-    100% { transform: rotate(0deg) scale(1); }
-  }
+  .modal-logo { width: 130px; height: 130px; margin-bottom: 30px; animation: dumbbellSwing 2s infinite ease-in-out; }
+  @keyframes dumbbellSwing { 0%{transform:rotate(0deg) scale(1);}25%{transform:rotate(-10deg) scale(1.05);}50%{transform:rotate(0deg) scale(1);}75%{transform:rotate(10deg) scale(1.05);}100%{transform:rotate(0deg) scale(1);} }
   .modal h2 { font-size: 58px; font-weight: 600; margin-bottom: 25px; }
   .modal-subtitle { font-size: 32px; color: var(--color-muted); margin-bottom: 55px; line-height: 1.6; }
   #modalLoginBtn { background: var(--color-primary); color: white; padding: 28px 40px; font-size: 32px; font-weight: 600; width: 100%; display: flex; justify-content: center; align-items: center; gap: 15px; border-radius: var(--radius); }
 
   @media(max-width:480px){
-    .section { padding: 15px; }
+    .modal { padding: 180px 30px; width: 95%; }
+    .modal-logo { width: 150px; height: 150px; }
+    .modal h2 { font-size: 50px; }
+    .modal-subtitle { font-size: 28px; }
+    #modalLoginBtn { font-size: 36px; padding: 32px 40px; }
     .list-container { padding: 25px; }
     .list-container li { font-size: 1.6rem; padding: 18px 20px; }
     .list-container button { font-size: 1.6rem; padding: 16px 26px; }
     table th, table td { font-size: 1.6rem; padding: 16px; }
-    .back-btn { font-size: 1.5rem; padding: 16px 24px; }
   }
 </style>
 </head>
@@ -152,7 +134,7 @@
 
 <h1>Workout Tracker Web App</h1>
 
-<!-- LOGIN MODAL -->
+<!-- Login Modal -->
 <div id="loginModal" class="overlay hidden">
   <div class="modal">
     <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -168,56 +150,56 @@
   </div>
 </div>
 
-<!-- SECTIONS -->
-<div id="clientsDiv" class="section active-page">
-  <div id="authDiv">
-    <button id="loginBtn">Login</button>
-    <button id="logoutBtn" class="hidden">Logout</button>
-    <span id="userLabel"></span>
-  </div>
-  <div class="list-container">
-    <h3>Clients</h3>
-    <button id="addClientBtn">Add Client</button>
-    <ul id="clientList"></ul>
-  </div>
+<!-- Login / Logout -->
+<div id="authDiv">
+  <button id="loginBtn">Login</button>
+  <button id="logoutBtn" class="hidden">Logout</button>
+  <span id="userLabel"></span>
+  <button id="editToggleBtn" style="float:right;">Edit</button>
 </div>
 
-<div id="sessionsDiv" class="section">
-  <button class="back-btn">← Back</button>
-  <div class="list-container">
-    <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-    <button id="addSessionBtn">Add Session</button>
-    <ul id="sessionList"></ul>
-  </div>
+<!-- Clients -->
+<div class="list-container section active-page" id="clientsDiv">
+  <h3>Clients</h3>
+  <button id="addClientBtn">Add Client</button>
+  <ul id="clientList"></ul>
 </div>
 
-<div id="exercisesDiv" class="section">
+<!-- Sessions -->
+<div class="list-container section hidden" id="sessionsDiv">
   <button class="back-btn">← Back</button>
-  <div class="list-container">
-    <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-    <button id="addExerciseBtn">Add Exercise</button>
-    <ul id="exerciseList"></ul>
-  </div>
+  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+  <button id="addSessionBtn">Add Session</button>
+  <ul id="sessionList"></ul>
 </div>
 
-<div id="setsDiv" class="section">
+<!-- Exercises -->
+<div class="list-container section hidden" id="exercisesDiv">
   <button class="back-btn">← Back</button>
-  <div class="list-container">
-    <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-    <button id="addSetBtn">Add Set</button>
-    <button id="showGraphBtn">Show Progress Graph</button>
-    <table id="setsTable">
-      <thead>
-        <tr><th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div id="graphDiv" style="width:100%;height:400px;"></div>
+  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+  <button id="addExerciseBtn">Add Exercise</button>
+  <ul id="exerciseList"></ul>
 </div>
+
+<!-- Sets -->
+<div class="list-container section hidden" id="setsDiv">
+  <button class="back-btn">← Back</button>
+  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+  <button id="addSetBtn">Add Set</button>
+  <button id="showGraphBtn">Show Progress Graph</button>
+  <table id="setsTable">
+    <thead>
+      <tr><th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="graphDiv" style="width:100%;height:400px;"></div>
 
 <script src="app.js"></script>
 <script>
+  // Login logic (unchanged)
   const modal = document.getElementById("loginModal");
   const modalLoginBtn = document.getElementById("modalLoginBtn");
   const loginBtn = document.getElementById("loginBtn");
@@ -247,25 +229,24 @@
   modalLoginBtn.onclick = async () => { try{ const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider);} catch(err){ alert("Login failed: "+err.message);} }
   logoutBtn.onclick = async () => { await auth.signOut(); }
 
+  // Back buttons and swipe gestures
   const sections = ['clientsDiv','sessionsDiv','exercisesDiv','setsDiv'];
   let currentIndex = 0;
-
   function showSection(index){
     if(index<0 || index>=sections.length) return;
     sections.forEach((id,i)=>{
       const el=document.getElementById(id);
       el.classList.remove('active-page','previous-page','next-page');
+      if(el.classList.contains('hidden')) el.classList.remove('hidden'); // make sure visible
       if(i<index) el.classList.add('previous-page');
       else if(i===index) el.classList.add('active-page');
       else el.classList.add('next-page');
     });
     currentIndex=index;
   }
-
   document.querySelectorAll('.back-btn').forEach(btn=>{
     btn.addEventListener('click',()=>showSection(currentIndex-1));
   });
-
   let touchStartX=0;
   document.addEventListener('touchstart', e=>touchStartX=e.changedTouches[0].screenX);
   document.addEventListener('touchend', e=>{
@@ -277,5 +258,6 @@
     }
   });
 </script>
+
 </body>
 </html>
