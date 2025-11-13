@@ -26,6 +26,11 @@ loginBtn.onclick = loginBtnLarge.onclick = async () => {
   }
 };
 
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     // Show main app, hide login
