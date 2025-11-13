@@ -22,7 +22,36 @@ const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
 
-loginBtn.onclick = async () => {
+const modal = document.getElementById("loginModal");
+const modalLoginBtn = document.getElementById("modalLoginBtn");
+
+// Show modal if user is not logged in
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    // Hide modal
+    modal.classList.add("hidden");
+    
+    loginBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
+    userLabel.textContent = `Logged in as ${user.displayName}`;
+    await loadUserJson();
+    renderClients();
+  } else {
+    // Show modal
+    modal.classList.remove("hidden");
+
+    loginBtn.classList.remove("hidden");
+    logoutBtn.classList.add("hidden");
+    userLabel.textContent = "";
+    clientsData = {};
+    selectedClient = null;
+    renderClients();
+    hideAllDetails();
+  }
+});
+
+// Login via modal button
+modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithPopup(provider);
@@ -31,9 +60,11 @@ loginBtn.onclick = async () => {
   }
 };
 
+// Keep logoutBtn as is
 logoutBtn.onclick = async () => {
   await auth.signOut();
 };
+
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
