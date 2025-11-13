@@ -1,203 +1,80 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Free Fit Tracker</title>
-
-  <!-- Firebase SDK -->
+  <title>Workout Tracker Web App</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
   <style>
-    /* General reset */
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-    body {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background: linear-gradient(135deg, #6D5BBA, #8D58BF);
-      color: #333;
-    }
-
-    /* Login overlay */
-    #loginScreen {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, rgba(109,91,186,0.9), rgba(141,88,191,0.9));
-      z-index: 9999;
-      transition: opacity 0.5s ease;
-    }
-
-    #loginScreen.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .modal {
-      background: #fff;
-      border-radius: 20px;
-      padding: 40px 30px;
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-      animation: fadeInScale 0.5s ease forwards;
-    }
-
-    @keyframes fadeInScale {
-      0% { opacity: 0; transform: scale(0.8); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    .modal h2 {
-      font-size: 1.8rem;
-      margin-bottom: 15px;
-      color: #333;
-    }
-
-    .modal p {
-      font-size: 1rem;
-      color: #555;
-      margin-bottom: 30px;
-    }
-
-    #loginBtnLarge {
-      background-color: #4285F4;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 25px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    #loginBtnLarge:hover {
-      background-color: #357ae8;
-      transform: scale(1.05);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-
-    /* Optional Google icon */
-    #loginBtnLarge::before {
-      content: url('https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg');
-      width: 20px;
-      height: 20px;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    /* Main App Container */
-    #appContainer {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      padding: 20px;
-      overflow-y: auto;
-      background: #f7f7f7;
-    }
-
-    #appContainer.visible {
-      display: flex;
-      animation: fadeIn 0.5s ease forwards;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    /* Responsive tables */
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 10px; text-align: center; border: 1px solid #ccc; font-size: 0.9rem; }
-    button { border: none; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
-    button:hover { opacity: 0.9; }
-
-    /* Mobile friendly */
-    @media (max-width: 500px) {
-      .modal { padding: 30px 20px; }
-      .modal h2 { font-size: 1.5rem; }
-      #loginBtnLarge { font-size: 1rem; padding: 10px 20px; }
-      th, td { padding: 8px; font-size: 0.8rem; }
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button, select { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    table, th, td { border: 1px solid black; padding: 5px; }
+    .hidden { display: none; }
+    .list-container { margin-bottom: 20px; }
+    .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+             background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+               background: rgba(0,0,0,0.5); z-index: 500; }
   </style>
 </head>
 <body>
 
-  <!-- Login Screen -->
-  <div id="loginScreen">
-    <div class="modal">
-      <h2>Welcome to Free Fit Tracker</h2>
-      <p>Sign in with Google to access your clients, workouts, and progress.</p>
-      <button id="loginBtnLarge">Sign in with Google</button>
-    </div>
-  </div>
+<h1>Workout Tracker Web App</h1>
 
-  <!-- Main App Container -->
-  <div id="appContainer">
-    <h1>Workout Tracker Web App</h1>
+<!-- Login / Logout -->
+<div id="authDiv">
+  <button id="loginBtn">Login</button>
+  <button id="logoutBtn" class="hidden">Logout</button>
+  <span id="userLabel"></span>
+  <button id="editToggleBtn" style="float:right;">Edit</button>
+</div>
 
-    <!-- Login / Logout -->
-    <div id="authDiv">
-      <button id="loginBtn">Login</button>
-      <button id="logoutBtn" class="hidden">Logout</button>
-      <span id="userLabel"></span>
-      <button id="editToggleBtn" style="float:right;">Edit</button>
-    </div>
+<!-- Clients -->
+<div class="list-container">
+  <h3>Clients</h3>
+  <button id="addClientBtn">Add Client</button>
+  <ul id="clientList"></ul>
+</div>
 
-    <!-- Clients -->
-    <div class="list-container">
-      <h3>Clients</h3>
-      <button id="addClientBtn">Add Client</button>
-      <ul id="clientList"></ul>
-    </div>
+<!-- Sessions -->
+<div class="list-container hidden" id="sessionsDiv">
+  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+  <button id="addSessionBtn">Add Session</button>
+  <ul id="sessionList"></ul>
+</div>
 
-    <!-- Sessions -->
-    <div class="list-container hidden" id="sessionsDiv">
-      <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-      <button id="addSessionBtn">Add Session</button>
-      <ul id="sessionList"></ul>
-    </div>
+<!-- Exercises -->
+<div class="list-container hidden" id="exercisesDiv">
+  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+  <button id="addExerciseBtn">Add Exercise</button>
+  <ul id="exerciseList"></ul>
+</div>
 
-    <!-- Exercises -->
-    <div class="list-container hidden" id="exercisesDiv">
-      <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-      <button id="addExerciseBtn">Add Exercise</button>
-      <ul id="exerciseList"></ul>
-    </div>
+<!-- Sets -->
+<div class="list-container hidden" id="setsDiv">
+  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+  <button id="addSetBtn">Add Set</button>
+  <button id="showGraphBtn">Show Progress Graph</button>
+  <table id="setsTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-    <!-- Sets -->
-    <div class="list-container hidden" id="setsDiv">
-      <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-      <button id="addSetBtn">Add Set</button>
-      <button id="showGraphBtn">Show Progress Graph</button>
-      <table id="setsTable">
-        <thead>
-          <tr>
-            <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+<!-- Graph -->
+<div id="graphDiv" style="width:100%;height:400px;"></div>
 
-    <!-- Graph -->
-    <div id="graphDiv" style="width:100%;height:400px;"></div>
-
-  </div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
