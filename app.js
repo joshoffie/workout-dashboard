@@ -22,6 +22,10 @@ const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
 
+// Connect modal button to existing login logic
+const loginBtnLarge = document.getElementById("loginBtnLarge");
+loginBtnLarge.onclick = () => loginBtn.click(); // reuse existing login logic
+
 loginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
