@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Workout Tracker Web App</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <style>
-  /* ===== GLOBAL STYLES ===== */
+<meta charset="UTF-8">
+<title>Workout Tracker Web App</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<style>
   :root {
     --color-bg: #f9fafb;
     --color-card: #ffffff;
@@ -18,64 +18,37 @@
     --color-muted: #777;
     --radius: 12px;
     --shadow: 0 4px 20px rgba(0,0,0,0.05);
-    --transition: 0.3s ease;
+    --transition: 0.4s ease;
   }
 
   body {
     font-family: 'Inter', Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
+    margin: 0; padding: 0;
     background: var(--color-bg);
     color: var(--color-text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center all content */
+    overflow-x: hidden;
   }
 
-  h1, h2, h3 {
-    margin: 0 0 10px 0;
-  }
+  h1,h2,h3 { text-align: center; margin: 0 0 10px; }
+  h1 { font-size: 3.5rem; font-weight: 600; margin-bottom: 30px; }
+  h2 { font-size: 2.5rem; font-weight: 600; }
+  h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; }
 
-  h1 { font-size: 3.5rem; font-weight: 600; margin-bottom: 30px; text-align: center; }
-  h2 { font-size: 2.5rem; font-weight: 600; text-align: center; }
-  h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; text-align: center; }
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: var(--radius); transition: all var(--transition); }
+  button:hover { filter: brightness(0.95); }
 
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    border-radius: var(--radius);
-    transition: all var(--transition);
+  /* ===== PAGE CONTAINERS ===== */
+  .page {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    transform: translateX(100%);
+    transition: transform 0.4s ease;
+    overflow-y: auto;
   }
-
-  button:hover {
-    filter: brightness(0.95);
-  }
-
-  /* ===== NAVIGATION ===== */
-  #authDiv {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 40px;
-    text-align: center;
-  }
-
-  #authDiv button {
-    padding: 14px 24px;
-    font-weight: 600;
-    margin: 5px;
-    font-size: 1.4rem;
-  }
-
-  #userLabel {
-    font-weight: 500;
-    color: var(--color-muted);
-    margin: 5px 10px;
-    font-size: 1.4rem;
-  }
+  .page.active { transform: translateX(0); z-index: 1; }
+  .page.previous { transform: translateX(-100%); z-index: 0; }
 
   /* ===== CARD CONTAINERS ===== */
   .list-container {
@@ -88,63 +61,28 @@
     max-width: 700px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* center content inside cards */
+    align-items: center;
   }
 
   .list-container ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+    list-style: none; padding: 0; margin: 0; width: 100%;
   }
-
   .list-container li {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
+    padding: 16px 20px; border-bottom: 1px solid #eee;
+    display: flex; justify-content: space-between; align-items: center; font-size: 1.4rem;
     transition: background var(--transition);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.4rem;
   }
-
-  .list-container li:hover {
-    background: #f0f4ff;
-  }
-
+  .list-container li:hover { background: #f0f4ff; }
   .list-container button {
-    margin-top: 15px;
-    background: var(--color-primary);
-    color: white;
-    padding: 14px 22px;
-    font-weight: 600;
-    font-size: 1.4rem;
+    margin-top: 15px; background: var(--color-primary); color: white;
+    padding: 14px 22px; font-weight: 600; font-size: 1.4rem;
   }
 
-  /* ===== TABLE STYLING ===== */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    font-size: 1.4rem;
-  }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 1.4rem; }
+  table th, table td { text-align: center; padding: 14px; border-bottom: 1px solid #eee; }
+  table th { background: #f5f6fa; font-weight: 600; }
+  table tr:hover { background: #f0f4ff; }
 
-  table th, table td {
-    text-align: center;
-    padding: 14px;
-    border-bottom: 1px solid #eee;
-  }
-
-  table th {
-    background: #f5f6fa;
-    font-weight: 600;
-  }
-
-  table tr:hover {
-    background: #f0f4ff;
-  }
-
-  /* ===== GRAPH ===== */
   #graphDiv {
     margin-top: 30px;
     background: var(--color-card);
@@ -155,44 +93,35 @@
     max-width: 700px;
   }
 
+  .back-btn {
+    align-self: flex-start;
+    margin-bottom: 20px;
+    background: var(--color-accent);
+    color: white;
+    padding: 12px 18px;
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
   /* ===== LOGIN MODAL ===== */
   .overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
   }
-
-  .overlay:not(.hidden) {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
+  .overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
   .modal {
     background: var(--color-card);
     border-radius: var(--radius);
-    padding: 140px 80px;
-    max-width: 600px;
-    width: 90%;
-    text-align: center;
-    box-shadow: var(--shadow);
-    position: relative;
+    padding: 140px 80px; max-width: 600px; width: 90%;
+    text-align: center; box-shadow: var(--shadow); position: relative;
   }
-
   .modal-logo {
-    width: 130px;
-    height: 130px;
-    margin-bottom: 30px;
+    width: 130px; height: 130px; margin-bottom: 30px;
     animation: dumbbellSwing 2s infinite ease-in-out;
   }
-
   @keyframes dumbbellSwing {
     0% { transform: rotate(0deg) scale(1); }
     25% { transform: rotate(-10deg) scale(1.05); }
@@ -200,111 +129,91 @@
     75% { transform: rotate(10deg) scale(1.05); }
     100% { transform: rotate(0deg) scale(1); }
   }
-
   .modal h2 { font-size: 58px; font-weight: 600; margin-bottom: 25px; }
   .modal-subtitle { font-size: 32px; color: var(--color-muted); margin-bottom: 55px; line-height: 1.6; }
-  #modalLoginBtn {
-    background: var(--color-primary);
-    color: white;
-    padding: 28px 40px;
-    font-size: 32px;
-    font-weight: 600;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    border-radius: var(--radius);
-  }
+  #modalLoginBtn { background: var(--color-primary); color: white; padding: 28px 40px; font-size: 32px; font-weight: 600; width: 100%; display: flex; justify-content: center; align-items: center; gap: 15px; border-radius: var(--radius); }
 
-  /* ===== RESPONSIVE MOBILE ===== */
-  @media(max-width: 480px){
-    body { padding: 15px; }
-    .modal { padding: 180px 30px; width: 95%; }
-    .modal-logo { width: 150px; height: 150px; }
-    .modal h2 { font-size: 50px; }
-    .modal-subtitle { font-size: 28px; }
-    #modalLoginBtn { font-size: 36px; padding: 32px 40px; }
+  @media(max-width:480px){
+    .page { padding: 15px; }
     .list-container { padding: 25px; }
     .list-container li { font-size: 1.6rem; padding: 18px 20px; }
     .list-container button { font-size: 1.6rem; padding: 16px 26px; }
     table th, table td { font-size: 1.6rem; padding: 16px; }
+    .back-btn { font-size: 1.5rem; padding: 16px 24px; }
   }
 </style>
-
 </head>
 <body>
 
 <h1>Workout Tracker Web App</h1>
 
-<!-- Login Modal -->
+<!-- LOGIN MODAL -->
 <div id="loginModal" class="overlay hidden">
   <div class="modal">
-    <div class="modal-content">
-      <!-- Dumbbell SVG -->
-      <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-        <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/>
-        <rect x="4" y="22" width="6" height="20" fill="#888" rx="1"/>
-        <rect x="0" y="26" width="4" height="12" fill="#bbb" rx="1"/>
-        <rect x="54" y="22" width="6" height="20" fill="#888" rx="1"/>
-        <rect x="60" y="26" width="4" height="12" fill="#bbb" rx="1"/>
-      </svg>
-      <h2>Welcome to Workout Tracker</h2>
-      <p class="modal-subtitle">Sign in with your Google account to manage your workouts and clients.</p>
-      <button id="modalLoginBtn">Login with Google</button>
-    </div>
+    <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/>
+      <rect x="4" y="22" width="6" height="20" fill="#888" rx="1"/>
+      <rect x="0" y="26" width="4" height="12" fill="#bbb" rx="1"/>
+      <rect x="54" y="22" width="6" height="20" fill="#888" rx="1"/>
+      <rect x="60" y="26" width="4" height="12" fill="#bbb" rx="1"/>
+    </svg>
+    <h2>Welcome to Workout Tracker</h2>
+    <p class="modal-subtitle">Sign in with your Google account to manage your workouts and clients.</p>
+    <button id="modalLoginBtn">Login with Google</button>
   </div>
 </div>
 
-<!-- Login / Logout -->
-<div id="authDiv">
-  <button id="loginBtn">Login</button>
-  <button id="logoutBtn" class="hidden">Logout</button>
-  <span id="userLabel"></span>
-  <button id="editToggleBtn" style="float:right;">Edit</button>
+<!-- PAGES -->
+<div id="page-clients" class="page active">
+  <div id="authDiv">
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" class="hidden">Logout</button>
+    <span id="userLabel"></span>
+  </div>
+  <div class="list-container">
+    <h3>Clients</h3>
+    <button id="addClientBtn">Add Client</button>
+    <ul id="clientList"></ul>
+  </div>
 </div>
 
-<!-- Clients -->
-<div class="list-container">
-  <h3>Clients</h3>
-  <button id="addClientBtn">Add Client</button>
-  <ul id="clientList"></ul>
+<div id="page-sessions" class="page">
+  <button class="back-btn" data-back="page-clients">← Back</button>
+  <div class="list-container" id="sessionsDiv">
+    <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+    <button id="addSessionBtn">Add Session</button>
+    <ul id="sessionList"></ul>
+  </div>
 </div>
 
-<!-- Sessions -->
-<div class="list-container hidden" id="sessionsDiv">
-  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-  <button id="addSessionBtn">Add Session</button>
-  <ul id="sessionList"></ul>
+<div id="page-exercises" class="page">
+  <button class="back-btn" data-back="page-sessions">← Back</button>
+  <div class="list-container" id="exercisesDiv">
+    <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+    <button id="addExerciseBtn">Add Exercise</button>
+    <ul id="exerciseList"></ul>
+  </div>
 </div>
 
-<!-- Exercises -->
-<div class="list-container hidden" id="exercisesDiv">
-  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-  <button id="addExerciseBtn">Add Exercise</button>
-  <ul id="exerciseList"></ul>
+<div id="page-sets" class="page">
+  <button class="back-btn" data-back="page-exercises">← Back</button>
+  <div class="list-container" id="setsDiv">
+    <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+    <button id="addSetBtn">Add Set</button>
+    <button id="showGraphBtn">Show Progress Graph</button>
+    <table id="setsTable">
+      <thead>
+        <tr><th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="graphDiv" style="width:100%;height:400px;"></div>
 </div>
-
-<!-- Sets -->
-<div class="list-container hidden" id="setsDiv">
-  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-  <button id="addSetBtn">Add Set</button>
-  <button id="showGraphBtn">Show Progress Graph</button>
-  <table id="setsTable">
-    <thead>
-      <tr>
-        <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-
-<!-- Graph -->
-<div id="graphDiv" style="width:100%;height:400px;"></div>
 
 <script src="app.js"></script>
 <script>
+  // LOGIN MODAL
   const modal = document.getElementById("loginModal");
   const modalLoginBtn = document.getElementById("modalLoginBtn");
   const loginBtn = document.getElementById("loginBtn");
@@ -332,18 +241,45 @@
   });
 
   modalLoginBtn.onclick = async () => {
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
-    } catch(err) {
-      alert("Login failed: " + err.message);
+    try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); }
+    catch(err) { alert("Login failed: " + err.message); }
+  };
+
+  logoutBtn.onclick = async () => { await auth.signOut(); };
+
+  // BACK BUTTONS
+  const pages = ["page-clients","page-sessions","page-exercises","page-sets"];
+  document.querySelectorAll('.back-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const current = btn.closest('.page');
+      const targetId = btn.dataset.back;
+      const target = document.getElementById(targetId);
+      current.classList.remove('active');
+      target.classList.add('active');
+    });
+  });
+
+  // SWIPE GESTURES
+  let touchStartX = 0;
+  let touchEndX = 0;
+  const SWIPE_THRESHOLD = 50;
+
+  document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    const deltaX = touchEndX - touchStartX;
+    if(Math.abs(deltaX) > SWIPE_THRESHOLD){
+      const activePage = document.querySelector('.page.active');
+      const currentIndex = pages.indexOf(activePage.id);
+      if(deltaX > 0 && currentIndex > 0){ // swipe right → back
+        activePage.classList.remove('active');
+        document.getElementById(pages[currentIndex-1]).classList.add('active');
+      } else if(deltaX < 0 && currentIndex < pages.length-1){ // swipe left → forward
+        activePage.classList.remove('active');
+        document.getElementById(pages[currentIndex+1]).classList.add('active');
+      }
     }
-  };
-
-  logoutBtn.onclick = async () => {
-    await auth.signOut();
-  };
+  });
 </script>
-
 </body>
 </html>
