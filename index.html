@@ -1,292 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Workout Tracker Web App</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <style>
-    /* ===== GLOBAL STYLES ===== */
-    :root {
-      --color-bg: #f9fafb;
-      --color-card: #ffffff;
-      --color-primary: #3366ff;
-      --color-accent: #ff7a59;
-      --color-text: #333;
-      --color-muted: #777;
-      --radius: 12px;
-      --shadow: 0 4px 20px rgba(0,0,0,0.05);
-      --transition: 0.3s ease;
-    }
-
-    body {
-      font-family: 'Inter', Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: var(--color-bg);
-      color: var(--color-text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h1, h2, h3 {
-      margin: 0 0 10px 0;
-    }
-
-    h1 { font-size: 3.5rem; font-weight: 600; margin-bottom: 30px; text-align: center; }
-    h2 { font-size: 2.5rem; font-weight: 600; text-align: center; }
-    h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; text-align: center; }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      border-radius: var(--radius);
-      transition: all var(--transition);
-    }
-
-    button:hover {
-      filter: brightness(0.95);
-    }
-
-    /* ===== NAVIGATION ===== */
-    #authDiv {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-
-    #authDiv button {
-      padding: 14px 24px;
-      font-weight: 600;
-      margin: 5px;
-      font-size: 1.4rem;
-    }
-
-    #userLabel {
-      font-weight: 500;
-      color: var(--color-muted);
-      margin: 5px 10px;
-      font-size: 1.4rem;
-    }
-
-    /* ===== CARD CONTAINERS ===== */
-    .screen {
-      width: 100%;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .hidden { display: none; }
-
-    .list-container {
-      background: var(--color-card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 30px;
-      margin-bottom: 25px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .list-container ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      width: 100%;
-    }
-
-    .list-container li {
-      padding: 16px 20px;
-      border-bottom: 1px solid #eee;
-      transition: background var(--transition);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 1.4rem;
-      cursor: pointer;
-    }
-
-    .list-container li:hover {
-      background: #f0f4ff;
-    }
-
-    .list-container button {
-      margin-top: 15px;
-      background: var(--color-primary);
-      color: white;
-      padding: 14px 22px;
-      font-weight: 600;
-      font-size: 1.4rem;
-    }
-
-    /* ===== TABLE STYLING ===== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 1.4rem;
-    }
-
-    table th, table td {
-      text-align: center;
-      padding: 14px;
-      border-bottom: 1px solid #eee;
-    }
-
-    table th {
-      background: #f5f6fa;
-      font-weight: 600;
-    }
-
-    table tr:hover {
-      background: #f0f4ff;
-    }
-
-    /* ===== GRAPH ===== */
-    #graphDiv {
-      margin-top: 30px;
-      background: var(--color-card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 15px;
-      width: 95%;
-      max-width: 700px;
-    }
-
-    /* ===== BACK BUTTON ===== */
-    .backBtn {
-      background: #ccc;
-      color: #333;
-      padding: 10px 20px;
-      font-size: 1.2rem;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      align-self: flex-start;
-    }
-
-    .backBtn:hover { background: #bbb; }
-
-    /* ===== LOGIN MODAL ===== */
-    .overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .overlay:not(.hidden) {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal {
-      background: var(--color-card);
-      border-radius: var(--radius);
-      padding: 140px 80px;
-      max-width: 600px;
-      width: 90%;
-      text-align: center;
-      box-shadow: var(--shadow);
-      position: relative;
-    }
-
-    .modal-logo {
-      width: 130px;
-      height: 130px;
-      margin-bottom: 30px;
-      animation: dumbbellSwing 2s infinite ease-in-out;
-    }
-
-    @keyframes dumbbellSwing {
-      0% { transform: rotate(0deg) scale(1); }
-      25% { transform: rotate(-10deg) scale(1.05); }
-      50% { transform: rotate(0deg) scale(1); }
-      75% { transform: rotate(10deg) scale(1.05); }
-      100% { transform: rotate(0deg) scale(1); }
-    }
-
-    .modal h2 { font-size: 58px; font-weight: 600; margin-bottom: 25px; }
-    .modal-subtitle { font-size: 32px; color: var(--color-muted); margin-bottom: 55px; line-height: 1.6; }
-    #modalLoginBtn {
-      background: var(--color-primary);
-      color: white;
-      padding: 28px 40px;
-      font-size: 32px;
-      font-weight: 600;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      border-radius: var(--radius);
-    }
-
-    /* ===== RESPONSIVE MOBILE ===== */
-    @media(max-width: 480px){
-      body { padding: 15px; }
-      .modal { padding: 180px 30px; width: 95%; }
-      .modal-logo { width: 150px; height: 150px; }
-      .modal h2 { font-size: 50px; }
-      .modal-subtitle { font-size: 28px; }
-      #modalLoginBtn { font-size: 36px; padding: 32px 40px; }
-      .list-container { padding: 25px; }
-      .list-container li { font-size: 1.6rem; padding: 18px 20px; }
-      .list-container button { font-size: 1.6rem; padding: 16px 26px; }
-      table th, table td { font-size: 1.6rem; padding: 16px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Workout Tracker Web App</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+/* ===== GLOBAL ===== */
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f9fafb;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h1 { font-size: 3rem; text-align: center; margin-bottom: 30px; }
+button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px; margin: 5px; font-size: 1.2rem; }
+button:hover { filter: brightness(0.95); }
+.list-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; width: 95%; max-width: 700px; display: flex; flex-direction: column; align-items: center; }
+.list-container ul { list-style: none; padding: 0; margin: 0; width: 100%; }
+.list-container li { padding: 14px 20px; border-bottom: 1px solid #eee; font-size: 1.2rem; cursor: pointer; }
+.list-container li:hover { background: #f0f4ff; }
+.screen { width: 100%; display: none; flex-direction: column; align-items: center; }
+.screen.active { display: flex; }
+.backBtn { background: #ccc; color: #333; padding: 10px 20px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; align-self: flex-start; }
+.backBtn:hover { background: #bbb; }
+#graphDiv { width: 95%; max-width: 700px; height: 400px; margin-top: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 15px; }
+.hidden { display: none; }
+</style>
 </head>
 <body>
 
 <h1>Workout Tracker Web App</h1>
 
-<!-- Login Modal -->
-<div id="loginModal" class="overlay hidden">
-  <div class="modal">
-    <div class="modal-content">
-      <!-- Dumbbell SVG -->
-      <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-        <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/>
-        <rect x="4" y="22" width="6" height="20" fill="#888" rx="1"/>
-        <rect x="0" y="26" width="4" height="12" fill="#bbb" rx="1"/>
-        <rect x="54" y="22" width="6" height="20" fill="#888" rx="1"/>
-        <rect x="60" y="26" width="4" height="12" fill="#bbb" rx="1"/>
-      </svg>
-      <h2>Welcome to Workout Tracker</h2>
-      <p class="modal-subtitle">Sign in with your Google account to manage your workouts and clients.</p>
-      <button id="modalLoginBtn">Login with Google</button>
-    </div>
-  </div>
-</div>
-
-<!-- Login / Logout -->
+<!-- Auth -->
 <div id="authDiv">
   <button id="loginBtn">Login</button>
   <button id="logoutBtn" class="hidden">Logout</button>
   <span id="userLabel"></span>
-  <button id="editToggleBtn" style="float:right;">Edit</button>
+  <button id="editToggleBtn">Edit</button>
 </div>
 
 <!-- Clients Screen -->
-<div class="screen" id="clientsScreen">
+<div class="screen active" id="clientsScreen">
   <div class="list-container">
     <h3>Clients</h3>
     <button id="addClientBtn">Add Client</button>
@@ -295,9 +56,9 @@
 </div>
 
 <!-- Sessions Screen -->
-<div class="screen hidden" id="sessionsScreen">
+<div class="screen" id="sessionsScreen">
   <div class="list-container">
-    <button class="backBtn">⬅ Back</button>
+    <button class="backBtn" id="backToClients">⬅ Back</button>
     <h3>Sessions for <span id="selectedClientLabel"></span></h3>
     <button id="addSessionBtn">Add Session</button>
     <ul id="sessionList"></ul>
@@ -305,9 +66,9 @@
 </div>
 
 <!-- Exercises Screen -->
-<div class="screen hidden" id="exercisesScreen">
+<div class="screen" id="exercisesScreen">
   <div class="list-container">
-    <button class="backBtn">⬅ Back</button>
+    <button class="backBtn" id="backToSessions">⬅ Back</button>
     <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
     <button id="addExerciseBtn">Add Exercise</button>
     <ul id="exerciseList"></ul>
@@ -315,9 +76,9 @@
 </div>
 
 <!-- Sets Screen -->
-<div class="screen hidden" id="setsScreen">
+<div class="screen" id="setsScreen">
   <div class="list-container">
-    <button class="backBtn">⬅ Back</button>
+    <button class="backBtn" id="backToExercises">⬅ Back</button>
     <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
     <button id="addSetBtn">Add Set</button>
     <button id="showGraphBtn">Show Progress Graph</button>
@@ -332,8 +93,7 @@
   </div>
 </div>
 
-<!-- Graph -->
-<div id="graphDiv" style="width:100%;height:400px;"></div>
+<div id="graphDiv"></div>
 
 <script src="app.js"></script>
 </body>
