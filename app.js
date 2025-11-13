@@ -8,6 +8,11 @@ const firebaseConfig = {
   appId: "1:797968203224:web:0409faf864741f9e5c86ad",
 };
 
+const loginScreen = document.getElementById("loginScreen");
+const loginBtnLarge = document.getElementById("loginBtnLarge");
+const mainApp = document.body; // We'll toggle visibility of everything else
+
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
