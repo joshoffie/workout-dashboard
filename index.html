@@ -2,111 +2,230 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-    <!-- Login Screen -->
-  <div id="loginScreen" class="overlay">
-    <div class="modal">
-      <h2>Welcome to Workout Tracker</h2>
-      <p>Please sign in with Google to continue.</p>
-      <button id="loginBtnLarge">Sign in with Google</button>
-    </div>
-  </div>
   <title>Free Fit Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
+    /* ---------- GLOBAL ---------- */
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Inter", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #101820, #2a5298);
+      color: #333;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1, h2, h3 { margin: 10px 0; }
     button, select { margin: 5px; padding: 5px; }
-    table { border-collapse: collapse; margin-top: 10px; }
-    table, th, td { border: 1px solid black; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 10px; width: 100%; }
+    table, th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
     .hidden { display: none; }
     .list-container { margin-bottom: 20px; }
-    .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-             background: #fff; border: 1px solid #ccc; padding: 20px; z-index: 1000; }
-    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-               background: rgba(0,0,0,0.5); z-index: 500; }
-        #loginScreen {
+
+    /* ---------- LOGIN SCREEN ---------- */
+    #loginScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(145deg, #2a5298, #1e3c72);
+      background-size: 200% 200%;
+      animation: bgShift 8s ease-in-out infinite alternate;
+      z-index: 1000;
+    }
+
+    @keyframes bgShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 40px 30px;
+      max-width: 350px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2a5298, #1e3c72);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 20px auto;
+      color: white;
+      font-size: 30px;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .login-title {
+      font-size: 1.4em;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 10px;
+    }
+
+    .login-subtitle {
+      font-size: 0.95em;
+      color: #555;
+      margin-bottom: 25px;
+    }
+
+    #loginBtnLarge {
+      padding: 12px 18px;
+      font-size: 16px;
+      color: #fff;
+      background: #4285F4;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s ease, background 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-    
-    #loginScreen.hidden {
-      display: none;
-    }
-    
-    #loginBtnLarge {
-      padding: 10px 20px;
-      background-color: #4285F4;
-      border: none;
-      color: white;
-      font-size: 16px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #loginBtnLarge:hover {
-      background-color: #357AE8;
+      gap: 10px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
     }
 
+    #loginBtnLarge:hover {
+      background: #357ae8;
+      transform: scale(1.03);
+    }
+
+    #loginBtnLarge:active {
+      transform: scale(0.98);
+    }
+
+    #loginBtnLarge img {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ---------- MAIN APP CONTAINER ---------- */
+    #appContainer {
+      padding: 20px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    #editToggleBtn {
+      background: #ddd;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    #editToggleBtn:hover { background: #ccc; }
+
+    @media (max-width: 600px) {
+      .login-card {
+        padding: 30px 20px;
+        border-radius: 16px;
+      }
+      .login-logo {
+        width: 65px;
+        height: 65px;
+        font-size: 26px;
+      }
+      #loginBtnLarge {
+        font-size: 15px;
+        padding: 10px;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div id="loginScreen" ...> ... </div>
+<!-- Login Screen -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">💪</div>
+    <div class="login-title">Free Fit Tracker</div>
+    <div class="login-subtitle">Track your clients, sessions, and progress easily.</div>
+    <button id="loginBtnLarge">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<!-- App Content -->
 <div id="appContainer" class="hidden">
 
-<h1>Workout Tracker Web App</h1>
+  <h1>Workout Tracker Web App</h1>
 
-<!-- Login / Logout -->
-<div id="authDiv">
-  <button id="loginBtn">Login</button>
-  <button id="logoutBtn" class="hidden">Logout</button>
-  <span id="userLabel"></span>
-  <button id="editToggleBtn" style="float:right;">Edit</button>
+  <!-- Login / Logout -->
+  <div id="authDiv">
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" class="hidden">Logout</button>
+    <span id="userLabel"></span>
+    <button id="editToggleBtn" style="float:right;">Edit</button>
+  </div>
+
+  <!-- Clients -->
+  <div class="list-container">
+    <h3>Clients</h3>
+    <button id="addClientBtn">Add Client</button>
+    <ul id="clientList"></ul>
+  </div>
+
+  <!-- Sessions -->
+  <div class="list-container hidden" id="sessionsDiv">
+    <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+    <button id="addSessionBtn">Add Session</button>
+    <ul id="sessionList"></ul>
+  </div>
+
+  <!-- Exercises -->
+  <div class="list-container hidden" id="exercisesDiv">
+    <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+    <button id="addExerciseBtn">Add Exercise</button>
+    <ul id="exerciseList"></ul>
+  </div>
+
+  <!-- Sets -->
+  <div class="list-container hidden" id="setsDiv">
+    <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+    <button id="addSetBtn">Add Set</button>
+    <button id="showGraphBtn">Show Progress Graph</button>
+    <table id="setsTable">
+      <thead>
+        <tr>
+          <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Graph -->
+  <div id="graphDiv" style="width:100%;height:400px;"></div>
 </div>
 
-<!-- Clients -->
-<div class="list-container">
-  <h3>Clients</h3>
-  <button id="addClientBtn">Add Client</button>
-  <ul id="clientList"></ul>
-</div>
-
-<!-- Sessions -->
-<div class="list-container hidden" id="sessionsDiv">
-  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-  <button id="addSessionBtn">Add Session</button>
-  <ul id="sessionList"></ul>
-</div>
-
-<!-- Exercises -->
-<div class="list-container hidden" id="exercisesDiv">
-  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-  <button id="addExerciseBtn">Add Exercise</button>
-  <ul id="exerciseList"></ul>
-</div>
-
-<!-- Sets -->
-<div class="list-container hidden" id="setsDiv">
-  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-  <button id="addSetBtn">Add Set</button>
-  <button id="showGraphBtn">Show Progress Graph</button>
-  <table id="setsTable">
-    <thead>
-      <tr>
-        <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-  
-<script src="app.js"></script>
-  
-<!-- Graph -->
-<div id="graphDiv" style="width:100%;height:400px;"></div>
-
+<!-- App Script -->
 <script src="app.js"></script>
 </body>
 </html>
