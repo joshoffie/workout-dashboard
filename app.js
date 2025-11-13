@@ -130,30 +130,57 @@ function selectSession(idx) {
 // ------------------ EXERCISES ------------------
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
-  if (!selectedSession) return alert("Select a session first");
+  if (!selectedSession) { alert("Select a session first"); return; }
   const name = prompt("Enter exercise name:");
   if (!name) return;
-  selectedSession.exercises.push({ exercise: name, sets: [] });
+  const ex = { exercise: name, sets: [] };
+  selectedSession.exercises.push(ex);
   saveUserJson();
   renderExercises();
 };
+
 function renderExercises() {
   exerciseList.innerHTML = "";
+  if (!selectedSession) return;
   selectedExercise = null;
   document.getElementById("selectedExerciseLabel").textContent = "";
+
   (selectedSession.exercises || []).forEach((ex, idx) => {
     const li = document.createElement("li");
     li.textContent = ex.exercise;
-    li.onclick = () => selectExercise(idx);
+    li.style.cursor = "pointer";
+
+    // Normal click → select exercise
+    li.onclick = () => {
+      if (editMode) return;
+      selectExercise(idx);
+    };
+
+    // Edit click → only in editMode
+    li.addEventListener("click", (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      const newVal = prompt("Edit Exercise:", li.textContent);
+      if (!newVal || newVal === li.textContent) return;
+      selectedSession.exercises[idx].exercise = newVal;
+      renderExercises();
+      saveUserJson();
+    });
+
     exerciseList.appendChild(li);
   });
+
+  // Make list editable if in edit mode
+  hookEditables();
 }
+
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
   renderSets();
-  showScreen("setsScreen");
+  showScreen("setsScreen"); // switch to sets screen for selected exercise
 }
+
 
 // ------------------ SETS ------------------
 const setsTable = docum
