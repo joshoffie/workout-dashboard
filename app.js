@@ -40,17 +40,37 @@ logoutBtn.onclick = async () => {
   await auth.signOut();
 };
 
+loginBtnLarge.onclick = async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
+};
+
+
 auth.onAuthStateChanged(async (user) => {
   if (user) {
+    // Hide login overlay, show main app
+    loginScreen.classList.add("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
+
     loginBtn.classList.add("hidden");
     logoutBtn.classList.remove("hidden");
     userLabel.textContent = `Logged in as ${user.displayName}`;
+
     await loadUserJson();
     renderClients();
   } else {
+    // Show login overlay, hide app
+    loginScreen.classList.remove("hidden");
+    document.getElementById("appContainer").classList.add("hidden");
+
     loginBtn.classList.remove("hidden");
     logoutBtn.classList.add("hidden");
     userLabel.textContent = "";
+
     clientsData = {};
     selectedClient = null;
     renderClients();
