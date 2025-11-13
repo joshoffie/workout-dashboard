@@ -8,6 +8,11 @@ const firebaseConfig = {
   appId: "1:797968203224:web:0409faf864741f9e5c86ad",
 };
 
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();   // 🔹 MUST define auth
+const db = firebase.firestore(); // 🔹 MUST define db
+
 const loginScreen = document.getElementById("loginScreen");
 const loginBtnLarge = document.getElementById("loginBtnLarge");
 const appContainer = document.getElementById("appContainer"); // now points to the correct div
@@ -25,10 +30,6 @@ loginBtn.onclick = loginBtnLarge.onclick = async () => {
     alert("Login failed: " + err.message);
   }
 };
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
 
 
 auth.onAuthStateChanged(async (user) => {
