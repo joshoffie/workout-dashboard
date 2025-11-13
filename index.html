@@ -7,243 +7,231 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
   <style>
-    /* ===== GLOBAL STYLES ===== */
-    :root {
-      --color-bg: #f9fafb;
-      --color-card: #ffffff;
-      --color-primary: #3366ff;
-      --color-accent: #ff7a59;
-      --color-text: #333;
-      --color-muted: #777;
-      --radius: 12px;
-      --shadow: 0 4px 20px rgba(0,0,0,0.05);
-      --transition: 0.3s ease;
-    }
+  /* ===== GLOBAL STYLES ===== */
+  :root {
+    --color-bg: #f9fafb;
+    --color-card: #ffffff;
+    --color-primary: #3366ff;
+    --color-accent: #ff7a59;
+    --color-text: #333;
+    --color-muted: #777;
+    --radius: 12px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.05);
+    --transition: 0.3s ease;
+  }
 
-    body {
-      font-family: 'Inter', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: var(--color-bg);
-      color: var(--color-text);
-      overflow-x: hidden;
-    }
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center all content */
+  }
 
-    /* ===== PAGE CONTAINERS ===== */
-    .page {
-      position: fixed;
-      top: 0;
-      left: 100%; /* start offscreen to the right */
-      width: 100vw;
-      height: 100vh;
-      background: var(--color-bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 20px;
-      transition: transform 0.4s ease, left 0s;
-      z-index: 0;
-      overflow-y: auto;
-    }
+  h1, h2, h3 {
+    margin: 0 0 10px 0;
+  }
 
-    .page.active {
-      left: 0;
-      transform: translateX(0);
-      z-index: 1;
-    }
+  h1 { font-size: 3.5rem; font-weight: 600; margin-bottom: 30px; text-align: center; }
+  h2 { font-size: 2.5rem; font-weight: 600; text-align: center; }
+  h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; text-align: center; }
 
-    .page.slide-left {
-      transform: translateX(-100%);
-    }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius);
+    transition: all var(--transition);
+  }
 
-    .page.slide-right {
-      transform: translateX(100%);
-    }
+  button:hover {
+    filter: brightness(0.95);
+  }
 
-    h1,h2,h3 {
-      margin: 0 0 10px 0;
-      text-align: center;
-    }
+  /* ===== NAVIGATION ===== */
+  #authDiv {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    text-align: center;
+  }
 
-    h1 { font-size: 3.5rem; font-weight: 600; margin-bottom: 30px; }
-    h2 { font-size: 2.5rem; font-weight: 600; }
-    h3 { font-size: 2rem; font-weight: 500; margin-bottom: 15px; }
+  #authDiv button {
+    padding: 14px 24px;
+    font-weight: 600;
+    margin: 5px;
+    font-size: 1.4rem;
+  }
 
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      border-radius: var(--radius);
-      transition: all var(--transition);
-    }
+  #userLabel {
+    font-weight: 500;
+    color: var(--color-muted);
+    margin: 5px 10px;
+    font-size: 1.4rem;
+  }
 
-    button:hover {
-      filter: brightness(0.95);
-    }
+  /* ===== CARD CONTAINERS ===== */
+  .list-container {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 30px;
+    margin-bottom: 25px;
+    width: 95%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center content inside cards */
+  }
 
-    /* ===== CARD CONTAINERS ===== */
-    .list-container {
-      background: var(--color-card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 30px;
-      margin-bottom: 25px;
-      width: 95%;
-      max-width: 700px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+  .list-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
 
-    .list-container ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      width: 100%;
-    }
+  .list-container li {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+    transition: background var(--transition);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.4rem;
+  }
 
-    .list-container li {
-      padding: 16px 20px;
-      border-bottom: 1px solid #eee;
-      transition: background var(--transition);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 1.4rem;
-    }
+  .list-container li:hover {
+    background: #f0f4ff;
+  }
 
-    .list-container li:hover {
-      background: #f0f4ff;
-    }
+  .list-container button {
+    margin-top: 15px;
+    background: var(--color-primary);
+    color: white;
+    padding: 14px 22px;
+    font-weight: 600;
+    font-size: 1.4rem;
+  }
 
-    .list-container button {
-      margin-top: 15px;
-      background: var(--color-primary);
-      color: white;
-      padding: 14px 22px;
-      font-weight: 600;
-      font-size: 1.4rem;
-    }
+  /* ===== TABLE STYLING ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 1.4rem;
+  }
 
-    /* ===== TABLE STYLING ===== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 1.4rem;
-    }
+  table th, table td {
+    text-align: center;
+    padding: 14px;
+    border-bottom: 1px solid #eee;
+  }
 
-    table th, table td {
-      text-align: center;
-      padding: 14px;
-      border-bottom: 1px solid #eee;
-    }
+  table th {
+    background: #f5f6fa;
+    font-weight: 600;
+  }
 
-    table th {
-      background: #f5f6fa;
-      font-weight: 600;
-    }
+  table tr:hover {
+    background: #f0f4ff;
+  }
 
-    table tr:hover {
-      background: #f0f4ff;
-    }
+  /* ===== GRAPH ===== */
+  #graphDiv {
+    margin-top: 30px;
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 15px;
+    width: 95%;
+    max-width: 700px;
+  }
 
-    /* ===== GRAPH ===== */
-    #graphDiv {
-      margin-top: 30px;
-      background: var(--color-card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 15px;
-      width: 95%;
-      max-width: 700px;
-    }
+  /* ===== LOGIN MODAL ===== */
+  .overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
 
-    /* ===== BACK BUTTON ===== */
-    .back-btn {
-      align-self: flex-start;
-      margin-bottom: 20px;
-      background: var(--color-accent);
-      color: white;
-      padding: 12px 18px;
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
+  .overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
-    /* ===== LOGIN MODAL ===== */
-    .overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
+  .modal {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    padding: 140px 80px;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
 
-    .overlay:not(.hidden) {
-      opacity: 1;
-      pointer-events: auto;
-    }
+  .modal-logo {
+    width: 130px;
+    height: 130px;
+    margin-bottom: 30px;
+    animation: dumbbellSwing 2s infinite ease-in-out;
+  }
 
-    .modal {
-      background: var(--color-card);
-      border-radius: var(--radius);
-      padding: 140px 80px;
-      max-width: 600px;
-      width: 90%;
-      text-align: center;
-      box-shadow: var(--shadow);
-      position: relative;
-    }
+  @keyframes dumbbellSwing {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-10deg) scale(1.05); }
+    50% { transform: rotate(0deg) scale(1); }
+    75% { transform: rotate(10deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
 
-    .modal-logo {
-      width: 130px;
-      height: 130px;
-      margin-bottom: 30px;
-      animation: dumbbellSwing 2s infinite ease-in-out;
-    }
+  .modal h2 { font-size: 58px; font-weight: 600; margin-bottom: 25px; }
+  .modal-subtitle { font-size: 32px; color: var(--color-muted); margin-bottom: 55px; line-height: 1.6; }
+  #modalLoginBtn {
+    background: var(--color-primary);
+    color: white;
+    padding: 28px 40px;
+    font-size: 32px;
+    font-weight: 600;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    border-radius: var(--radius);
+  }
 
-    @keyframes dumbbellSwing {
-      0% { transform: rotate(0deg) scale(1); }
-      25% { transform: rotate(-10deg) scale(1.05); }
-      50% { transform: rotate(0deg) scale(1); }
-      75% { transform: rotate(10deg) scale(1.05); }
-      100% { transform: rotate(0deg) scale(1); }
-    }
+  /* ===== RESPONSIVE MOBILE ===== */
+  @media(max-width: 480px){
+    body { padding: 15px; }
+    .modal { padding: 180px 30px; width: 95%; }
+    .modal-logo { width: 150px; height: 150px; }
+    .modal h2 { font-size: 50px; }
+    .modal-subtitle { font-size: 28px; }
+    #modalLoginBtn { font-size: 36px; padding: 32px 40px; }
+    .list-container { padding: 25px; }
+    .list-container li { font-size: 1.6rem; padding: 18px 20px; }
+    .list-container button { font-size: 1.6rem; padding: 16px 26px; }
+    table th, table td { font-size: 1.6rem; padding: 16px; }
+  }
+</style>
 
-    .modal h2 { font-size: 58px; font-weight: 600; margin-bottom: 25px; }
-    .modal-subtitle { font-size: 32px; color: var(--color-muted); margin-bottom: 55px; line-height: 1.6; }
-    #modalLoginBtn {
-      background: var(--color-primary);
-      color: white;
-      padding: 28px 40px;
-      font-size: 32px;
-      font-weight: 600;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      border-radius: var(--radius);
-    }
-
-    @media(max-width:480px){
-      .page { padding: 15px; }
-      .list-container { padding: 25px; }
-      .list-container li { font-size: 1.6rem; padding: 18px 20px; }
-      .list-container button { font-size: 1.6rem; padding: 16px 26px; }
-      table th, table td { font-size: 1.6rem; padding: 16px; }
-      .back-btn { font-size: 1.5rem; padding: 16px 24px; }
-    }
-  </style>
 </head>
 <body>
 
@@ -253,6 +241,7 @@
 <div id="loginModal" class="overlay hidden">
   <div class="modal">
     <div class="modal-content">
+      <!-- Dumbbell SVG -->
       <svg class="modal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
         <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/>
         <rect x="4" y="22" width="6" height="20" fill="#888" rx="1"/>
@@ -267,60 +256,55 @@
   </div>
 </div>
 
-<!-- Pages -->
-<div id="page-clients" class="page active">
-  <div id="authDiv">
-    <button id="loginBtn">Login</button>
-    <button id="logoutBtn" class="hidden">Logout</button>
-    <span id="userLabel"></span>
-  </div>
-  <div class="list-container">
-    <h3>Clients</h3>
-    <button id="addClientBtn">Add Client</button>
-    <ul id="clientList"></ul>
-  </div>
+<!-- Login / Logout -->
+<div id="authDiv">
+  <button id="loginBtn">Login</button>
+  <button id="logoutBtn" class="hidden">Logout</button>
+  <span id="userLabel"></span>
+  <button id="editToggleBtn" style="float:right;">Edit</button>
 </div>
 
-<div id="page-sessions" class="page">
-  <button class="back-btn" data-back="page-clients">← Back</button>
-  <div class="list-container" id="sessionsDiv">
-    <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-    <button id="addSessionBtn">Add Session</button>
-    <ul id="sessionList"></ul>
-  </div>
+<!-- Clients -->
+<div class="list-container">
+  <h3>Clients</h3>
+  <button id="addClientBtn">Add Client</button>
+  <ul id="clientList"></ul>
 </div>
 
-<div id="page-exercises" class="page">
-  <button class="back-btn" data-back="page-sessions">← Back</button>
-  <div class="list-container" id="exercisesDiv">
-    <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-    <button id="addExerciseBtn">Add Exercise</button>
-    <ul id="exerciseList"></ul>
-  </div>
+<!-- Sessions -->
+<div class="list-container hidden" id="sessionsDiv">
+  <h3>Sessions for <span id="selectedClientLabel"></span></h3>
+  <button id="addSessionBtn">Add Session</button>
+  <ul id="sessionList"></ul>
 </div>
 
-<div id="page-sets" class="page">
-  <button class="back-btn" data-back="page-exercises">← Back</button>
-  <div class="list-container" id="setsDiv">
-    <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-    <button id="addSetBtn">Add Set</button>
-    <button id="showGraphBtn">Show Progress Graph</button>
-    <table id="setsTable">
-      <thead>
-        <tr>
-          <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div id="graphDiv" style="width:100%;height:400px;"></div>
+<!-- Exercises -->
+<div class="list-container hidden" id="exercisesDiv">
+  <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
+  <button id="addExerciseBtn">Add Exercise</button>
+  <ul id="exerciseList"></ul>
 </div>
+
+<!-- Sets -->
+<div class="list-container hidden" id="setsDiv">
+  <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
+  <button id="addSetBtn">Add Set</button>
+  <button id="showGraphBtn">Show Progress Graph</button>
+  <table id="setsTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Graph -->
+<div id="graphDiv" style="width:100%;height:400px;"></div>
 
 <script src="app.js"></script>
-
 <script>
-  // LOGIN MODAL
   const modal = document.getElementById("loginModal");
   const modalLoginBtn = document.getElementById("modalLoginBtn");
   const loginBtn = document.getElementById("loginBtn");
@@ -359,19 +343,6 @@
   logoutBtn.onclick = async () => {
     await auth.signOut();
   };
-
-  // BACK BUTTONS
-  document.querySelectorAll('.back-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const currentPage = btn.closest('.page');
-      const targetId = btn.dataset.back;
-      const targetPage = document.getElementById(targetId);
-      currentPage.classList.remove('active');
-      targetPage.classList.add('active');
-    });
-  });
-
-  // TODO: Swipe gestures can be added later
 </script>
 
 </body>
