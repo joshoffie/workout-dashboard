@@ -1,96 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Workout Tracker Web App</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<style>
-/* ===== GLOBAL ===== */
-body {
-  font-family: 'Inter', Arial, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background: #f9fafb;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-h1 { font-size: 3rem; text-align: center; margin-bottom: 30px; }
-button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px; margin: 5px; font-size: 1.2rem; }
-button:hover { filter: brightness(0.95); }
-.list-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; width: 95%; max-width: 700px; display: flex; flex-direction: column; align-items: center; }
-.list-container ul { list-style: none; padding: 0; margin: 0; width: 100%; }
-.list-container li { padding: 14px 20px; border-bottom: 1px solid #eee; font-size: 1.2rem; cursor: pointer; }
-.list-container li:hover { background: #f0f4ff; }
-.screen { width: 100%; display: none; flex-direction: column; align-items: center; }
-.screen.active { display: flex; }
-.backBtn { background: #ccc; color: #333; padding: 10px 20px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; align-self: flex-start; }
-.backBtn:hover { background: #bbb; }
-#graphDiv { width: 95%; max-width: 700px; height: 400px; margin-top: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 15px; }
-.hidden { display: none; }
-</style>
+  <meta charset="UTF-8">
+  <title>Workout Tracker Fullscreen</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { margin:0; font-family: 'Inter', Arial, sans-serif; background:#f9fafb; }
+    .screen { display:none; width:100vw; height:100vh; padding:30px; box-sizing:border-box; overflow:auto; background:#fff; }
+    .screen.active { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+    h1,h2,h3 { margin:0 0 20px 0; text-align:center; }
+    ul { list-style:none; padding:0; width:100%; max-width:700px; }
+    li { padding:14px 20px; border-bottom:1px solid #eee; cursor:pointer; display:flex; justify-content:space-between; }
+    li:hover { background:#f0f4ff; }
+    button { padding:12px 20px; margin:5px; border:none; border-radius:8px; cursor:pointer; background:#3366ff; color:#fff; font-size:1.2rem; }
+    button.backBtn { background:#777; }
+    table { width:100%; max-width:700px; border-collapse:collapse; margin-top:20px; }
+    th,td { padding:12px; border-bottom:1px solid #eee; text-align:center; }
+    th { background:#f5f6fa; }
+    #graphDiv { width:95%; max-width:700px; height:400px; margin-top:20px; }
+  </style>
 </head>
 <body>
 
-<h1>Workout Tracker Web App</h1>
-
-<!-- Auth -->
-<div id="authDiv">
-  <button id="loginBtn">Login</button>
-  <button id="logoutBtn" class="hidden">Logout</button>
-  <span id="userLabel"></span>
-  <button id="editToggleBtn">Edit</button>
+<!-- ================= LOGIN SCREEN ================= -->
+<div class="screen active" id="loginScreen">
+  <h1>Workout Tracker</h1>
+  <button id="modalLoginBtn">Login with Google</button>
 </div>
 
-<!-- Clients Screen -->
-<div class="screen active" id="clientsScreen">
-  <div class="list-container">
-    <h3>Clients</h3>
-    <button id="addClientBtn">Add Client</button>
-    <ul id="clientList"></ul>
-  </div>
+<!-- ================= CLIENTS SCREEN ================= -->
+<div class="screen" id="clientsScreen">
+  <h2>Clients</h2>
+  <button id="addClientBtn">Add Client</button>
+  <ul id="clientList"></ul>
 </div>
 
-<!-- Sessions Screen -->
+<!-- ================= SESSIONS SCREEN ================= -->
 <div class="screen" id="sessionsScreen">
-  <div class="list-container">
-    <button class="backBtn" id="backToClients">⬅ Back</button>
-    <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-    <button id="addSessionBtn">Add Session</button>
-    <ul id="sessionList"></ul>
-  </div>
+  <h2>Sessions for <span id="selectedClientLabel"></span></h2>
+  <button class="backBtn" id="backToClientsBtn">Back</button>
+  <button id="addSessionBtn">Add Session</button>
+  <ul id="sessionList"></ul>
 </div>
 
-<!-- Exercises Screen -->
+<!-- ================= EXERCISES SCREEN ================= -->
 <div class="screen" id="exercisesScreen">
-  <div class="list-container">
-    <button class="backBtn" id="backToSessions">⬅ Back</button>
-    <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-    <button id="addExerciseBtn">Add Exercise</button>
-    <ul id="exerciseList"></ul>
-  </div>
+  <h2>Exercises for <span id="selectedSessionLabel"></span></h2>
+  <button class="backBtn" id="backToSessionsBtn">Back</button>
+  <button id="addExerciseBtn">Add Exercise</button>
+  <ul id="exerciseList"></ul>
 </div>
 
-<!-- Sets Screen -->
+<!-- ================= SETS SCREEN ================= -->
 <div class="screen" id="setsScreen">
-  <div class="list-container">
-    <button class="backBtn" id="backToExercises">⬅ Back</button>
-    <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-    <button id="addSetBtn">Add Set</button>
-    <button id="showGraphBtn">Show Progress Graph</button>
-    <table id="setsTable">
-      <thead>
-        <tr>
-          <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h2>Sets for <span id="selectedExerciseLabel"></span></h2>
+  <button class="backBtn" id="backToExercisesBtn">Back</button>
+  <button id="addSetBtn">Add Set</button>
+  <button id="showGraphBtn">Show Graph</button>
+  <table id="setsTable">
+    <thead>
+      <tr><th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <div id="graphDiv"></div>
