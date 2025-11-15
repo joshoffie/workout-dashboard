@@ -24,9 +24,9 @@
 
   <!-- Login Modal -->
   <div id="loginModal" class="overlay hidden">
+    <!-- ... (rest of your login modal is unchanged) ... -->
     <div class="modal">
       <div class="modal-content">
-        <!-- Spiral Animation -->
         <div class="modal-logo">
             <svg class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <path class="spiral-path"
@@ -53,6 +53,7 @@
 
   <!-- Main App Header -->
   <header class="app-header">
+    <!-- ... (unchanged) ... -->
     <div class="header-content">
       <h1>MyWorkout</h1>
       <div id="authDiv" class="auth-controls">
@@ -67,7 +68,7 @@
   <!-- App Content -->
   <main class="app-container">
     
-    <!-- Clients -->
+    <!-- ... (Clients, Sessions, Exercises screens are unchanged) ... -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
         <h3>Clients</h3>
@@ -76,7 +77,6 @@
       <ul id="clientList" class="item-list"></ul>
     </section>
 
-    <!-- Sessions -->
     <section class="screen hidden" id="sessionsDiv">
       <div class="card-header">
         <button id="backToClientsBtn" class="btn-back">&lt; Back</button>
@@ -86,7 +86,6 @@
       <ul id="sessionList" class="item-list"></ul>
     </section>
 
-    <!-- Exercises -->
     <section class="screen hidden" id="exercisesDiv">
       <div class="card-header">
         <button id="backToSessionsBtn" class="btn-back">&lt; Back</button>
@@ -111,6 +110,7 @@
           <thead>
             <tr>
               <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+              <th></th> <!-- <-- ADDED: Empty header for delete button -->
             </tr>
           </thead>
           <tbody></tbody>
@@ -120,12 +120,31 @@
 
     <!-- Graph -->
     <section class="screen hidden" id="graphContainer">
+       <!-- ... (unchanged) ... -->
        <div class="card-header">
          <button id="backToSetsFromGraphBtn" class="btn-back">&lt; Back</button>
          <h3>Progress Graph</h3>
        </div>
        <div id="graphDiv"></div>
     </section>
+
+    <!-- 
+      =====================================================
+      NEW DELETE CONFIRMATION MODAL
+      =====================================================
+    -->
+    <div id="deleteModal" class="overlay hidden">
+      <div class="delete-modal">
+        <h2>Are you sure?</h2>
+        <p id="deleteModalMessage">This action cannot be undone.</p>
+        <div class="delete-modal-actions">
+          <button id="deleteCancelBtn" class="btn btn-tertiary">Cancel</button>
+          <button id="deleteConfirmBtn" class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===================================================== -->
+
 
   </main>
 
