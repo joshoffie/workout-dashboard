@@ -225,7 +225,6 @@ function renderSessions() {
   if (!selectedClient) return;
   selectedSession = null;
   document.getElementById("selectedSessionLabel").textContent = "";
-  document.getElementById("exercisesDiv").classList.add("hidden");
 
   const sessions = clientsData[selectedClient].sessions || [];
   sessions.forEach((sess, idx) => {
@@ -281,7 +280,6 @@ function renderExercises() {
   if (!selectedSession) return;
   selectedExercise = null;
   document.getElementById("selectedExerciseLabel").textContent = "";
-  document.getElementById("setsDiv").classList.add("hidden");
 
   selectedSession.exercises.forEach((ex, idx) => {
     const li = document.createElement("li");
