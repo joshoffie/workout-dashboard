@@ -200,22 +200,26 @@ async function saveUserJson() {
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
+  // INSIDE renderClients()
   for (const name in clientsData) {
     const li = document.createElement("li");
-    li.textContent = name;
     li.style.cursor = "pointer";
 
-    // Normal click → select client
+    // 1. Create a span for the editable text
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = name;
+    
+    // 2. Add click listener to the *entire li* for non-edit mode
     li.onclick = (e) => {
-      // Stop the click if we're in edit mode
+      // If we're in edit mode, stop. The 'makeEditable' listener on the span will handle it.
       if (editMode) {
-        e.stopPropagation();
+        e.stopPropagation(); 
         return;
       }
       selectClient(name);
     };
 
-    // --- ADD THIS DELETE BUTTON LOGIC ---
+    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;'; // 'x' icon
@@ -231,9 +235,11 @@ function renderClients() {
         }
       });
     };
-    li.appendChild(deleteBtn);
-    // --- END ADD ---
 
+    // 4. Append the new span and the button
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    
     clientList.appendChild(li);
   }
   // After rendering, hook listeners
@@ -281,10 +287,13 @@ function renderSessions() {
   const sessions = clientsData[selectedClient]?.sessions || [];
   sessions.forEach((sess, idx) => {
     const li = document.createElement("li");
-    li.textContent = sess.session_name;
     li.style.cursor = "pointer";
 
-    // Normal click → select session
+    // 1. Create a span for the editable text
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = sess.session_name;
+
+    // 2. Add click listener to the *entire li* for non-edit mode
     li.onclick = (e) => {
       if (editMode) {
         e.stopPropagation();
@@ -293,7 +302,7 @@ function renderSessions() {
       selectSession(idx);
     };
 
-    // --- ADD THIS DELETE BUTTON LOGIC ---
+    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -309,9 +318,11 @@ function renderSessions() {
         }
       });
     };
-    li.appendChild(deleteBtn);
-    // --- END ADD ---
 
+    // 4. Append the new span and the button
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    
     sessionList.appendChild(li);
   });
   // After rendering, hook listeners
@@ -346,12 +357,16 @@ function renderExercises() {
   selectedExercise = null;
   document.getElementById("selectedExerciseLabel").textContent = "";
 
+  // INSIDE renderExercises()
   selectedSession.exercises.forEach((ex, idx) => {
     const li = document.createElement("li");
-    li.textContent = ex.exercise;
     li.style.cursor = "pointer";
 
-    // Normal click → select exercise
+    // 1. Create a span for the editable text
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = ex.exercise;
+
+    // 2. Add click listener to the *entire li* for non-edit mode
     li.onclick = (e) => {
       if (editMode) {
         e.stopPropagation();
@@ -360,7 +375,7 @@ function renderExercises() {
       selectExercise(idx);
     };
 
-    // --- ADD THIS DELETE BUTTON LOGIC ---
+    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -376,8 +391,10 @@ function renderExercises() {
         }
       });
     };
+
+    // 4. Append the new span and the button
+    li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
-    // --- END ADD ---
 
     exerciseList.appendChild(li);
   });
@@ -611,19 +628,16 @@ function makeEditable(element, type, parentIdx = null) {
   });
 }
 
-
 // ------------------ HOOK EDITABLES ------------------
 function hookEditables() {
   // Clients
-  document.querySelectorAll("#clientList li").forEach(li => makeEditable(li, "Client"));
-
+  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
   // Sessions
-  document.querySelectorAll("#sessionList li").forEach((li, idx) => makeEditable(li, "Session"));
-
+  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
   // Exercises
-  document.querySelectorAll("#exerciseList li").forEach((li, idx) => makeEditable(li, "Exercise"));
-
-  // Sets table
+  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
+  
+  // Sets table (This part was correct, leave it as is)
   setsTable.querySelectorAll("tr").forEach((tr, idx) => {
     const tds = tr.querySelectorAll("td");
     makeEditable(tds[1], "SetReps", idx);
