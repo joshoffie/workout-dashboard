@@ -271,12 +271,13 @@ function renderSessions() {
 }
 
 
+// THIS IS THE FIXED FUNCTION
 function selectSession(idx) {
-  selectedSession = clientsData[selectedClient].sessions[idx];
-  selectedExercise = null;
-  document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
-  renderExercises();
-  navigateTo(SCREENS.SESSIONS, 'forward');
+  selectedSession = clientsData[selectedClient].sessions[idx];
+  selectedExercise = null;
+  document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'forward'); // <-- THIS IS THE FIX
 }
 
 // ------------------ EXERCISES ------------------
