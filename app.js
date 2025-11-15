@@ -541,7 +541,6 @@ document.getElementById("addSetBtn").onclick = () => {
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
 
-// REPLACE your old editToggleBtn.onclick with this:
 editToggleBtn.onclick = () => {
   editMode = !editMode;
   editToggleBtn.textContent = editMode ? "Done" : "Edit";
@@ -554,15 +553,6 @@ editToggleBtn.onclick = () => {
     // Done pressed → save changes automatically
     saveUserJson();
   }
-};
-
-  // Optional: subtle background color change
-  document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
-
-  if (!editMode) {
-    // Done pressed → save changes automatically
-    saveUserJson();
-  }
 };
 
 
