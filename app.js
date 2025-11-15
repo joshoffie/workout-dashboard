@@ -67,18 +67,29 @@ function navigateTo(targetScreenId, direction = 'forward') {
   }, { once: true });
 }
 
+
 // --- Wire up the new Back Buttons ---
 document.getElementById('backToClientsBtn').onclick = () => {
-  navigateTo(SCREENS.CLIENTS, 'back');
+  // Reset all state when going to main screen
+  selectedClient = null;
+  selectedSession = null;
+  selectedExercise = null;
+  navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
-  navigateTo(SCREENS.SESSIONS, 'back');
+  // Reset downstream state
+  selectedSession = null;
+  selectedExercise = null;
+  navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
-  navigateTo(SCREENS.SETS, 'back');
+  // Reset downstream state
+  selectedExercise = null;
+  navigateTo(SCREENS.EXERCISES, 'back'); // <-- FIX: This was targeting the wrong screen
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
-  navigateTo(SCREENS.SETS, 'back');
+  // No state to reset, just navigate
+  navigateTo(SCREENS.SETS, 'back');
 };
 
 // ------------------ AUTH ------------------
