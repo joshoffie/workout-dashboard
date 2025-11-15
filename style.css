@@ -1,24 +1,35 @@
-/* ===== GLOBAL RESET & VARIABLES ===== */
+/* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
-  --color-primary: #007aff;
-  --color-primary-light: #f0f7ff;
-  --color-secondary: #e5e5ea;
-  --color-bg: #f9f9f9;
-  --color-card: #ffffff;
-  --color-text: #1c1c1e;
-  --color-text-muted: #8a8a8e;
-  --color-border: #e5e5ea;
+  /* Dark Mode Palette */
+  --color-bg: #101010; /* Main background */
+  --color-card: #1c1c1c; /* Card/Header background */
+  --color-text: #f0f0f0; /* Primary text */
+  --color-text-muted: #8a8a8e; /* Softer text */
+  --color-border: #333333; /* Borders */
+  
+  /* Vibrant Accent (Inspired by Hevy/Setgraph) */
+  --color-primary: #007aff; /* Kept your blue, it's clean */
+  --color-primary-light: rgba(0, 122, 255, 0.1); /* Light blue for hover */
+  --color-secondary: #333333; /* Darker secondary button */
+
+  /* Gradient for "Add" buttons */
+  --grad-primary: linear-gradient(90deg, #007aff, #00A3FF);
+
+  /* Greys */
   --color-red: #ff3b30;
-  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-overlay: rgba(0, 0, 0, 0.7);
   
   --radius-sm: 8px;
   --radius-md: 12px;
-  --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   --transition: 0.2s ease;
   
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  
+  /* Smooth scrolling for native feel */
+  scroll-behavior: smooth;
 }
 
 * {
@@ -63,23 +74,61 @@ body {
   width: 90%;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
 }
+
+/* --- New Spiral Animation Styles --- */
+/* This came from your index.html, moved here for cleanliness */
 .modal-logo {
-  width: 60px;
-  height: 60px;
-  margin-bottom: 1.5rem;
-  animation: dumbbellSwing 2s infinite ease-in-out;
+  width: 100px; 
+  height: 100px;
+  margin: 0 auto 1.5rem auto; /* Centered */
+  position: relative;
 }
-@keyframes dumbbellSwing {
-  0%, 50%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(-10deg) scale(1.05); }
-  75% { transform: rotate(10deg) scale(1.05); }
+.tree-animation-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  viewBox: 0 0 100 100;
+  overflow: visible; 
 }
+.spiral-path {
+  fill: none;
+  stroke: var(--color-primary); /* <-- STYLED FOR DARK MODE */
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1200; 
+  stroke-dashoffset: 1200;
+  transform-origin: 50px 50px;
+  animation: drawSpiral 4s ease-in-out infinite;
+}
+@keyframes drawSpiral {
+  0% {
+      stroke-dashoffset: 1200; 
+      stroke-width: 2;
+      transform: scale(1);
+  }
+  50% {
+      stroke-dashoffset: 0; 
+      stroke-width: 5;
+      transform: scale(1.2);
+  }
+  100% {
+      stroke-dashoffset: 1200;
+      stroke-width: 2;
+      transform: scale(1);
+  }
+}
+/* --- End of Spiral Styles --- */
+
 .modal h2 {
   font-size: 1.75rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--color-text);
 }
 .modal-subtitle {
   font-size: 1rem;
@@ -87,7 +136,7 @@ body {
   margin-bottom: 1.5rem;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS (Aesthetic Update) ===== */
 .btn {
   font-family: inherit;
   font-size: 0.95rem;
@@ -104,22 +153,26 @@ body {
   text-decoration: none;
 }
 .btn-primary {
-  background-color: var(--color-primary);
+  background: var(--grad-primary); /* <-- GRADIENT ADDED */
   color: white;
+  box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2);
 }
 .btn-primary:hover {
   filter: brightness(1.1);
+  transform: translateY(-2px);
 }
 .btn-secondary {
   background-color: var(--color-secondary);
   color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 .btn-secondary:hover {
-  background-color: #dcdce0;
+  background-color: #444;
 }
 #modalLoginBtn {
   width: 100%;
   font-size: 1rem;
+  padding: 0.9rem 1.25rem;
 }
 .btn-group {
   display: flex;
@@ -144,6 +197,7 @@ body {
 .app-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--color-text);
 }
 .auth-controls {
   display: flex;
@@ -158,55 +212,60 @@ body {
 
 /* ===== MAIN APP CONTAINER ===== */
 .app-container {
-  padding: 1.5rem 1rem;
+  padding: 0; /* Remove padding, screens are full-width */
   margin: 0 auto;
+  /* `display: grid` was removed to fix bugs */
 }
 
-/* ===== CARDS ===== */
-.card {
-  background-color: var(--color-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.card-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.card-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
+/* ===== REMOVED .card ===== */
+/* .card styles are no longer needed, .screen replaces it */
 
-/* ===== ITEM LISTS (Clients, Sessions, Exercises) ===== */
+
+/* ===== ITEM LISTS (Aesthetic Update) ===== */
 .item-list {
   list-style: none;
   width: 100%;
+  padding: 0 1rem; /* Add side padding */
 }
 .item-list li {
-  font-size: 1rem;
-  padding: 1rem 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1.25rem 1rem; /* More tappable space */
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background-color var(--transition);
+  
+  /* Hevy-inspired list style */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-card);
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 .item-list li:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid var(--color-border);
 }
 .item-list li:hover {
   background-color: var(--color-primary-light);
 }
+/* Add a "chevron" > to indicate tappable item */
+.item-list li::after {
+  content: '>';
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
 
-/* ===== SETS TABLE ===== */
+
+/* ===== SETS TABLE (Aesthetic Update) ===== */
 .table-container {
   width: 100%;
-  overflow-x: auto; /* Makes table scrollable on mobile */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 0 1rem 2rem 1rem; /* Add padding */
+  margin-top: 1rem;
 }
 table {
   width: 100%;
@@ -214,27 +273,69 @@ table {
 }
 table th, table td {
   text-align: left;
-  padding: 0.75rem 1rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--color-border);
   font-size: 0.9rem;
-  white-space: nowrap; /* Prevents text wrapping */
+  white-space: nowrap;
+  color: var(--color-text-muted);
 }
 table th {
   background-color: var(--color-bg);
   font-weight: 600;
-  color: var(--color-text-muted);
   text-transform: uppercase;
   font-size: 0.75rem;
 }
+table tbody tr {
+  background-color: var(--color-card);
+}
 table tbody tr:hover {
-  background-color: var(--color-primary-light);
+  background-color: #2a2a2a;
+}
+table tbody td {
+  color: var(--color-text);
+  font-weight: 500;
 }
 
-/* ===== GRAPH ===== */
+/* ===== GRAPH (Dark Mode Fix) ===== */
 #graphDiv {
   width: 100%;
   min-height: 400px;
   padding: 1rem;
+  background-color: var(--color-card); /* Give graph a card bg */
+  border-radius: var(--radius-md);
+  margin: 0 1rem;
+  width: calc(100% - 2rem); /* Ensure it respects padding */
+}
+
+/* --- Plotly Dark Mode --- */
+/* This is a bit of a hack, but necessary for Plotly */
+.plotly-bg {
+  background-color: var(--color-card) !important;
+}
+.plot-container .plotly .modebar {
+  background-color: var(--color-card) !important;
+}
+.plot-container .plotly .modebar-btn path {
+  fill: var(--color-text-muted) !important;
+}
+.plot-container .plotly .g-xtitle,
+.plot-container .plotly .g-ytitle {
+  fill: var(--color-text-muted) !important;
+}
+.plot-container .plotly .xtick text,
+.plot-container .plotly .ytick text {
+  fill: var(--color-text-muted) !important;
+}
+.plot-container .plotly .grid .zeroline,
+.plot-container .plotly .grid path {
+  stroke: var(--color-border) !important;
+}
+.plot-container .plotly .legendtext {
+  fill: var(--color-text) !important;
+}
+.plot-container .plotly .title {
+  fill: var(--color-text) !important;
+  font-weight: 600 !important;
 }
 
 /* ===== RESPONSIVE (Desktop / Tablet) ===== */
@@ -243,7 +344,7 @@ table tbody tr:hover {
     font-size: 18px; 
   }
   .app-container {
-    padding: 2rem 1.5rem;
+    padding: 0;
   }
   .app-header h1 {
     font-size: 1.75rem;
@@ -251,28 +352,29 @@ table tbody tr:hover {
   #userLabel {
     display: inline; /* Show user label on desktop */
   }
-  /* ===== NAVIGATION & SCREEN STYLES ===== */
 }
+
+/* ===== NAVIGATION & SCREEN STYLES ===== */
 
 /* This turns our <section> elements into full-screen pages */
 .screen {
-  position: absolute; /* Take element out of flow */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  min-height: 100vh; /* Make it fill the screen */
-  background-color: var(--color-bg); /* Give it a solid background */
+  min-height: 100vh;
+  background-color: var(--color-bg);
   
   /* Reset card styles so it's not a 'card' anymore */
   border-radius: 0;
   box-shadow: none;
-  overflow-y: auto; /* Allow screen to scroll if content is long */
+  overflow-y: auto;
 }
 
 /* We need to make the container a 'viewport' for our screens */
 .app-container {
-  position: relative; /* This is CRITICAL for the absolute screens */
-  overflow-x: hidden; /* Hide screens as they slide in/out */
+  position: relative;
+  overflow-x: hidden;
   min-height: 100vh;
 }
 
@@ -286,65 +388,84 @@ table tbody tr:hover {
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  margin-left: -0.5rem; /* Align it with edge padding */
+  margin-left: -0.5rem;
+  /* Ensure it's not hidden */
+  z-index: 20;
 }
 
 /* Make card headers sticky like a native app header */
 .card-header {
   position: sticky;
   top: 0;
-  background-color: var(--color-card); /* Give it a solid background */
+  background-color: var(--color-card);
   z-index: 10;
-  /* Add padding-top to account for the main app header */
-  padding-top: calc(1rem + 60px); /* 60px is approx header height */
-  margin-top: -60px; /* Pull it up under the main header */
+  padding-top: calc(1rem + 60px);
+  margin-top: -60px;
+  /* Add a subtle gradient to headers */
+  background-image: linear-gradient(to bottom, #222, var(--color-card));
 }
 /* We need to re-add the top border it lost */
 .card-header::before {
   content: '';
   position: absolute;
-  top: 60px; /* Position border under main app header */
+  top: 60px;
   left: 0;
   width: 100%;
   height: 1px;
   background-color: var(--color-border);
 }
+.card-header h3 {
+  color: var(--color-text);
+  z-index: 5; /* Ensure text is above back button if it overlaps */
+}
 
-/* This is a hack to 'push down' the list content 
-   so it doesn't start *under* our new sticky header */
+/* --- THE Z-INDEX BUG FIX --- 
+  This pushes the list content down to start *after* the sticky header
+*/
 .item-list {
-  padding-top: 5.5rem;
+  padding-top: 8.5rem; /* This provides ~136px of space */
+}
+/* We also need to push down the graph and table */
+#graphContainer .card-header ~ #graphDiv {
+  margin-top: 8.5rem;
+}
+#setsDiv .card-header ~ .table-container {
+  margin-top: 8.5rem;
 }
 
 
 /* ===== ANIMATIONS ===== */
 @keyframes slideInFromRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(100%); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToLeft {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-25%); opacity: 0; } /* Fade out faster */
 }
 @keyframes slideInFromLeft {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(-25%); opacity: 0; } /* Start from part-way */
+  to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToRight {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.5; }
 }
 
 /* Animation helper classes */
 .slide-in-right {
   animation: slideInFromRight 0.3s forwards ease-out;
+  z-index: 2; /* Ensure new screen is on top */
 }
 .slide-out-left {
   animation: slideOutToLeft 0.3s forwards ease-out;
+  z-index: 1;
 }
 .slide-in-left {
   animation: slideInFromLeft 0.3s forwards ease-out;
+  z-index: 2;
 }
 .slide-out-right {
   animation: slideOutToRight 0.3s forwards ease-out;
+  z-index: 1;
 }
