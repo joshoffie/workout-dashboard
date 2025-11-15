@@ -1,351 +1,394 @@
 /* ===== GLOBAL RESET & VARIABLES ===== */
 :root {
-  --color-primary: #007aff;
-  --color-primary-light: #f0f7ff;
-  --color-secondary: #e5e5ea;
-  --color-bg: #f9f9f9;
-  --color-card: #ffffff;
-  --color-text: #1c1c1e;
-  --color-text-muted: #8a8a8e;
-  --color-border: #e5e5ea;
-  --color-red: #ff3b30;
-  --color-overlay: rgba(0, 0, 0, 0.4);
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  --transition: 0.2s ease;
-  
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  --color-primary: #007aff;
+  --color-primary-light: #f0f7ff;
+  --color-secondary: #e5e5ea;
+  --color-bg: #f9f9f9;
+  --color-card: #ffffff;
+  --color-text: #1c1c1e;
+  --color-text-muted: #8a8a8e;
+  --color-border: #e5e5ea;
+  --color-red: #ff3b30;
+  --color-overlay: rgba(0, 0, 0, 0.4);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  --transition: 0.2s ease;
+  
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
 }
 
 /* ===== UTILITIES ===== */
 .hidden {
-  display: none !important;
+  display: none !important;
 }
 
 /* ===== LOGIN MODAL ===== */
 .overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 .overlay:not(.hidden) {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 .modal {
-  background: var(--color-card);
-  border-radius: var(--radius-md);
-  padding: 2.5rem 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: 2.5rem 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
-.modal-logo {
-  width: 60px;
-  height: 60px;
-  margin-bottom: 1.5rem;
-  animation: dumbbellSwing 2s infinite ease-in-out;
+
+/* --- START: New SVG Animation Styles --- */
+.tree-animation-container {
+    width: 100px; 
+    height: 100px;
+    margin: 1rem auto 1.5rem;
+    position: relative;
 }
-@keyframes dumbbellSwing {
-  0%, 50%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(-10deg) scale(1.05); }
-  75% { transform: rotate(10deg) scale(1.05); }
+
+.tree-animation-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    viewBox: 0 0 100 100;
+    overflow: visible; 
 }
+
+.spiral-path {
+    fill: none;
+    stroke: black;
+    stroke-width: 2; /* End state stroke width */
+    stroke-linecap: round;
+    stroke-dasharray: 1200; /* Adjusted for new, larger path */
+    stroke-dashoffset: 1200; /* Adjusted for new, larger path */
+    
+    /* Set transform-origin to the center for proper scaling */
+    transform-origin: 50px 50px;
+    
+    animation: drawSpiral 4s ease-in-out infinite;
+}
+
+@keyframes drawSpiral {
+    0% {
+        /* Starts thin and "far" */
+        stroke-dashoffset: 1200; 
+        stroke-width: 2;
+        transform: scale(1);
+    }
+    50% {
+        /* Recedes to normal size as it finishes drawing */
+        stroke-dashoffset: 0; 
+        stroke-width: 5; /* Grows thicker */
+        transform: scale(1.2); /* Grows larger */
+    }
+    100% {
+        /* Reverses back to start state */
+        stroke-dashoffset: 1200;
+        stroke-width: 2;
+        transform: scale(1);
+    }
+}
+/* --- END: New SVG Animation Styles --- */
+
 .modal h2 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 .modal-subtitle {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
 }
 
 /* ===== BUTTONS ===== */
 .btn {
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.75rem 1.25rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  text-decoration: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
 }
 .btn-primary {
-  background-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-primary);
+  color: white;
 }
 .btn-primary:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.1);
 }
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
 }
 .btn-secondary:hover {
-  background-color: #dcdce0;
+  background-color: #dcdce0;
 }
 #modalLoginBtn {
-  width: 100%;
-  font-size: 1rem;
+  width: 100%;
+  font-size: 1rem;
 }
 .btn-group {
-  display: flex;
-  gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* ===== HEADER ===== */
 .app-header {
-  background-color: var(--color-card);
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  background-color: var(--color-card);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 auto;
 }
 .app-header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 .auth-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 #userLabel {
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  display: none; /* Hidden on small mobile */
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  display: none; /* Hidden on small mobile */
 }
 
 /* ===== MAIN APP CONTAINER ===== */
 .app-container {
-  padding: 1.5rem 1rem;
-  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  margin: 0 auto;
 }
 
 /* ===== CARDS ===== */
 .card {
-  background-color: var(--color-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  overflow: hidden;
+  background-color: var(--color-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .card-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 .card-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 /* ===== ITEM LISTS (Clients, Sessions, Exercises) ===== */
 .item-list {
-  list-style: none;
-  width: 100%;
+  list-style: none;
+  width: 100%;
 }
 .item-list li {
-  font-size: 1rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: background-color var(--transition);
+  font-size: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition);
 }
 .item-list li:last-child {
-  border-bottom: none;
+  border-bottom: none;
 }
 .item-list li:hover {
-  background-color: var(--color-primary-light);
+  background-color: var(--color-primary-light);
 }
 
 /* ===== SETS TABLE ===== */
 .table-container {
-  width: 100%;
-  overflow-x: auto; /* Makes table scrollable on mobile */
-  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  overflow-x: auto; /* Makes table scrollable on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 table {
-  width: 100%;
-  border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 table th, table td {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
-  white-space: nowrap; /* Prevents text wrapping */
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  white-space: nowrap; /* Prevents text wrapping */
 }
 table th {
-  background-color: var(--color-bg);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  font-size: 0.75rem;
+  background-color: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 table tbody tr:hover {
-  background-color: var(--color-primary-light);
+  background-color: var(--color-primary-light);
 }
 
 /* ===== GRAPH ===== */
 #graphDiv {
-  width: 100%;
-  min-height: 400px;
-  padding: 1rem;
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
 }
 
 /* ===== RESPONSIVE (Desktop / Tablet) ===== */
 @media(min-width: 768px) {
-  body {
-    font-size: 18px; 
-  }
-  .app-container {
-    padding: 2rem 1.5rem;
-  }
-  .app-header h1 {
-    font-size: 1.75rem;
-  }
-  #userLabel {
-    display: inline; /* Show user label on desktop */
-  }
-  /* ===== NAVIGATION & SCREEN STYLES ===== */
+  body {
+    font-size: 18px; 
+  }
+  .app-container {
+    padding: 2rem 1.5rem;
+  }
+  .app-header h1 {
+    font-size: 1.75rem;
+  }
+  #userLabel {
+    display: inline; /* Show user label on desktop */
+  }
+  /* ===== NAVIGATION & SCREEN STYLES ===== */
 }
 
 /* This turns our <section> elements into full-screen pages */
 .screen {
-  position: absolute; /* Take element out of flow */
-  top: 0;
-  left: 0;
-  width: 100%;
-  min-height: 100vh; /* Make it fill the screen */
-  background-color: var(--color-bg); /* Give it a solid background */
-  
-  /* Reset card styles so it's not a 'card' anymore */
-  border-radius: 0;
-  box-shadow: none;
-  overflow-y: auto; /* Allow screen to scroll if content is long */
+  position: absolute; /* Take element out of flow */
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100vh; /* Make it fill the screen */
+  background-color: var(--color-bg); /* Give it a solid background */
+  
+  /* Reset card styles so it's not a 'card' anymore */
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto; /* Allow screen to scroll if content is long */
 }
 
 /* We need to make the container a 'viewport' for our screens */
 .app-container {
-  position: relative; /* This is CRITICAL for the absolute screens */
-  overflow-x: hidden; /* Hide screens as they slide in/out */
-  min-height: 100vh;
+  position: relative; /* This is CRITICAL for the absolute screens */
+  overflow-x: hidden; /* Hide screens as they slide in/out */
+  min-height: 100vh;
 }
 
 /* Style the new back button (inspired by iOS) */
 .btn-back {
-  font-family: inherit;
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  margin-left: -0.5rem; /* Align it with edge padding */
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: -0.5rem; /* Align it with edge padding */
 }
 
 /* Make card headers sticky like a native app header */
 .card-header {
-  position: sticky;
-  top: 0;
-  background-color: var(--color-card); /* Give it a solid background */
-  z-index: 10;
-  /* Add padding-top to account for the main app header */
-  padding-top: calc(1rem + 60px); /* 60px is approx header height */
-  margin-top: -60px; /* Pull it up under the main header */
+  position: sticky;
+  top: 0;
+  background-color: var(--color-card); /* Give it a solid background */
+  z-index: 10;
+  /* Add padding-top to account for the main app header */
+  padding-top: calc(1rem + 60px); /* 60px is approx header height */
+  margin-top: -60px; /* Pull it up under the main header */
 }
 /* We need to re-add the top border it lost */
 .card-header::before {
-  content: '';
-  position: absolute;
-  top: 60px; /* Position border under main app header */
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--color-border);
+  content: '';
+  position: absolute;
+  top: 60px; /* Position border under main app header */
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-border);
 }
 
-/* This is a hack to 'push down' the list content 
-   so it doesn't start *under* our new sticky header */
+/* This is a hack to 'push down' the list content 
+   so it doesn't start *under* our new sticky header */
 .item-list {
-  padding-top: 5.5rem;
+  padding-top: 5.5rem;
 }
 
 
 /* ===== ANIMATIONS ===== */
 @keyframes slideInFromRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 @keyframes slideOutToLeft {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
 }
 @keyframes slideInFromLeft {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 @keyframes slideOutToRight {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
 }
 
 /* Animation helper classes */
 .slide-in-right {
-  animation: slideInFromRight 0.3s forwards ease-out;
+  animation: slideInFromRight 0.3s forwards ease-out;
 }
 .slide-out-left {
-  animation: slideOutToLeft 0.3s forwards ease-out;
+  animation: slideOutToLeft 0.3s forwards ease-out;
 }
 .slide-in-left {
-  animation: slideInFromLeft 0.3s forwards ease-out;
+  animation: slideInFromLeft 0.3s forwards ease-out;
 }
 .slide-out-right {
-  animation: slideOutToRight 0.3s forwards ease-out;
+  animation: slideOutToRight 0.3s forwards ease-out;
 }
-
