@@ -268,6 +268,7 @@ function selectExercise(idx) {
   document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
   renderSets();
   document.getElementById("setsDiv").classList.remove("hidden");
+  document.getElementById("graphContainer").classList.add("hidden");
 }
 
 // ------------------ SETS ------------------
@@ -358,6 +359,7 @@ document.getElementById("showGraphBtn").onclick = () => {
     { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
   ];
   Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
+  document.getElementById("graphContainer").classList.remove("hidden");
 };
 
 // ------------------ HELPER ------------------
@@ -366,6 +368,7 @@ function hideAllDetails() {
   document.getElementById("exercisesDiv").classList.add("hidden");
   document.getElementById("setsDiv").classList.add("hidden");
   document.getElementById("graphDiv").innerHTML = "";
+  document.getElementById("graphContainer").classList.add("hidden");
 }
 
 // ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
