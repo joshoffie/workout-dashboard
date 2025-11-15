@@ -157,9 +157,9 @@ function selectClient(name) {
   selectedExercise = null;
   document.getElementById("selectedClientLabel").textContent = name;
   renderSessions();
-  document.getElementById("sessionsDiv").classList.remove("hidden");
-  document.getElementById("exercisesDiv").classList.add("hidden");
-  document.getElementById("setsDiv").classList.add("hidden");
+  document.getElementById("sessionsDiv").classList.add("active");
+  document.getElementById("exercisesDiv").classList.remove("active");
+  document.getElementById("setsDiv").classList.remove("active");
 }
 
 // ------------------ SESSIONS ------------------
@@ -214,8 +214,8 @@ function selectSession(idx) {
   selectedExercise = null;
   document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
   renderExercises();
-  document.getElementById("exercisesDiv").classList.remove("hidden");
-  document.getElementById("setsDiv").classList.add("hidden");
+  document.getElementById("exercisesDiv").classList.add("active");
+  document.getElementById("setsDiv").classList.remove("active");
 }
 
 // ------------------ EXERCISES ------------------
@@ -267,8 +267,8 @@ function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
   renderSets();
-  document.getElementById("setsDiv").classList.remove("hidden");
-  document.getElementById("graphContainer").classList.add("hidden");
+  document.getElementById("setsDiv").classList.add("active");
+  document.getElementById("graphContainer").classList.add("active");
 }
 
 // ------------------ SETS ------------------
