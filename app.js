@@ -155,6 +155,7 @@ async function loadUserJson() {
     clientsData = {}; // empty structure
     await docRef.set(clientsData);
   }
+  console.log("Data loaded from Firestore:", clientsData);
 }
 
 async function saveUserJson() {
