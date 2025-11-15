@@ -22,9 +22,21 @@
   <div id="loginModal" class="overlay hidden">
     <div class="modal">
       <div class="modal-content">
-        <svg class="modal-logo" xmlns="http://www.w.org/2000/svg" viewBox="0 0 64 64">
-          <rect x="10" y="28" width="44" height="8" fill="#555" rx="2"/><rect x="4" y="22" width="6" height="20" fill="#888" rx="1"/><rect x="0" y="26" width="4" height="12" fill="#bbb" rx="1"/><rect x="54" y="22" width="6" height="20" fill="#888" rx="1"/><rect x="60" y="26" width="4" height="12" fill="#bbb" rx="1"/>
-        </svg>
+        
+        <div class="tree-animation-container">
+            <svg class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path class="spiral-path"
+                      d="M 50,50 
+                         C 58,50 58,58 50,58 
+                         C 42,58 42,42 50,42 
+                         C 66,42 66,66 50,66 
+                         C 34,66 34,34 50,34 
+                         C 74,34 74,74 50,74 
+                         C 26,74 26,26 50,26 
+                         C 82,26 82,82 50,82 
+                         C 18,82 18,18 50,18" />
+            </svg>
+        </div>
         <h2>Welcome</h2>
         <p class="modal-subtitle">Sign in to track your workouts.</p>
         <button id="modalLoginBtn" class="btn btn-primary">
