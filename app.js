@@ -167,25 +167,26 @@ async function saveUserJson() {
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
-  clientList.innerHTML = "";
-  for (const name in clientsData) {
-    const li = document.createElement("li");
-    li.textContent = name;
-    li.style.cursor = "pointer";
+  clientList.innerHTML = "";
+  for (const name in clientsData) {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.style.cursor = "pointer";
 
-    // Normal click → select client
-    li.onclick = () => {
-      // The 'editMode' check is now part of the 'makeEditable' logic
-      // This listener is ONLY for selecting a client
-      selectClient(name);
-    };
+    // Normal click → select client
+    li.onclick = (e) => {
+      // Stop the click if we're in edit mode
+      if (editMode) {
+        e.stopPropagation();
+        return;
+      }
+      selectClient(name);
+    };
 
-    clientList.appendChild(li);
-  }
-
-  // After rendering, we "hook" the edit listeners
-  // This separates our rendering logic from our edit logic
-  hookEditables(); 
+    clientList.appendChild(li);
+  }
+  // After rendering, hook listeners
+  hookEditables();
 }
 
 
@@ -226,31 +227,25 @@ function renderSessions() {
   selectedSession = null;
   document.getElementById("selectedSessionLabel").textContent = "";
 
-  const sessions = clientsData[selectedClient].sessions || [];
+  const sessions = clientsData[selectedClient]?.sessions || [];
   sessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.textContent = sess.session_name;
     li.style.cursor = "pointer";
 
     // Normal click → select session
-    li.onclick = () => {
-      if (editMode) return;
+    li.onclick = (e) => {
+      if (editMode) {
+        e.stopPropagation();
+        return;
+      }
       selectSession(idx);
     };
 
-    // Edit click → only in editMode
-    li.addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const newVal = prompt("Edit Session:", li.textContent);
-      if (!newVal || newVal === li.textContent) return;
-      selectedSession.session_name = newVal;
-      renderSessions();
-      saveUserJson();
-    });
-
     sessionList.appendChild(li);
   });
+  // After rendering, hook listeners
+  hookEditables();
 }
 
 
@@ -287,24 +282,18 @@ function renderExercises() {
     li.style.cursor = "pointer";
 
     // Normal click → select exercise
-    li.onclick = () => {
-      if (editMode) return;
+    li.onclick = (e) => {
+      if (editMode) {
+        e.stopPropagation();
+        return;
+      }
       selectExercise(idx);
     };
 
-    // Edit click → only in editMode
-    li.addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const newVal = prompt("Edit Exercise:", li.textContent);
-      if (!newVal || newVal === li.textContent) return;
-      selectedExercise.exercise = newVal;
-      renderExercises();
-      saveUserJson();
-    });
-
     exerciseList.appendChild(li);
   });
+  // After rendering, hook listeners
+  hookEditables();
 }
 
 function selectExercise(idx) {
@@ -338,51 +327,21 @@ function renderSets() {
   selectedExercise.sets.forEach((s, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${idx+1}</td>
+      <td>${idx + 1}</td>
       <td>${s.reps}</td>
       <td>${s.weight}</td>
       <td>${s.volume}</td>
       <td>${s.notes}</td>
       <td>${s.timestamp}</td>
     `;
-
-    const tds = tr.querySelectorAll("td");
-
-    // Edit only in editMode
-    tds[1].addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const val = prompt("Edit Reps:", tds[1].textContent);
-      if (!val) return;
-      s.reps = parseInt(val) || s.reps;
-      s.volume = s.reps * s.weight;
-      renderSets();
-      saveUserJson();
-    });
-
-    tds[2].addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const val = prompt("Edit Weight:", tds[2].textContent);
-      if (!val) return;
-      s.weight = parseFloat(val) || s.weight;
-      s.volume = s.reps * s.weight;
-      renderSets();
-      saveUserJson();
-    });
-
-    tds[4].addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const val = prompt("Edit Notes:", tds[4].textContent);
-      if (!val) return;
-      s.notes = val;
-      renderSets();
-      saveUserJson();
-    });
+    
+    // We don't add listeners here anymore
+    // hookEditables() will handle it
 
     setsTable.appendChild(tr);
   });
+  // After rendering, hook listeners
+  hookEditables();
 }
 
 
