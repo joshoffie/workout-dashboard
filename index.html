@@ -1,91 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workout Tracker Beta</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Tracker</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="style.css">
 
-  <!-- Animation styles added here -->
-  <style>
-    /* --- SVG Animation Styles --- */
-    
-    .modal-logo {
-        width: 100px; 
-        height: 100px;
-        margin: 0 auto; /* Centered */
-        position: relative;
-    }
-
-    /* Container for the spiral path */
-    .tree-animation-svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        viewBox: 0 0 100 100;
-        overflow: visible; 
-    }
-    
-    /* The black spiral path */
-    .spiral-path {
-        fill: none;
-        stroke: black;
-        stroke-width: 2; /* End state stroke width */
-        stroke-linecap: round;
-        stroke-dasharray: 1200; /* Adjusted for new, larger path */
-        stroke-dashoffset: 1200; /* Adjusted for new, larger path */
-        
-        /* Set transform-origin to the center for proper scaling */
-        transform-origin: 50px 50px;
-        
-        animation: drawSpiral 4s ease-in-out infinite;
-    }
-
-    /* Keyframes for drawing the spiral (WITH DEPTH) */
-    @keyframes drawSpiral {
-        0% {
-            /* Starts thin and "far" */
-            stroke-dashoffset: 1200; 
-            stroke-width: 2;
-            transform: scale(1);
-        }
-        50% {
-            /* Recedes to normal size as it finishes drawing */
-            stroke-dashoffset: 0; 
-            stroke-width: 5; /* Grows thicker */
-            transform: scale(1.2); /* Grows larger */
-        }
-        100% {
-            /* Reverses back to start state */
-            stroke-dashoffset: 1200;
-            stroke-width: 2;
-            transform: scale(1);
-        }
-    }
-  </style>
-
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
 
-  <div id="loginModal" class="overlay hidden">
-    <div class="modal">
-      <div class="modal-content">
-        <!-- 
-          HERE IS THE REPLACEMENT:
-          The original dumbbell SVG was replaced with this animation div.
-        -->
+  <!-- Login Modal -->
+  <div id="loginModal" class="overlay hidden">
+    <div class="modal">
+      <div class="modal-content">
+        <!-- Spiral Animation -->
         <div class="modal-logo">
             <svg class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <path class="spiral-path"
@@ -100,87 +41,94 @@
                          C 18,82 18,18 50,18" />
             </svg>
         </div>
-        <h2>Welcome</h2>
-        <p class="modal-subtitle">Sign in to track your workouts.</p>
-        <button id="modalLoginBtn" class="btn btn-primary">
-          <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.20455C17.64 8.56682 17.5818 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.9705 13.0009 12.9232 12.0477 13.5618V15.8195H14.9564C16.6582 14.2527 17.64 11.9459 17.64 9.20455Z" fill="white"/><path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5618C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.96273 14.4205 5.23773 13.0395 4.65955 11.16H1.64045V13.4836C3.12 16.2736 5.80909 18 9 18Z" fill="white"/><path d="M4.65955 11.16C4.47818 10.6432 4.36364 10.0918 4.36364 9.51955C4.36364 8.94727 4.47818 8.39591 4.65955 7.87909V5.55545H1.64045C0.602727 7.54591 0 9.77182 0 12.2305C0 14.6891 0.602727 16.915 1.64045 18.9055L4.65955 16.5818C4.47818 16.065 4.36364 15.5136 4.36364 14.9414C4.36364 14.3691 4.47818 13.8177 4.65955 13.2036V11.16Z" fill="white"/><path d="M9 3.57955C10.3214 3.57955 11.5077 4.02409 12.4405 4.92545L15.0218 2.34409C13.4673 0.891818 11.43 0 9 0C5.80909 0 3.12 1.72636 1.64045 4.51636L4.65955 6.84C5.23773 4.96636 6.96273 3.57955 9 3.57955Z" fill="white"/></svg>
-          <span>Login with Google</span>
-        </button>
-      </div>
-    </div>
-  </div>
+        <h2>Welcome</h2>
+        <p class="modal-subtitle">Sign in to track your workouts.</p>
+        <button id="modalLoginBtn" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.20455C17.64 8.56682 17.5818 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.9705 13.0009 12.9232 12.0477 13.5618V15.8195H14.9564C16.6582 14.2527 17.64 11.9459 17.64 9.20455Z" fill="white"/><path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5618C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.96273 14.4205 5.23773 13.0395 4.65955 11.16H1.64045V13.4836C3.12 16.2736 5.80909 18 9 18Z" fill="white"/><path d="M4.65955 11.16C4.47818 10.6432 4.36364 10.0918 4.36364 9.51955C4.36364 8.94727 4.47818 8.39591 4.65955 7.87909V5.55545H1.64045C0.602727 7.54591 0 9.77182 0 12.2305C0 14.6891 0.602727 16.915 1.64045 18.9055L4.65955 16.5818C4.47818 16.065 4.36364 15.5136 4.36364 14.9414C4.36364 14.3691 4.47818 13.8177 4.65955 13.2036V11.16Z" fill="white"/><path d="M9 3.57955C10.3214 3.57955 11.5077 4.02409 12.4405 4.92545L15.0218 2.34409C13.4673 0.891818 11.43 0 9 0C5.80909 0 3.12 1.72636 1.64045 4.51636L4.65955 6.84C5.23773 4.96636 6.96273 3.57955 9 3.57955Z" fill="white"/></svg>
+          <span>Login with Google</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-  <header class="app-header">
-    <div class="header-content">
-      <h1>MyWorkout</h1>
-      <div id="authDiv" class="auth-controls">
-        <span id="userLabel"></span>
-        <button id="editToggleBtn" class="btn btn-secondary">Edit</button>
-        <button id="loginBtn" class="btn btn-primary">Login</button>
-        <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
-      </div>
-    </div>
-  </header>
+  <!-- Main App Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <h1>MyWorkout</h1>
+      <div id="authDiv" class="auth-controls">
+        <span id="userLabel"></span>
+        <button id="editToggleBtn" class="btn btn-secondary">Edit</button>
+        <button id="loginBtn" class="btn btn-primary">Login</button>
+        <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
+      </div>
+    </div>
+  </header>
 
-  <main class="app-container">
-    
-    <section class="card screen" id="clientsDiv">
-      <div class="card-header">
-        <h3>Clients</h3>
-        <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
-    </div>
-      <ul id="clientList" class="item-list"></ul>
-    </section>
+  <!-- App Content -->
+  <main class="app-container">
+    
+    <!-- Clients -->
+    <section class="screen" id="clientsDiv">
+      <div class="card-header">
+        <h3>Clients</h3>
+        <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
+      </div>
+      <ul id="clientList" class="item-list"></ul>
+    </section>
 
-    <section class="card hidden" id="sessionsDiv">
-      <div class="card-header">
-        <button id="backToClientsBtn" class="btn-back">&lt; Back</button>
-        <h3>Sessions for <span id="selectedClientLabel"></span></h3>
-        <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
-      </div>
-      <ul id="sessionList" class="item-list"></ul>
-    </section>
+    <!-- Sessions -->
+    <section class="screen hidden" id="sessionsDiv">
+      <div class="card-header">
+        <button id="backToClientsBtn" class="btn-back">&lt; Back</button>
+        <h3><span id="selectedClientLabel"></span></h3>
+        <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
+      </div>
+      <ul id="sessionList" class="item-list"></ul>
+    </section>
 
-    <section class="card hidden" id="exercisesDiv">
-      <div class="card-header">
-        <button id="backToSessionsBtn" class="btn-back">&lt; Back</button>
-        <h3>Exercises for <span id="selectedSessionLabel"></span></h3>
-        <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
-      </div>
-      <ul id="exerciseList" class="item-list"></ul>
-    </section>
+    <!-- Exercises -->
+    <section class="screen hidden" id="exercisesDiv">
+      <div class="card-header">
+        <button id="backToSessionsBtn" class="btn-back">&lt; Back</button>
+        <h3><span id="selectedSessionLabel"></span></h3>
+        <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
+      </div>
+      <ul id="exerciseList" class="item-list"></ul>
+    </section>
 
-    <section class="card hidden" id="setsDiv">
-    C <div class="card-header">
-        <button id="backToExercisesBtn" class="btn-back">&lt; Back</button>
-        <h3>Sets for <span id="selectedExerciseLabel"></span></h3>
-        <div class="btn-group">
-          <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
-          <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
-        </div>
-      </div>
-      <div class="table-container">
-        <table id="setsTable">
-          <thead>
-            <tr>
-              <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+    <!-- Sets -->
+    <section class="screen hidden" id="setsDiv">
+      <div class="card-header">
+        <button id="backToExercisesBtn" class="btn-back">&lt; Back</button>
+        <h3><span id="selectedExerciseLabel"></span></h3>
+        <div class="btn-group">
+          <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
+          <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table id="setsTable">
+          <thead>
+            <tr>
+              <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
 
-    <section class="card screen hidden" id="graphContainer">
-       <div class="card-header">
-          <button id="backToSetsFromGraphBtn" class="btn-back">&lt; Back</button>
-         <h3>Progress Graph</h3>
-       </div>
-       <div id="graphDiv"></div>
-    </section>
+    <!-- Graph -->
+    <section class="screen hidden" id="graphContainer">
+       <div class="card-header">
+         <button id="backToSetsFromGraphBtn" class="btn-back">&lt; Back</button>
+         <h3>Progress Graph</h3>
+       </div>
+       <div id="graphDiv"></div>
+    </section>
 
-  </main>
+  </main>
 
-  <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
