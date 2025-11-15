@@ -77,6 +77,9 @@ document.getElementById('backToSessionsBtn').onclick = () => {
 document.getElementById('backToExercisesBtn').onclick = () => {
   navigateTo(SCREENS.SETS, 'back');
 };
+document.getElementById('backToSetsFromGraphBtn').onclick = () => {
+  navigateTo(SCREENS.SETS, 'back');
+};
 
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
@@ -431,11 +434,17 @@ document.getElementById("showGraphBtn").onclick = () => {
 
 // ------------------ HELPER ------------------
 function hideAllDetails() {
-  document.getElementById("sessionsDiv").classList.add("hidden");
-  document.getElementById("exercisesDiv").classList.add("hidden");
-  document.getElementById("setsDiv").classList.add("hidden");
+  // Hide all screens instantly
+  Object.values(SCREENS).forEach(screenId => {
+    document.getElementById(screenId).classList.add('hidden');
+  });
+
+  // Show the main one
+  document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
+  currentScreen = SCREENS.CLIENTS;
+
+  // Also clear the graph
   document.getElementById("graphDiv").innerHTML = "";
-  document.getElementById("graphContainer").classList.add("hidden");
 }
 
 // ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
