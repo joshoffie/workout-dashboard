@@ -254,6 +254,7 @@ table tbody tr:hover {
     display: inline; /* Show user label on desktop */
   }
   /* ===== NAVIGATION & SCREEN STYLES ===== */
+}
 
 /* This turns our <section> elements into full-screen pages */
 .screen {
@@ -349,4 +350,4 @@ table tbody tr:hover {
 .slide-out-right {
   animation: slideOutToRight 0.3s forwards ease-out;
 }
-}
+
