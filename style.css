@@ -139,7 +139,6 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1000px;
   margin: 0 auto;
 }
 .app-header h1 {
@@ -160,7 +159,6 @@ body {
 /* ===== MAIN APP CONTAINER ===== */
 .app-container {
   padding: 1.5rem 1rem;
-  max-width: 1000px;
   margin: 0 auto;
   display: grid;
   gap: 1.5rem;
@@ -244,35 +242,11 @@ table tbody tr:hover {
 /* ===== RESPONSIVE (Desktop / Tablet) ===== */
 @media(min-width: 768px) {
   body {
-    /* Use rems for scaling on larger screens */
     font-size: 18px; 
   }
   .app-container {
     padding: 2rem 1.5rem;
-    /* Create a 2-column layout for drill-down */
-    grid-template-columns: 1fr 1.5fr;
   }
-  
-  /* Show first three columns */
-  #clientsDiv, #sessionsDiv, #exercisesDiv {
-    display: block !important; /* Override .hidden */
-  }
-  
-  /* Make 4th and 5th items span full width at bottom */
-  #setsDiv, #graphContainer {
-    grid-column: 1 / -1;
-  }
-
-  /* Hide elements if their parent isn't selected (JS still works) */
-  #sessionsDiv:not(.active) .item-list,
-  #sessionsDiv:not(.active) .card-header .btn {
-    display: none;
-  }
-  #exercisesDiv:not(.active) .item-list,
-  #exercisesDiv:not(.active) .card-header .btn {
-    display: none;
-  }
-  
   .app-header h1 {
     font-size: 1.75rem;
   }
