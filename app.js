@@ -343,23 +343,32 @@ function renderSets() {
 
 
 // ------------------ PLOTLY GRAPH ------------------
+// ------------------ PLOTLY GRAPH ------------------
 document.getElementById("showGraphBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
   const sets = selectedExercise.sets;
   if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+
+  // --- FIX #1: UN-HIDE THE CONTAINER *BEFORE* PLOTTING ---
+  document.getElementById("graphContainer").classList.remove("hidden");
+
   const dates = sets.map(s => s.timestamp);
   const reps = sets.map(s => s.reps);
   const weight = sets.map(s => s.weight);
   const volume = sets.map(s => s.volume);
-  const wpr = sets.map(s => s.volume / s.reps);
+  const wpr = sets.map(s => s.volume / s.reps); // Note: This will be Infinity if reps=0, be careful
+  
   const traces = [
     { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
     { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
     { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
     { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
   ];
+  
   Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
-  document.getElementById("graphContainer").classList.remove("hidden");
+
+  // --- FIX #2: FORCE PLOTLY TO RESIZE (just in case) ---
+  Plotly.Plots.resize('graphDiv');
 };
 
 // ------------------ HELPER ------------------
