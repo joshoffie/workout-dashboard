@@ -253,4 +253,100 @@ table tbody tr:hover {
   #userLabel {
     display: inline; /* Show user label on desktop */
   }
+  /* ===== NAVIGATION & SCREEN STYLES ===== */
+
+/* This turns our <section> elements into full-screen pages */
+.screen {
+  position: absolute; /* Take element out of flow */
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100vh; /* Make it fill the screen */
+  background-color: var(--color-bg); /* Give it a solid background */
+  
+  /* Reset card styles so it's not a 'card' anymore */
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto; /* Allow screen to scroll if content is long */
+}
+
+/* We need to make the container a 'viewport' for our screens */
+.app-container {
+  position: relative; /* This is CRITICAL for the absolute screens */
+  overflow-x: hidden; /* Hide screens as they slide in/out */
+  min-height: 100vh;
+}
+
+/* Style the new back button (inspired by iOS) */
+.btn-back {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: -0.5rem; /* Align it with edge padding */
+}
+
+/* Make card headers sticky like a native app header */
+.card-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-card); /* Give it a solid background */
+  z-index: 10;
+  /* Add padding-top to account for the main app header */
+  padding-top: calc(1rem + 60px); /* 60px is approx header height */
+  margin-top: -60px; /* Pull it up under the main header */
+}
+/* We need to re-add the top border it lost */
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: 60px; /* Position border under main app header */
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+/* This is a hack to 'push down' the list content 
+   so it doesn't start *under* our new sticky header */
+.item-list {
+  padding-top: 1rem;
+}
+
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideOutToLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+@keyframes slideInFromLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideOutToRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+/* Animation helper classes */
+.slide-in-right {
+  animation: slideInFromRight 0.3s forwards ease-out;
+}
+.slide-out-left {
+  animation: slideOutToLeft 0.3s forwards ease-out;
+}
+.slide-in-left {
+  animation: slideInFromLeft 0.3s forwards ease-out;
+}
+.slide-out-right {
+  animation: slideOutToRight 0.3s forwards ease-out;
+}
 }
