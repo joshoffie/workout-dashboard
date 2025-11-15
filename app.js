@@ -17,6 +17,67 @@ let selectedClient = null;
 let selectedSession = null;
 let selectedExercise = null;
 
+// ------------------ NAVIGATION ------------------
+
+// This maps all our screens
+const SCREENS = {
+  CLIENTS: 'clientsDiv',
+  SESSIONS: 'sessionsDiv',
+  EXERCISES: 'exercisesDiv',
+  SETS: 'setsDiv',
+  GRAPH: 'graphContainer'
+};
+
+// This will store which screen is currently visible
+let currentScreen = SCREENS.CLIENTS;
+
+/**
+ * Handles all screen-to-screen navigation with animations.
+ * @param {string} targetScreenId - The ID of the screen to show (e.g., SCREENS.SESSIONS)
+ * @param {'forward' | 'back'} direction - The animation direction
+ */
+function navigateTo(targetScreenId, direction = 'forward') {
+  const targetScreen = document.getElementById(targetScreenId);
+  const currentScreenEl = document.getElementById(currentScreen);
+  
+  if (!targetScreen || targetScreen === currentScreenEl) return;
+
+  const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
+  const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
+
+  // 1. Prepare target screen
+  targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
+  targetScreen.classList.add(enterClass);
+
+  // 2. Animate current screen out
+  currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
+  currentScreenEl.classList.add(exitClass);
+
+  // 3. Update current screen variable
+  currentScreen = targetScreenId;
+
+  // 4. Clean up classes after animation
+  currentScreenEl.addEventListener('animationend', () => {
+    currentScreenEl.classList.add('hidden');
+    currentScreenEl.classList.remove(exitClass);
+  }, { once: true }); // 'once: true' removes the listener after it fires
+
+  targetScreen.addEventListener('animationend', () => {
+    targetScreen.classList.remove(enterClass);
+  }, { once: true });
+}
+
+// --- Wire up the new Back Buttons ---
+document.getElementById('backToClientsBtn').onclick = () => {
+  navigateTo(SCREENS.CLIENTS, 'back');
+};
+document.getElementById('backToSessionsBtn').onclick = () => {
+  navigateTo(SCREENS.SESSIONS, 'back');
+};
+document.getElementById('backToExercisesBtn').onclick = () => {
+  navigateTo(SCREENS.SETS, 'back');
+};
+
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -157,9 +218,7 @@ function selectClient(name) {
   selectedExercise = null;
   document.getElementById("selectedClientLabel").textContent = name;
   renderSessions();
-  document.getElementById("sessionsDiv").classList.add("active");
-  document.getElementById("exercisesDiv").classList.remove("active");
-  document.getElementById("setsDiv").classList.remove("active");
+  navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
 // ------------------ SESSIONS ------------------
@@ -214,8 +273,7 @@ function selectSession(idx) {
   selectedExercise = null;
   document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
   renderExercises();
-  document.getElementById("exercisesDiv").classList.add("active");
-  document.getElementById("setsDiv").classList.remove("active");
+  navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
 // ------------------ EXERCISES ------------------
@@ -267,8 +325,8 @@ function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
   renderSets();
-  document.getElementById("setsDiv").classList.add("active");
-  document.getElementById("graphContainer").classList.add("active");
+  navigateTo(SCREENS.SETS, 'forward');
+  document.getElementById("graphContainer").classList.add("hidden"); // This is still needed
 }
 
 // ------------------ SETS ------------------
@@ -350,7 +408,7 @@ document.getElementById("showGraphBtn").onclick = () => {
   if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
 
   // --- FIX #1: UN-HIDE THE CONTAINER *BEFORE* PLOTTING ---
-  document.getElementById("graphContainer").classList.remove("hidden");
+  navigateTo(SCREENS.GRAPH, 'forward');;
 
   const dates = sets.map(s => s.timestamp);
   const reps = sets.map(s => s.reps);
