@@ -193,7 +193,11 @@ async function loadUserJson() {
 async function saveUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  await db.collection("clients").doc(uid).set(clientsData, { merge: true });
+  
+  // REMOVED { merge: true }
+  // This ensures the document is fully overwritten, allowing
+  // top-level client deletions to be saved correctly.
+  await db.collection("clients").doc(uid).set(clientsData);
 }
 
 // ------------------ RENDER CLIENTS ------------------
