@@ -167,37 +167,25 @@ async function saveUserJson() {
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
-  clientList.innerHTML = "";
-  for (const name in clientsData) {
-    const li = document.createElement("li");
-    li.textContent = name;
-    li.style.cursor = "pointer";
+  clientList.innerHTML = "";
+  for (const name in clientsData) {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.style.cursor = "pointer";
 
-    // Normal click → select client
-    li.onclick = () => {
-      if (editMode) return; // skip select if editing
-      selectClient(name);
-    };
+    // Normal click → select client
+    li.onclick = () => {
+      // The 'editMode' check is now part of the 'makeEditable' logic
+      // This listener is ONLY for selecting a client
+      selectClient(name);
+    };
 
-    // Edit click → only in editMode
-    li.addEventListener("click", (e) => {
-      if (!editMode) return;
-      e.stopPropagation();
-      const currentVal = li.textContent;
-      const newVal = prompt("Edit Client:", currentVal);
-      if (!newVal || newVal === currentVal) return;
+    clientList.appendChild(li);
+  }
 
-      const data = clientsData[currentVal];
-      delete clientsData[currentVal];
-      data.client_name = newVal;
-      clientsData[newVal] = data;
-      if (selectedClient === currentVal) selectedClient = newVal;
-      renderClients();
-      saveUserJson();
-    });
-
-    clientList.appendChild(li);
-  }
+  // After rendering, we "hook" the edit listeners
+  // This separates our rendering logic from our edit logic
+  hookEditables(); 
 }
 
 
