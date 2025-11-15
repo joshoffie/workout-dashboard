@@ -315,6 +315,12 @@ body {
   color: var(--color-text-muted);
   transition: transform 0.2s ease;
 }
+.item-list li > span {
+  flex: 1;
+  /* Add padding to the right so text doesn't 
+     touch the delete button when it appears */
+  padding-right: 1rem; 
+}
 /* Hide chevron when in edit mode */
 .edit-mode-active .item-list li::after {
   transform: translateX(20px);
