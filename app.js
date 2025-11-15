@@ -162,7 +162,7 @@ function showDeleteConfirm(message, onConfirm) {
     hideDeleteConfirm();
   }, { once: true });
 
-  deleteCancelBtn.addEventListener('click', ()ax => {
+  deleteCancelBtn.addEventListener('click', () => {
     hideDeleteConfirm();
   }, { once: true });
 }
