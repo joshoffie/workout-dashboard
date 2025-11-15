@@ -130,23 +130,7 @@ logoutBtn.onclick = async () => {
 };
 
 
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    loginBtn.classList.add("hidden");
-    logoutBtn.classList.remove("hidden");
-    userLabel.textContent = `Logged in as ${user.displayName}`;
-    await loadUserJson();
-    renderClients();
-  } else {
-    loginBtn.classList.remove("hidden");
-    logoutBtn.classList.add("hidden");
-    userLabel.textContent = "";
-    clientsData = {};
-    selectedClient = null;
-    renderClients();
-    hideAllDetails();
-  }
-});
+
 
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
