@@ -313,7 +313,7 @@ table tbody tr:hover {
 /* This is a hack to 'push down' the list content 
    so it doesn't start *under* our new sticky header */
 .item-list {
-  padding-top: 1rem;
+  padding-top: 8.5rem;
 }
 
 
