@@ -100,6 +100,12 @@ const userLabel = document.getElementById("userLabel");
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
 
+// ADD THESE LINES
+const deleteModal = document.getElementById('deleteModal');
+const deleteModalMessage = document.getElementById('deleteModalMessage');
+const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+const deleteCancelBtn = document.getElementById('deleteCancelBtn');
+
 // Show modal if user is not logged in
 auth.onAuthStateChanged(async (user) => {
   if (user) {
@@ -140,7 +146,33 @@ logoutBtn.onclick = async () => {
   await auth.signOut();
 };
 
+/**
+ * Shows the custom confirmation modal.
+ * @param {string} message - The message to display.
+ * @param {function} onConfirm - The callback function to run if "Delete" is clicked.
+ */
+function showDeleteConfirm(message, onConfirm) {
+  deleteModalMessage.textContent = message;
+  deleteModal.classList.remove('hidden');
 
+  // We use { once: true } so these listeners automatically remove themselves
+  // This prevents bugs where clicking delete fires multiple times
+  deleteConfirmBtn.addEventListener('click', () => {
+    onConfirm();
+    hideDeleteConfirm();
+  }, { once: true });
+
+  deleteCancelBtn.addEventListener('click', ()ax => {
+    hideDeleteConfirm();
+  }, { once: true });
+}
+
+/** Hides the custom confirmation modal */
+function hideDeleteConfirm() {
+  deleteModal.classList.add('hidden');
+}
+// Also hide modal if cancel is clicked (as a fallback)
+deleteCancelBtn.onclick = hideDeleteConfirm;
 
 
 // ------------------ FIRESTORE DATA ------------------
@@ -182,6 +214,25 @@ function renderClients() {
       }
       selectClient(name);
     };
+
+    // --- ADD THIS DELETE BUTTON LOGIC ---
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;'; // 'x' icon
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation(); // Stop it from selecting the client
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"? This will delete all their sessions.`, () => {
+        delete clientsData[name];
+        saveUserJson();
+        renderClients();
+        // If they deleted the currently selected client, go back
+        if (selectedClient === name) {
+          navigateTo(SCREENS.CLIENTS, 'back');
+        }
+      });
+    };
+    li.appendChild(deleteBtn);
+    // --- END ADD ---
 
     clientList.appendChild(li);
   }
@@ -242,6 +293,25 @@ function renderSessions() {
       selectSession(idx);
     };
 
+    // --- ADD THIS DELETE BUTTON LOGIC ---
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
+        clientsData[selectedClient].sessions.splice(idx, 1);
+        saveUserJson();
+        renderSessions();
+        // If they deleted the selected session, go back
+        if (selectedSession === sess) {
+          navigateTo(SCREENS.SESSIONS, 'back');
+        }
+      });
+    };
+    li.appendChild(deleteBtn);
+    // --- END ADD ---
+
     sessionList.appendChild(li);
   });
   // After rendering, hook listeners
@@ -290,6 +360,25 @@ function renderExercises() {
       selectExercise(idx);
     };
 
+    // --- ADD THIS DELETE BUTTON LOGIC ---
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete exercise "${ex.exercise}"?`, () => {
+        selectedSession.exercises.splice(idx, 1);
+        saveUserJson();
+        renderExercises();
+        // If they deleted the selected exercise, go back
+        if (selectedExercise === ex) {
+          navigateTo(SCREENS.EXERCISES, 'back');
+        }
+      });
+    };
+    li.appendChild(deleteBtn);
+    // --- END ADD ---
+
     exerciseList.appendChild(li);
   });
   // After rendering, hook listeners
@@ -337,6 +426,23 @@ function renderSets() {
     
     // We don't add listeners here anymore
     // hookEditables() will handle it
+
+    // --- ADD THIS DELETE BUTTON LOGIC ---
+    const deleteTd = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete set ${idx + 1}?`, () => {
+        selectedExercise.sets.splice(idx, 1);
+        saveUserJson();
+        renderSets();
+      });
+    };
+    deleteTd.appendChild(deleteBtn);
+    tr.appendChild(deleteTd);
+    // --- END ADD ---
 
     setsTable.appendChild(tr);
   });
@@ -435,14 +541,20 @@ document.getElementById("addSetBtn").onclick = () => {
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
 
+// REPLACE your old editToggleBtn.onclick with this:
 editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
 
-  // Visual cue for editable text
-  document.querySelectorAll(".editable").forEach(el => {
-    el.style.color = editMode ? "red" : "black";
-  });
+  // This class now controls all edit-mode UI (delete buttons, text color)
+  // The CSS file will do all the work.
+  document.body.classList.toggle('edit-mode-active');
+
+  if (!editMode) {
+    // Done pressed → save changes automatically
+    saveUserJson();
+  }
+};
 
   // Optional: subtle background color change
   document.body.style.backgroundColor = editMode ? "#f9f9f9" : "#fff";
