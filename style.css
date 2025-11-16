@@ -15,8 +15,11 @@
   /* Gradient for "Add" buttons */
   --grad-primary: linear-gradient(90deg, #007aff, #00A3FF);
 
-  /* Greys */
+  /* Status Colors */
   --color-red: #ff3b30;
+  --color-green: #34c759;     /* <-- NEW */
+  --color-yellow: #ffcc00;   /* <-- NEW */
+
   --color-overlay: rgba(0, 0, 0, 0.7);
   
   --radius-sm: 8px;
@@ -334,7 +337,7 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding: 0 1rem 2rem 1rem; /* Add padding */
-  margin-top: 1rem;
+  /* Remove margin-top, it's now on the wrapper */
 }
 table {
   width: 100%;
@@ -488,6 +491,13 @@ td .btn-delete {
   #userLabel {
     display: inline; /* Show user label on desktop */
   }
+
+  /* Make comparison banner flex-row on desktop */
+  .comparison-banner {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
 }
 
 /* ===== NAVIGATION & SCREEN STYLES ===== */
@@ -574,7 +584,11 @@ td .btn-delete {
 #graphContainer .card-header ~ #graphDiv {
   margin-top: 8.5rem;
 }
-#setsDiv .card-header ~ .table-container {
+
+/* *** THIS IS THE MODIFIED RULE ***
+  It now targets the new wrapper div instead of the table container
+*/
+#setsDiv .sets-content-wrapper {
   margin-top: 8.5rem;
 }
 
@@ -615,115 +629,65 @@ td .btn-delete {
   z-index: 1;
 }
 
-/* PASTE THIS CODE at the bottom of style.css */
-
 /* =====================================================
-  NEW DELETE MODAL STYLES
+  NEW COMPARISON BANNER STYLES (Static)
 ===================================================== */
-.delete-modal {
-  background: var(--color-card);
-  border-radius: var(--radius-md);
-  padding: 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  border: 1px solid var(--color-border);
-}
-.delete-modal h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 0.75rem;
-}
-.delete-modal p {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-.delete-modal-actions {
+.comparison-banner {
   display: flex;
+  flex-direction: column; /* Stack on mobile */
+  gap: 1rem;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin: 0 1rem 1rem 1rem; /* Add margin */
+}
+
+.stat-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Align left on mobile */
   gap: 0.75rem;
 }
 
-/* New Button Styles for Modal */
-.btn-danger {
-  background-color: var(--color-red);
-  color: white;
-  flex: 1; /* Make button fill space */
-}
-.btn-danger:hover {
-  filter: brightness(1.1);
-}
-.btn-tertiary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
-  flex: 1; /* Make button fill space */
-}
-.btn-tertiary:hover {
-  background-color: #444;
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  min-width: 60px; /* Give labels consistent width */
 }
 
-/* Fix flex sizing on auth buttons */
-.auth-controls .btn {
-  flex: 0 0 auto;
-}
-
-/* =====================================================
-  NEW DELETE BUTTON & EDIT MODE STYLES
-===================================================== */
-
-/* The "Red X" button */
-.btn-delete {
-  display: none; /* Hidden by default */
-  font-family: inherit;
+.stat-arrow {
   font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-red);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  
-  /* Animation */
-  opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.2s ease;
-  
-  /* For list items */
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%) scale(0.5);
-  z-index: 5;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
 }
 
-/* Table delete button is slightly different */
-td .btn-delete {
+.stat-svg-container {
+  width: 25px;
+  height: 25px;
   position: relative;
-  right: 0;
+}
+
+.comparison-svg {
+  position: absolute;
   top: 0;
-  transform: scale(0.5);
-  padding: 0.5rem;
-  margin: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  viewBox: 0 0 100 100;
+  overflow: visible;
 }
 
-/* This is the magic: Show the button when in edit mode */
-.edit-mode-active .btn-delete {
-  display: inline-flex;
-  opacity: 1;
-  transform: scale(1);
-}
-/* For table button */
-.edit-mode-active td .btn-delete {
-  transform: scale(1);
-}
-
-/* Style the editable text when in edit mode */
-.edit-mode-active .editable {
-  color: var(--color-primary) !important;
-  text-decoration: underline dashed 1px;
-  text-decoration-thickness: 1px;
+.comparison-spiral {
+  fill: none;
+  stroke: var(--color-text-muted); /* Default color for now */
+  stroke-width: 5; /* Thicker for visibility */
+  stroke-linecap: round;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  transform-origin: 50px 50px;
+  animation: drawSpiral 4s ease-in-out infinite;
 }
