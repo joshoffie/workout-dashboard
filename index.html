@@ -105,17 +105,112 @@
           <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
         </div>
       </div>
-      <div class="table-container">
-        <table id="setsTable">
-          <thead>
-            <tr>
-              <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-              <th></th> <!-- <-- ADDED: Empty header for delete button -->
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+
+      <!--
+        START NEW CONTENT WRAPPER & COMPARISON BANNER
+        I've added this wrapper to hold both the new banner
+        and the existing table, ensuring the sticky header
+        layout is not broken.
+      -->
+      <div class="sets-content-wrapper">
+        
+        <!-- 
+          This is the new banner. I've removed the 'hidden' class 
+          for now so we can see it for this test.
+        -->
+        <div id="comparisonBanner" class="comparison-banner">
+          <!-- SETS -->
+          <div class="stat-comparison">
+            <span class="stat-label">SETS</span>
+            <span id="setsArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="setsSpiral" class="comparison-spiral"
+                        d="M 50,50 
+                           C 58,50 58,58 50,58 
+                           C 42,58 42,42 50,42 
+                           C 66,42 66,66 50,66 
+                           C 34,66 34,34 50,34 
+                           C 74,34 74,74 50,74 
+                           C 26,74 26,26 50,26 
+                           C 82,26 82,82 50,82 
+                           C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+          </div>
+          <!-- REPS -->
+          <div class="stat-comparison">
+            <span class="stat-label">REPS</span>
+            <span id="repsArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="repsSpiral" class="comparison-spiral"
+                        d="M 50,50 
+                           C 58,50 58,58 50,58 
+                           C 42,58 42,42 50,42 
+                           C 66,42 66,66 50,66 
+                           C 34,66 34,34 50,34 
+                           C 74,34 74,74 50,74 
+                           C 26,74 26,26 50,26 
+                           C 82,26 82,82 50,82 
+                           C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+          </div>
+          <!-- VOLUME -->
+          <div class="stat-comparison">
+            <span class="stat-label">VOLUME</span>
+            <span id="volumeArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="volumeSpiral" class="comparison-spiral"
+                        d="M 50,50 
+                           C 58,50 58,58 50,58 
+                           C 42,58 42,42 50,42 
+                           C 66,42 66,66 50,66 
+                           C 34,66 34,34 50,34 
+                           C 74,34 74,74 50,74 
+                           C 26,74 26,26 50,26 
+                           C 82,26 82,82 50,82 
+                           C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+          </div>
+          <!-- AVG W/R -->
+          <div class="stat-comparison">
+            <span class="stat-label">AVG W/R</span>
+            <span id="wprArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="wprSpiral" class="comparison-spiral"
+                        d="M 50,50 
+                           C 58,50 58,58 50,58 
+                           C 42,58 42,42 50,42 
+                           C 66,42 66,66 50,66 
+                           C 34,66 34,34 50,34 
+                           C 74,34 74,74 50,74 
+                           C 26,74 26,26 50,26 
+                           C 82,26 82,82 50,82 
+                           C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <!-- This is your existing table container -->
+        <div class="table-container">
+          <table id="setsTable">
+            <thead>
+              <tr>
+                <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
+                <th></th> <!-- <-- ADDED: Empty header for delete button -->
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div> <!-- END of new sets-content-wrapper -->
     </section>
 
     <!-- Graph -->
@@ -127,6 +222,8 @@
        </div>
        <div id="graphDiv"></div>
     </section>
+    
+    <!-- Delete Modal -->
     <div id="deleteModal" class="overlay hidden">
       <div class="delete-modal">
         <h2>Are you sure?</h2>
