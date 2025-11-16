@@ -858,3 +858,17 @@ td .btn-delete {
 }
 
 /* ===== END LOGO ANIMATION ===== */
+/* =====================================================
+   LOGO ANIMATION FALLBACK (Mobile Fix)
+   ===================================================== */
+/*
+  This provides manual coordinates for mobile browsers that
+  do not support 'transform-box: fill-box'. This overrides
+  the 'transform-origin: center' from the block above.
+  These values are pixel estimates (x, y) for each letter's center.
+*/
+#logo-t { transform-origin: 12px 22px; }
+#logo-r { transform-origin: 33px 22px; }
+#logo-u { transform-origin: 59px 22px; }
+#logo-n { transform-origin: 89px 22px; }
+#logo-k { transform-origin: 114px 22px; }
