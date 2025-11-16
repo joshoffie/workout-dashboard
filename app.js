@@ -273,7 +273,6 @@ function selectClient(name) {
 // ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
 
-// --- NEW (STEP 2.2) ---
 /**
  * A robust helper function to sort sessions by date, descending.
  * Handles missing or invalid dates.
@@ -317,8 +316,7 @@ function renderSessions() {
 
   const sessions = clientsData[selectedClient]?.sessions || [];
   
-  // --- MODIFIED (STEP 2.2) ---
-  // Use the new robust sorting function
+  // Use the robust sorting function
   const sortedSessions = getSortedSessions(sessions);
 
   sortedSessions.forEach((sess, idx) => {
@@ -335,7 +333,6 @@ function renderSessions() {
         e.stopPropagation();
         return;
       }
-      // --- MODIFIED (STEP 2) ---
       // Pass the session object itself, not the index
       selectSession(sess);
     };
@@ -348,7 +345,6 @@ function renderSessions() {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
         
-        // --- MODIFIED (STEP 2) ---
         // Find the actual index of this session in the *original* array
         const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
         if (sessionIndex > -1) {
@@ -375,7 +371,6 @@ function renderSessions() {
 }
 
 
-// --- MODIFIED (STEP 2) ---
 // Now accepts the full session object
 function selectSession(sessionObject) {
   selectedSession = sessionObject; // <-- Pass the whole object
@@ -459,31 +454,30 @@ function selectExercise(idx) {
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
 
-// --- MODIFIED (STEP 2) ---
-// Updated prompt logic to be clearer
+// Get the very last set for this exercise, regardless of session
+function getLastSet() {
+    if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+        return null;
+    }
+    // Sort sets by timestamp to find the most recent one
+    const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return sortedSets[0];
+}
+
 document.getElementById("addSetBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
 
-  // Get last set from *current* session for quick copy
-  const lastSetInCurrentSession = selectedExercise.sets[selectedExercise.sets.length - 1];
+  // Get last set from *current* exercise object
+  const lastSet = getLastSet();
   
-  // Get last set from *previous* session for comparison
-  const prevSet = getPreviousSet(); // This now uses the new sorted logic
-  
-  // Default prompt values: Use last set from *this* session if it exists, otherwise last set from *previous* session
-  const repsPrompt = lastSetInCurrentSession ? lastSetInCurrentSession.reps : (prevSet ? prevSet.reps : "");
-  const weightPrompt = lastSetInCurrentSession ? lastSetInCurrentSession.weight : (prevSet ? prevSet.weight : "");
-  
-  // Text for the prompt:
-  const prevRepsText = prevSet ? ` (prev sess: ${prevSet.reps})` : "";
-  const prevWeightText = prevSet ? ` (prev sess: ${prevSet.weight})` : "";
+  const repsPrompt = lastSet ? lastSet.reps : "";
+  const weightPrompt = lastSet ? lastSet.weight : "";
 
-
-  let reps = prompt(`Reps (last: ${repsPrompt})${prevRepsText}:`);
+  let reps = prompt(`Reps (last: ${repsPrompt}):`);
   if (!reps || isNaN(reps)) return;
   reps = parseInt(reps);
 
-  let weight = prompt(`Weight (last: ${weightPrompt})${prevWeightText}:`);
+  let weight = prompt(`Weight (last: ${weightPrompt}):`);
   if (!weight || isNaN(weight)) return;
   weight = parseFloat(weight);
 
@@ -500,8 +494,15 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
 
-  selectedExercise.sets.forEach((s, idx) => {
+  // Sort sets by timestamp, most recent first, for display
+  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  sortedSets.forEach((s, idx) => {
     const tr = document.createElement("tr");
+    
+    // Find the original index to make editing work
+    const originalIndex = selectedExercise.sets.indexOf(s);
+    
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td>${s.reps}</td>
@@ -511,9 +512,6 @@ function renderSets() {
       <td>${new Date(s.timestamp).toLocaleString()}</td>
     `;
     
-    // We don't add listeners here anymore
-    // hookEditables() will handle it
-
     // --- ADD THIS DELETE BUTTON LOGIC ---
     const deleteTd = document.createElement('td');
     const deleteBtn = document.createElement('button');
@@ -522,7 +520,8 @@ function renderSets() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete set ${idx + 1}?`, () => {
-        selectedExercise.sets.splice(idx, 1);
+        // Use originalIndex to delete from the *unsorted* array
+        selectedExercise.sets.splice(originalIndex, 1);
         saveUserJson();
         renderSets(); // Re-render, which will also update the comparison
       });
@@ -534,7 +533,7 @@ function renderSets() {
     setsTable.appendChild(tr);
   });
   // After rendering, hook listeners
-  hookEditables();
+  hookEditables(sortedSets); // Pass sorted sets to hookables
 
   // --- NEW (STEP 2) ---
   // Run the comparison logic and log to console
@@ -585,136 +584,90 @@ function hideAllDetails() {
   document.getElementById("graphDiv").innerHTML = "";
 }
 
-// ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
-
-// --- MODIFIED (STEP 2.5) ---
-// Updated to use new sorting function and case-insensitive matching
-function getPreviousSet() {
-  if (!selectedClient || !selectedExercise) return null;
-  
-  // Get all sessions, sorted by date descending (most recent first)
-  const sessions = getSortedSessions(clientsData[selectedClient]?.sessions);
-  const currentExerciseName = selectedExercise.exercise.trim().toLowerCase();
-
-  for (const sess of sessions) {
-    if (sess === selectedSession) continue; // skip current session
-    
-    for (const ex of (sess.exercises || [])) {
-      // --- MODIFIED (STEP 2.5) ---
-      // Use case-insensitive and trimmed matching
-      if (ex.exercise.trim().toLowerCase() === currentExerciseName && ex.sets && ex.sets.length) {
-        return ex.sets[ex.sets.length - 1]; // last set
-      }
-    }
-  }
-  return null;
-}
-
-// ------------------ NEW COMPARISON LOGIC (STEP 2) ------------------
+// ------------------ NEW COMPARISON LOGIC (STEP 2.8) ------------------
 
 /**
- * Calculates aggregate stats for the current exercise in the current session.
- * @returns {object|null} An object with { sets, reps, volume, wpr } or null if no sets.
+ * Checks if two Date objects are on the same calendar day.
+ * @param {Date} d1 - First date
+ * @param {Date} d2 - Second date
+ * @returns {boolean}
  */
-function getCurrentSessionStats() {
-  if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
-    return null;
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+/**
+ * Aggregates stats for a given array of set objects.
+ * @param {Array} setsArray - An array of set objects
+ * @returns {object} An object with { sets, reps, volume, wpr }
+ */
+function aggregateStats(setsArray) {
+  if (!setsArray || setsArray.length === 0) {
+    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
   }
 
-  const sets = selectedExercise.sets;
-  const totalSets = sets.length;
-  const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
-  const totalVolume = sets.reduce((sum, set) => sum + set.volume, 0);
+  const totalSets = setsArray.length;
+  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
+  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
   const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0; // Avg Weight per Rep
 
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
 /**
- * Finds the most recent previous session with the same exercise and calculates its stats.
- * @param {string} exerciseName The name of the exercise to look for.
- * @returns {object|null} An object with { sets, reps, volume, wpr } or null if not found.
- */
-function getPreviousSessionStats(exerciseName) {
-  if (!selectedClient || !exerciseName) return null;
-
-  // --- MODIFIED (STEP 2.5) ---
-  const currentExerciseName = exerciseName.trim().toLowerCase();
-  
-  // --- MODIFIED (STEP 2.2) ---
-  // Updated to use new robust sorting function
-  const sessions = getSortedSessions(clientsData[selectedClient]?.sessions);
-  
-  // --- MODIFIED (STEP 2.5) ---
-  // Log the sessions we are checking
-  console.log(`[getPreviousSessionStats] Checking ${sessions.length} sorted sessions for exercise: "${currentExerciseName}"`);
-  console.log(`[getPreviousSessionStats] Current session date: ${selectedSession.date}`);
-  
-  for (const sess of sessions) {
-    // Skip the currently selected session
-    if (sess === selectedSession) {
-      console.log(`[getPreviousSessionStats] -> Skipping current session (Date: ${sess.date})`);
-      continue;
-    }
-
-    console.log(`[getPreviousSessionStats] -> Checking session (Date: ${sess.date}, Name: ${sess.session_name})`);
-
-    // Find the exercise in this older session
-    // --- MODIFIED (STEP 2.5) ---
-    const exercise = (sess.exercises || []).find(ex => ex.exercise.trim().toLowerCase() === currentExerciseName);
-
-    if (exercise && exercise.sets && exercise.sets.length > 0) {
-      // Found the most recent previous session with this exercise.
-      console.log(`[getPreviousSessionStats] -> MATCH FOUND! Aggregating stats.`);
-      
-      // Now, aggregate the stats for it.
-      const sets = exercise.sets;
-      const totalSets = sets.length;
-      const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
-      const totalVolume = sets.reduce((sum, set) => sum + set.volume, 0);
-      const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
-
-      // Return the stats for *this* session's exercise
-      return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
-    } else if (exercise) {
-      console.log(`[getPreviousSessionStats] -> Found exercise, but it has 0 sets. Skipping.`);
-    } else {
-      console.log(`[getPreviousSessionStats] -> Exercise not found in this session. Skipping.`);
-    }
-  }
-
-  console.log(`[getPreviousSessionStats] -> No previous session found with this exercise.`);
-  return null; // No previous session found with this exercise
-}
-
-/**
- * Main function to run the comparison and log it.
+ * Main function to run the comparison based on timestamps.
  */
 function runComparisonLogic() {
-  const banner = document.getElementById('comparisonBanner'); // Get the banner
-  if (!selectedExercise) {
-    banner.classList.add('hidden'); // Hide banner if no exercise
+  const banner = document.getElementById('comparisonBanner');
+  if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length < 2) {
+    banner.classList.add('hidden'); // Hide banner if not enough data
     return;
   }
 
-  console.log("--- WORKOUT COMPARISON (STEP 2.5) ---");
+  console.log("--- WORKOUT COMPARISON (STEP 2.8) ---");
   
-  const currentStats = getCurrentSessionStats();
-  // Pass the actual exercise name to the function
-  const prevStats = getPreviousSessionStats(selectedExercise.exercise);
+  // 1. Get all sets and sort them, most recent first
+  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  // 2. Find the date of the most recent workout
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  
+  // 3. Get all sets from that date
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  
+  // 4. Find the first set that is *not* from the most recent date
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+
+  // 5. If no such set exists, there is no previous workout to compare to
+  if (!previousWorkoutSet) {
+    console.log("[runComparisonLogic] Found current stats, but no previous workout day found.");
+    banner.classList.add('hidden');
+    return;
+  }
+
+  // 6. Get the date of that previous workout
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+
+  // 7. Get all sets matching that previous workout date
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+
+  // 8. Aggregate stats for both days
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  // 9. Log everything to the console for this step
+  console.log(`[runComparisonLogic] Most Recent Date: ${mostRecentDate.toDateString()}`);
   console.log("[runComparisonLogic] Current Stats:", currentStats);
+  console.log(`[runComparisonLogic] Previous Workout Date: ${previousWorkoutDate.toDateString()}`);
   console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
-  // For this step, we'll just show the banner if we have data,
-  // but we won't color it yet.
-  if (!currentStats || !prevStats) {
-    banner.classList.add('hidden');
-  } else {
-    banner.classList.remove('hidden');
-  }
+  // Show the banner (it's still static, but now it appears)
+  banner.classList.remove('hidden');
 }
+
 
 // ------------------ EDIT MODE ------------------
 
@@ -737,7 +690,9 @@ editToggleBtn.onclick = () => {
 
 
 // ------------------ MAKE ELEMENTS EDITABLE ------------------
-function makeEditable(element, type, parentIdx = null) {
+// --- MODIFIED (STEP 2.8) ---
+// Now takes sortedSets as an argument to find the correct original index
+function makeEditable(element, type, parentIdx, sortedSets) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
 
@@ -749,6 +704,19 @@ function makeEditable(element, type, parentIdx = null) {
     const newVal = prompt(`Edit ${type}:`, currentVal);
     if (!newVal || newVal === currentVal) return;
 
+    // --- NEW (STEP 2.8) ---
+    // Find the *original* index before editing
+    let originalIndex = -1;
+    if (type.startsWith("Set")) {
+        const sortedSetObject = sortedSets[parentIdx];
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        if (originalIndex === -1) {
+            console.error("Could not find set to edit!");
+            return;
+        }
+    }
+    // --- END NEW ---
+
     switch(type) {
       case "Client":
         const data = clientsData[currentVal];
@@ -759,8 +727,6 @@ function makeEditable(element, type, parentIdx = null) {
         renderClients();
         break;
 
-      // --- MODIFIED (STEP 2) ---
-      // Made this logic more robust, doesn't rely on selectedSession
       case "Session":
         const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
         if (sessionToEdit) {
@@ -769,8 +735,6 @@ function makeEditable(element, type, parentIdx = null) {
         renderSessions(); // Re-render to show the new name
         break;
 
-      // --- MODIFIED (STEP 2) ---
-      // Made this logic more robust
       case "Exercise":
         const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
         if(exerciseToEdit) {
@@ -780,19 +744,19 @@ function makeEditable(element, type, parentIdx = null) {
         break;
 
       case "SetReps":
-        selectedExercise.sets[parentIdx].reps = parseInt(newVal) || selectedExercise.sets[parentIdx].reps;
-        selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
+        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
         renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
 
       case "SetWeight":
-        selectedExercise.sets[parentIdx].weight = parseFloat(newVal) || selectedExercise.sets[parentIdx].weight;
-        selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
         renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
 
       case "SetNotes":
-        selectedExercise.sets[parentIdx].notes = newVal;
+        selectedExercise.sets[originalIndex].notes = newVal;
         renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
     }
@@ -802,7 +766,9 @@ function makeEditable(element, type, parentIdx = null) {
 }
 
 // ------------------ HOOK EDITABLES ------------------
-function hookEditables() {
+// --- MODIFIED (STEP 2.8) ---
+// Now passes the sortedSets array to makeEditable
+function hookEditables(sortedSets = []) {
   // Clients
   document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
   // Sessions
@@ -810,11 +776,12 @@ function hookEditables() {
   // Exercises
   document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
   
-  // Sets table (This part was correct, leave it as is)
+  // Sets table
   setsTable.querySelectorAll("tr").forEach((tr, idx) => {
     const tds = tr.querySelectorAll("td");
-    makeEditable(tds[1], "SetReps", idx);
-    makeEditable(tds[2], "SetWeight", idx);
-    makeEditable(tds[4], "SetNotes", idx);
+    // Pass 'sortedSets' to find the correct item
+    makeEditable(tds[1], "SetReps", idx, sortedSets);
+    makeEditable(tds[2], "SetWeight", idx, sortedSets);
+    makeEditable(tds[4], "SetNotes", idx, sortedSets);
   });
 }
