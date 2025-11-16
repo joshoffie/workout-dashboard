@@ -535,8 +535,7 @@ function renderSets() {
   // After rendering, hook listeners
   hookEditables(sortedSets); // Pass sorted sets to hookables
 
-  // --- NEW (STEP 2) ---
-  // Run the comparison logic and log to console
+  // Run the comparison logic
   runComparisonLogic();
 }
 
@@ -584,7 +583,7 @@ function hideAllDetails() {
   document.getElementById("graphDiv").innerHTML = "";
 }
 
-// ------------------ NEW COMPARISON LOGIC (STEP 2.8) ------------------
+// ------------------ NEW COMPARISON LOGIC ------------------
 
 /**
  * Checks if two Date objects are on the same calendar day.
@@ -616,7 +615,20 @@ function aggregateStats(setsArray) {
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
-// --- NEW (STEP 3A) ---
+/**
+ * Helper to format numbers.
+ * @param {number} num - The number to format
+ * @returns {string} A formatted string
+ */
+function formatNum(num) {
+  // Check if number is an integer
+  if (num % 1 === 0) {
+    return num.toString();
+  }
+  // Otherwise, return with 1 decimal place
+  return num.toFixed(1);
+}
+
 /**
  * Updates a single stat row in the comparison banner.
  * @param {string} statName - The prefix ('sets', 'reps', 'volume', 'wpr')
@@ -624,19 +636,20 @@ function aggregateStats(setsArray) {
  * @param {number} previousValue - The previous workout's value
  */
 function updateStatUI(statName, currentValue, previousValue) {
+  // Get all the elements for this stat row
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral');
+  const dataEl = document.getElementById(statName + 'Data'); // <-- NEW
   
-  if (!arrowEl || !spiralEl) {
-    console.warn(`Could not find UI elements for stat: ${statName}`);
+  if (!arrowEl || !spiralEl || !dataEl) { // <-- MODIFIED
+    console.warn(`Could not find all UI elements for stat: ${statName}`);
     return;
   }
 
+  // --- 1. Determine Status & Arrow ---
   let status = 'neutral';
   let arrow = '—'; // Neutral arrow
-
-  // Use a small epsilon for floating point comparison (for wpr)
-  const epsilon = 0.01; 
+  const epsilon = 0.01; // For float comparison
 
   if (currentValue > previousValue + epsilon) {
     status = 'increase';
@@ -645,15 +658,59 @@ function updateStatUI(statName, currentValue, previousValue) {
     status = 'decrease';
     arrow = '▼'; // Down arrow
   }
+  
+  // --- 2. Calculate Change & Percentage ---
+  const change = currentValue - previousValue;
+  let percentageChange = 0;
+  if (previousValue !== 0) {
+    percentageChange = (change / previousValue) * 100;
+  } else if (currentValue > 0) {
+    percentageChange = 100; // From 0 to something is +100%
+  }
+
+  // --- 3. Format Strings ---
+  let currentString = '';
+  let changeString = '';
+  const changeSign = change > 0 ? '+' : '';
+  
+  // Create the string for the current value
+  switch(statName) {
+    case 'sets':
+      currentString = `${formatNum(currentValue)} Sets`;
+      break;
+    case 'reps':
+      currentString = `${formatNum(currentValue)} Reps`;
+      break;
+    case 'volume':
+      currentString = `${formatNum(currentValue)} lb`;
+      break;
+    case 'wpr':
+      currentString = `${formatNum(currentValue)} lb/rep`;
+      break;
+  }
+  
+  // Create the string for the change
+  changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  if (status === 'neutral') {
+    changeString = `(0 / 0%)`;
+  }
+  
+  // --- 4. Apply to UI ---
+  const classesToRemove = ['increase', 'decrease', 'neutral'];
 
   // Update Arrow
   arrowEl.textContent = arrow;
-  arrowEl.classList.remove('increase', 'decrease', 'neutral');
+  arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
   // Update Spiral
-  spiralEl.classList.remove('increase', 'decrease', 'neutral');
+  spiralEl.classList.remove(...classesToRemove);
   spiralEl.classList.add(status);
+  
+  // Update Data Text (NEW)
+  dataEl.textContent = `${currentString} ${changeString}`;
+  dataEl.classList.remove(...classesToRemove);
+  dataEl.classList.add(status);
 }
 
 
@@ -667,7 +724,7 @@ function runComparisonLogic() {
     return;
   }
   
-  console.log("--- WORKOUT COMPARISON (STEP 3A) ---"); // <-- Updated log
+  console.log("--- WORKOUT COMPARISON (FINAL) ---"); // <-- Updated log
   
   // 1. Get all sets and sort them, most recent first
   const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -698,15 +755,14 @@ function runComparisonLogic() {
   const currentStats = aggregateStats(currentDaySets);
   const prevStats = aggregateStats(previousDaySets);
 
-  // 9. Log everything to the console for this step
+  // 9. Log everything to the console
   console.log(`[runComparisonLogic] Most Recent Date: ${mostRecentDate.toDateString()}`);
   console.log("[runComparisonLogic] Current Stats:", currentStats);
   console.log(`[runComparisonLogic] Previous Workout Date: ${previousWorkoutDate.toDateString()}`);
   console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
-  // --- MODIFIED (STEP 3A) ---
-  // Hook up the data to the UI
+  // 10. Hook up the data to the UI
   updateStatUI('sets', currentStats.sets, prevStats.sets);
   updateStatUI('reps', currentStats.reps, prevStats.reps);
   updateStatUI('volume', currentStats.volume, prevStats.volume);
@@ -731,8 +787,8 @@ editToggleBtn.onclick = () => {
   document.body.classList.toggle('edit-mode-active');
 
   if (!editMode) {
-    // Done pressed  save changes automatically
-    saveUserJson();
+  	// Done pressed  save changes automatically
+  	saveUserJson();
   }
 };
 
