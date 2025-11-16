@@ -524,6 +524,13 @@ function renderSets() {
     daySets.forEach((s, setIdx) => {
       const tr = document.createElement("tr");
       
+      // --- NEW: Check if this is the last set of the day ---
+      // and NOT the very last day in the list
+      if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
+        tr.classList.add("day-end-row");
+      }
+      // --- END NEW ---
+
       // Find the original index from the *unsorted* array
       const originalIndex = selectedExercise.sets.indexOf(s);
       
@@ -559,16 +566,15 @@ function renderSets() {
       renderedSetsInOrder.push(s);
     });
 
-    // --- 7. Add a divider *after* each day block, except the very last one ---
+    // --- 7. REMOVED the divider <tr> logic ---
+    /*
     if (dayIndex < sortedDays.length - 1) {
       const dividerTr = document.createElement("tr");
-      dividerTr.classList.add("day-divider");
-      const dividerTd = document.createElement("td");
-      dividerTd.colSpan = 7; // #, Reps, Weight, Volume, Notes, Timestamp, Delete
-      dividerTd.innerHTML = `<div class="divider-line"></div>`;
+...
       dividerTr.appendChild(dividerTd);
       setsTable.appendChild(dividerTr);
     }
+    */
   });
 
   // --- 8. Hook editables ---
@@ -927,11 +933,14 @@ function hookEditables(sortedSets = []) {
   // Sets table
   let setRowIdx = 0; // <-- Counter for *set rows only*
   setsTable.querySelectorAll("tr").forEach((tr) => {
-    // --- ADDED: Ensure we don't try to make divider rows editable ---
-    if (tr.classList.contains('day-divider')) return;
-    // --- END ADD ---
+    // --- REMOVED: Day divider check is no longer needed ---
+    // if (tr.classList.contains('day-divider')) return;
+    // --- END REMOVED ---
 
     const tds = tr.querySelectorAll("td");
+    
+    // Safety check to ensure it's a set row
+    if (tds.length < 5) return;
     
     // We use setRowIdx to look up the item in the flat sortedSets array
     // This correctly skips the divider rows.
