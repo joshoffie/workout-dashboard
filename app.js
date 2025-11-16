@@ -74,22 +74,22 @@ document.getElementById('backToClientsBtn').onclick = () => {
   selectedClient = null;
   selectedSession = null;
   selectedExercise = null;
-  navigateTo(SCREENS.CLIENTS, 'back');
+  navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
   // Reset downstream state
   selectedSession = null;
   selectedExercise = null;
-  navigateTo(SCREENS.SESSIONS, 'back');
+  navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
   // Reset downstream state
   selectedExercise = null;
-  navigateTo(SCREENS.EXERCISES, 'back'); // <-- FIX: This was targeting the wrong screen
+  navigateTo(SCREENS.EXERCISES, 'back'); // <-- FIX: This was targeting the wrong screen
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
   // No state to reset, just navigate
-  navigateTo(SCREENS.SETS, 'back');
+  navigateTo(SCREENS.SETS, 'back');
 };
 
 // ------------------ AUTH ------------------
@@ -373,11 +373,11 @@ function renderSessions() {
 
 // Now accepts the full session object
 function selectSession(sessionObject) {
-  selectedSession = sessionObject; // <-- Pass the whole object
-  selectedExercise = null;
-  document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
-  renderExercises();
-  navigateTo(SCREENS.EXERCISES, 'forward'); // <-- THIS IS THE FIX
+  selectedSession = sessionObject; // <-- Pass the whole object
+  selectedExercise = null;
+  document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'forward'); // <-- THIS IS THE FIX
 }
 
 // ------------------ EXERCISES ------------------
@@ -494,18 +494,73 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
 
-  // --- MODIFIED: Sort sets by timestamp ASCENDING (earliest first) ---
+  // --- 1. Sort sets by timestamp ASCENDING (earliest first) ---
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  let lastSetDate = null; // <-- To track the date
-  let setCounter = 0; // <-- ADDED: To count sets per day
+  // --- 2. Create a map of sets grouped by day ---
+  const setsByDay = new Map();
+  sortedSets.forEach(set => {
+    const setDate = new Date(set.timestamp);
+    const dayString = setDate.toDateString(); // "Sat Nov 15 2025"
+    if (!setsByDay.has(dayString)) {
+      setsByDay.set(dayString, []);
+    }
+    setsByDay.get(dayString).push(set);
+  });
 
-  sortedSets.forEach((s, idx) => {
-    const currentSetDate = new Date(s.timestamp); // <-- Get current set's date
+  // --- 3. Get the map keys (date strings) and sort them DESCENDING ---
+  const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
 
-    // --- Check if we need to add a divider ---
-    if (lastSetDate && !isSameDay(currentSetDate, lastSetDate)) {
-      // It's a new day! Add the divider row.
+  // --- This array will hold the sets in the exact order they are rendered
+  const renderedSetsInOrder = [];
+
+  // --- 4. Iterate over sorted days (most recent first) ---
+  sortedDays.forEach((dayString, dayIndex) => {
+    
+    // --- 5. Get the sets for this day (they are already in ascending order) ---
+    const daySets = setsByDay.get(dayString);
+    
+    // --- 6. Render the sets for this day ---
+    daySets.forEach((s, setIdx) => {
+      const tr = document.createElement("tr");
+      
+      // Find the original index from the *unsorted* array
+      const originalIndex = selectedExercise.sets.indexOf(s);
+      
+      tr.innerHTML = `
+        <td>${setIdx + 1}</td> <!-- This is the setCounter, 1-based -->
+        <td>${s.reps}</td>
+        <td>${s.weight}</td>
+        <td>${s.volume}</td>
+        <td>${s.notes}</td>
+        <td>${new Date(s.timestamp).toLocaleString()}</td>
+      `;
+      
+      // --- Add delete button ---
+      const deleteTd = document.createElement('td');
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
+          // Use originalIndex to delete from the *unsorted* array
+          selectedExercise.sets.splice(originalIndex, 1);
+          saveUserJson();
+          renderSets(); // Re-render, which will also update the comparison
+        });
+      };
+      deleteTd.appendChild(deleteBtn);
+      tr.appendChild(deleteTd);
+      
+      setsTable.appendChild(tr);
+
+      // --- Add to our flat array for hookEditables ---
+      renderedSetsInOrder.push(s);
+    });
+
+    // --- 7. Add a divider *after* each day block, except the very last one ---
+    if (dayIndex < sortedDays.length - 1) {
       const dividerTr = document.createElement("tr");
       dividerTr.classList.add("day-divider");
       const dividerTd = document.createElement("td");
@@ -513,51 +568,12 @@ function renderSets() {
       dividerTd.innerHTML = `<div class="divider-line"></div>`;
       dividerTr.appendChild(dividerTd);
       setsTable.appendChild(dividerTr);
-      
-      setCounter = 0; // <-- ADDED: Reset the counter for the new day
     }
-    // --- END ADD ---
-
-    setCounter++; // <-- ADDED: Increment the set counter for this day
-
-    const tr = document.createElement("tr");
-    
-    // Find the original index to make editing work
-    const originalIndex = selectedExercise.sets.indexOf(s);
-    
-    tr.innerHTML = `
-      <td>${setCounter}</td> <!-- MODIFIED: Use setCounter instead of idx + 1 -->
-      <td>${s.reps}</td>
-      <td>${s.weight}</td>
-      <td>${s.volume}</td>
-      <td>${s.notes}</td>
-      <td>${new Date(s.timestamp).toLocaleString()}</td>
-    `;
-    
-    // --- ADD THIS DELETE BUTTON LOGIC ---
-    const deleteTd = document.createElement('td');
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete';
-    deleteBtn.innerHTML = '&times;';
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      showDeleteConfirm(`Are you sure you want to delete set ${idx + 1}?`, () => {
-        // Use originalIndex to delete from the *unsorted* array
-        selectedExercise.sets.splice(originalIndex, 1);
-        saveUserJson();
-        renderSets(); // Re-render, which will also update the comparison
-      });
-    };
-    deleteTd.appendChild(deleteBtn);
-    tr.appendChild(deleteTd);
-    // --- END ADD ---
-
-    setsTable.appendChild(tr);
-
-    lastSetDate = currentSetDate; // <-- Update the last date
   });
-  // After rendering, hook listeners
-  hookEditables(sortedSets); // Pass sorted sets to hookables
+
+  // --- 8. Hook editables ---
+  // Pass the flat array of sets *in render order*
+  hookEditables(renderedSetsInOrder);
 
   // Run the comparison logic
   runComparisonLogic();
@@ -723,7 +739,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   const classesToRemove = ['increase', 'decrease', 'neutral'];
 
   // Update Arrow
-  arrowEl.innerHTML = arrow;
+  arrowEl.innerHTML = arrow; // <-- This was the typo fix
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
@@ -803,17 +819,17 @@ let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
 
 editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
 
   // This class now controls all edit-mode UI (delete buttons, text color)
   // The CSS file will do all the work.
   document.body.classList.toggle('edit-mode-active');
 
-  if (!editMode) {
-  	// Done pressed  save changes automatically
-  	saveUserJson();
-  }
+  if (!editMode) {
+  	// Done pressed  save changes automatically
+  	saveUserJson();
+  }
 };
 
 
@@ -836,8 +852,12 @@ function makeEditable(element, type, parentIdx, sortedSets) {
     // Find the *original* index before editing
     let originalIndex = -1;
     if (type.startsWith("Set")) {
-        const sortedSetObject = sortedSets[parentIdx];
-        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        const sortedSetObject = sortedSets[parentIdx]; // Use parentIdx to find the set in the flat render-order array
+        if (!sortedSetObject) {
+            console.error("Could not find set object to edit!");
+            return;
+        }
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject); // Find its *true* index
         if (originalIndex === -1) {
             console.error("Could not find set to edit!");
             return;
@@ -894,8 +914,8 @@ function makeEditable(element, type, parentIdx, sortedSets) {
 }
 
 // ------------------ HOOK EDITABLES ------------------
-// --- MODIFIED (STEP 2.8) ---
-// Now passes the sortedSets array to makeEditable
+// --- MODIFIED ---
+// Now passes the flat render-order array to makeEditable
 function hookEditables(sortedSets = []) {
   // Clients
   document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
@@ -905,15 +925,20 @@ function hookEditables(sortedSets = []) {
   document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
   
   // Sets table
-  setsTable.querySelectorAll("tr").forEach((tr, idx) => {
+  let setRowIdx = 0; // <-- Counter for *set rows only*
+  setsTable.querySelectorAll("tr").forEach((tr) => {
     // --- ADDED: Ensure we don't try to make divider rows editable ---
     if (tr.classList.contains('day-divider')) return;
     // --- END ADD ---
 
     const tds = tr.querySelectorAll("td");
-    // Pass 'sortedSets' to find the correct item
-    makeEditable(tds[1], "SetReps", idx, sortedSets);
-    makeEditable(tds[2], "SetWeight", idx, sortedSets);
-    makeEditable(tds[4], "SetNotes", idx, sortedSets);
+    
+    // We use setRowIdx to look up the item in the flat sortedSets array
+    // This correctly skips the divider rows.
+    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
+    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
+    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
+    
+    setRowIdx++; // Increment only when we've processed a set row
   });
 }
