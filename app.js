@@ -616,47 +616,6 @@ function aggregateStats(setsArray) {
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
-// --- NEW (STEP 3A) ---
-/**
- * Updates a single stat row in the comparison banner.
- * @param {string} statName - The prefix ('sets', 'reps', 'volume', 'wpr')
- * @param {number} currentValue - The current workout's value
- * @param {number} previousValue - The previous workout's value
- */
-function updateStatUI(statName, currentValue, previousValue) {
-  const arrowEl = document.getElementById(statName + 'Arrow');
-  const spiralEl = document.getElementById(statName + 'Spiral');
-  
-  if (!arrowEl || !spiralEl) {
-    console.warn(`Could not find UI elements for stat: ${statName}`);
-    return;
-  }
-
-  let status = 'neutral';
-  let arrow = '—'; // Neutral arrow
-
-  // Use a small epsilon for floating point comparison (for wpr)
-  const epsilon = 0.01; 
-
-  if (currentValue > previousValue + epsilon) {
-    status = 'increase';
-    arrow = '▲'; // Up arrow
-  } else if (currentValue < previousValue - epsilon) {
-    status = 'decrease';
-    arrow = '▼'; // Down arrow
-  }
-
-  // Update Arrow
-  arrowEl.textContent = arrow;
-  arrowEl.classList.remove('increase', 'decrease', 'neutral');
-  arrowEl.classList.add(status);
-
-  // Update Spiral
-  spiralEl.classList.remove('increase', 'decrease', 'neutral');
-  spiralEl.classList.add(status);
-}
-
-
 /**
  * Main function to run the comparison based on timestamps.
  */
@@ -666,8 +625,8 @@ function runComparisonLogic() {
     banner.classList.add('hidden'); // Hide banner if not enough data
     return;
   }
-  
-  console.log("--- WORKOUT COMPARISON (STEP 3A) ---"); // <-- Updated log
+
+  console.log("--- WORKOUT COMPARISON (STEP 2.8) ---");
   
   // 1. Get all sets and sort them, most recent first
   const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -705,14 +664,7 @@ function runComparisonLogic() {
   console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
-  // --- MODIFIED (STEP 3A) ---
-  // Hook up the data to the UI
-  updateStatUI('sets', currentStats.sets, prevStats.sets);
-  updateStatUI('reps', currentStats.reps, prevStats.reps);
-  updateStatUI('volume', currentStats.volume, prevStats.volume);
-  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
-  
-  // Show the banner
+  // Show the banner (it's still static, but now it appears)
   banner.classList.remove('hidden');
 }
 
@@ -777,7 +729,7 @@ function makeEditable(element, type, parentIdx, sortedSets) {
 
       case "Session":
         const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
-        if (sessionToEit) {
+        if (sessionToEdit) {
             sessionToEdit.session_name = newVal;
         }
         renderSessions(); // Re-render to show the new name
