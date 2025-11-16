@@ -723,7 +723,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   const classesToRemove = ['increase', 'decrease', 'neutral'];
 
   // Update Arrow
-  arrowEl.tinnerHTML = arrow;
+  arrowEl.innerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
