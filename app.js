@@ -677,10 +677,10 @@ function updateStatUI(statName, currentValue, previousValue) {
 
   if (currentValue > previousValue + epsilon) {
     status = 'increase';
-    arrow = '¡ø'; // Up arrow
+    arrow = '&uarr;'; // Up arrow (FIXED)
   } else if (currentValue < previousValue - epsilon) {
     status = 'decrease';
-    arrow = ''; // Down arrow
+    arrow = '&darr;'; // Down arrow (FIXED)
   }
   
   // --- 2. Calculate Change & Percentage ---
@@ -723,7 +723,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   const classesToRemove = ['increase', 'decrease', 'neutral'];
 
   // Update Arrow
-  arrowEl.textContent = arrow;
+  arrowEl.tinnerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
