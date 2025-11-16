@@ -383,6 +383,27 @@ table td:last-child {
   padding: 0.5rem;
 }
 
+/* --- NEW Day Divider Styles --- */
+.day-divider td {
+  padding: 0.5rem 0 !important; /* Small vertical padding, no horizontal */
+  border-bottom: none; /* No border on the <td> itself */
+  background-color: var(--color-card); /* Match row background */
+}
+
+.divider-line {
+  height: 2px; /* "small" */
+  width: 100%;
+  background-color: var(--color-yellow); /* "yellow" */
+  opacity: 0.6; /* Soften it slightly */
+}
+
+/* Make sure divider rows don't have hover effects */
+tr.day-divider:hover {
+  background-color: var(--color-card) !important;
+}
+/* --- END Day Divider Styles --- */
+
+
 /* =====================================================
   NEW DELETE BUTTON & EDIT MODE STYLES
   =====================================================
