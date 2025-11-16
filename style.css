@@ -256,6 +256,7 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text);
+  overflow: hidden; /* <-- ADD THIS LINE */
 }
 .auth-controls {
   display: flex;
