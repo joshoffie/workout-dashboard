@@ -276,6 +276,11 @@ body {
 .app-container {
   padding: 0; /* Remove padding, screens are full-width */
   margin: 0 auto;
+  /* --- THIS IS A CRITICAL FIX --- */
+  position: relative;
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* --- END FIX --- */
 }
 
 /* ===== ITEM LISTS (Aesthetic Update) ===== */
@@ -283,6 +288,9 @@ body {
   list-style: none;
   width: 100%;
   padding: 0 1rem; /* Add side padding */
+  /* --- THIS IS A CRITICAL FIX --- */
+  padding-top: 8.5rem; /* This provides ~136px of space */
+  /* --- END FIX --- */
 }
 .item-list li {
   font-size: 1.1rem;
@@ -500,9 +508,126 @@ td .btn-delete {
   }
 }
 
-/* ===== NAVIGATION & SCREEN STYLES ===== */
+/* ===== NAVIGATION & SCREEN STYLES (THE FIX) ===== */
 
-/* ... (This entire section is unchanged) ... */
+/* This turns our <section> elements into full-screen pages */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  
+  /* Reset card styles so it's not a 'card' anymore */
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+}
+
+/* We need to make the container a 'viewport' for our screens */
+/* This rule is now defined in .app-container near the top */
+
+
+/* Style the new back button (inspired by iOS) */
+.btn-back {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: -0.5rem;
+  /* Ensure it's not hidden */
+  z-index: 20;
+  flex: 0 0 auto; /* Stop it from growing */
+}
+
+/* Make card headers sticky like a native app header */
+.card-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-card);
+  z-index: 10;
+  padding-top: calc(1rem + 60px);
+  margin-top: -60px;
+  /* Add a subtle gradient to headers */
+  background-image: linear-gradient(to bottom, #222, var(--color-card));
+}
+/* We need to re-add the top border it lost */
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-border);
+}
+.card-header h3 {
+  color: var(--color-text);
+  z-index: 5; /* Ensure text is above back button if it overlaps */
+  flex: 1; /* Allow h3 to take space */
+  text-align: center; /* Center the title */
+  margin: 0 1rem;
+}
+/* Adjust header button group */
+.card-header .btn-group {
+  flex: 0 0 auto;
+}
+
+
+/* --- THE Z-INDEX BUG FIX --- */
+/* This rule is now defined in .item-list near the top */
+
+/* We also need to push down the graph and table */
+#graphContainer .card-header ~ #graphDiv {
+  margin-top: 8.5rem;
+}
+
+/* This targets the new wrapper div */
+#setsDiv .sets-content-wrapper {
+  margin-top: 8.5rem;
+}
+
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOutToLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-25%); opacity: 0; } /* Fade out faster */
+}
+@keyframes slideInFromLeft {
+  from { transform: translateX(-25%); opacity: 0; } /* Start from part-way */
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOutToRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.5; }
+}
+
+/* Animation helper classes */
+.slide-in-right {
+  animation: slideInFromRight 0.3s forwards ease-out;
+  z-index: 2; /* Ensure new screen is on top */
+}
+.slide-out-left {
+  animation: slideOutToLeft 0.3s forwards ease-out;
+  z-index: 1;
+}
+.slide-in-left {
+  animation: slideInFromLeft 0.3s forwards ease-out;
+  z-index: 2;
+}
+.slide-out-right {
+  animation: slideOutToRight 0.3s forwards ease-out;
+  z-index: 1;
+}
 
 /* =====================================================
   NEW COMPARISON BANNER STYLES (FINAL)
@@ -563,7 +688,7 @@ td .btn-delete {
 
 .comparison-spiral {
   fill: none;
-  /* stroke: var(--color-text-muted); */ /* <-- REMOVE this default stroke */
+  /* stroke: var(--color-text-muted); */ /* <-- REMOVED this default stroke */
   stroke-width: 5; /* Thicker for visibility */
   stroke-linecap: round;
   stroke-dasharray: 1200;
