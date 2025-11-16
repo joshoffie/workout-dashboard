@@ -497,7 +497,24 @@ function renderSets() {
   // Sort sets by timestamp, most recent first, for display
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  let lastSetDate = null; // <-- ADDED: To track the date
+
   sortedSets.forEach((s, idx) => {
+    const currentSetDate = new Date(s.timestamp); // <-- ADDED
+
+    // --- ADDED: Check if we need to add a divider ---
+    if (lastSetDate && !isSameDay(currentSetDate, lastSetDate)) {
+      // It's a new day! Add the divider row.
+      const dividerTr = document.createElement("tr");
+      dividerTr.classList.add("day-divider");
+      const dividerTd = document.createElement("td");
+      dividerTd.colSpan = 7; // #, Reps, Weight, Volume, Notes, Timestamp, Delete
+      dividerTd.innerHTML = `<div class="divider-line"></div>`;
+      dividerTr.appendChild(dividerTd);
+      setsTable.appendChild(dividerTr);
+    }
+    // --- END ADD ---
+
     const tr = document.createElement("tr");
     
     // Find the original index to make editing work
@@ -531,6 +548,8 @@ function renderSets() {
     // --- END ADD ---
 
     setsTable.appendChild(tr);
+
+    lastSetDate = currentSetDate; // <-- ADDED: Update the last date
   });
   // After rendering, hook listeners
   hookEditables(sortedSets); // Pass sorted sets to hookables
@@ -653,10 +672,10 @@ function updateStatUI(statName, currentValue, previousValue) {
 
   if (currentValue > previousValue + epsilon) {
     status = 'increase';
-    arrow = '▲'; // Up arrow
+    arrow = '¡ø'; // Up arrow
   } else if (currentValue < previousValue - epsilon) {
     status = 'decrease';
-    arrow = '▼'; // Down arrow
+    arrow = ''; // Down arrow
   }
   
   // --- 2. Calculate Change & Percentage ---
@@ -882,6 +901,10 @@ function hookEditables(sortedSets = []) {
   
   // Sets table
   setsTable.querySelectorAll("tr").forEach((tr, idx) => {
+    // --- ADDED: Ensure we don't try to make divider rows editable ---
+    if (tr.classList.contains('day-divider')) return;
+    // --- END ADD ---
+
     const tds = tr.querySelectorAll("td");
     // Pass 'sortedSets' to find the correct item
     makeEditable(tds[1], "SetReps", idx, sortedSets);
