@@ -272,6 +272,32 @@ function selectClient(name) {
 
 // ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
+
+// --- NEW (STEP 2.2) ---
+/**
+ * A robust helper function to sort sessions by date, descending.
+ * Handles missing or invalid dates.
+ * @param {Array} sessionsArray - The array of session objects to sort.
+ * @returns {Array} A new, sorted array.
+ */
+function getSortedSessions(sessionsArray) {
+  if (!sessionsArray) return [];
+  
+  return sessionsArray.slice().sort((a, b) => {
+    // Get date for B, default to 0 (epoch) if missing/invalid
+    let dateB = b.date ? new Date(b.date) : new Date(0);
+    if (isNaN(dateB.getTime())) dateB = new Date(0);
+
+    // Get date for A, default to 0 (epoch) if missing/invalid
+    let dateA = a.date ? new Date(a.date) : new Date(0);
+    if (isNaN(dateA.getTime())) dateA = new Date(0);
+
+    // Compare timestamps (most recent first)
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
+
 document.getElementById("addSessionBtn").onclick = () => {
   if (!selectedClient) { alert("Select a client first"); return; }
   const name = prompt("Enter session name:");
@@ -291,9 +317,9 @@ function renderSessions() {
 
   const sessions = clientsData[selectedClient]?.sessions || [];
   
-  // --- NEW (STEP 2) ---
-  // Sort sessions by date, most recent first. .slice() makes a copy.
-  const sortedSessions = sessions.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  // --- MODIFIED (STEP 2.2) ---
+  // Use the new robust sorting function
+  const sortedSessions = getSortedSessions(sessions);
 
   sortedSessions.forEach((sess, idx) => {
     const li = document.createElement("li");
@@ -561,20 +587,22 @@ function hideAllDetails() {
 
 // ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
 
-// --- MODIFIED (STEP 2) ---
-// Updated to use new sorting logic for consistency
+// --- MODIFIED (STEP 2.5) ---
+// Updated to use new sorting function and case-insensitive matching
 function getPreviousSet() {
   if (!selectedClient || !selectedExercise) return null;
   
   // Get all sessions, sorted by date descending (most recent first)
-  const sessions = (clientsData[selectedClient].sessions || []).slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sessions = getSortedSessions(clientsData[selectedClient]?.sessions);
+  const currentExerciseName = selectedExercise.exercise.trim().toLowerCase();
 
   for (const sess of sessions) {
     if (sess === selectedSession) continue; // skip current session
     
     for (const ex of (sess.exercises || [])) {
-      if (ex.exercise === selectedExercise.exercise && ex.sets && ex.sets.length) {
+      // --- MODIFIED (STEP 2.5) ---
+      // Use case-insensitive and trimmed matching
+      if (ex.exercise.trim().toLowerCase() === currentExerciseName && ex.sets && ex.sets.length) {
         return ex.sets[ex.sets.length - 1]; // last set
       }
     }
@@ -610,20 +638,35 @@ function getCurrentSessionStats() {
 function getPreviousSessionStats(exerciseName) {
   if (!selectedClient || !exerciseName) return null;
 
-  // Get all sessions, sorted by date descending (most recent first)
-  // .slice() creates a copy so we don't mutate the original array
-  const sessions = (clientsData[selectedClient].sessions || []).slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  // --- MODIFIED (STEP 2.5) ---
+  const currentExerciseName = exerciseName.trim().toLowerCase();
+  
+  // --- MODIFIED (STEP 2.2) ---
+  // Updated to use new robust sorting function
+  const sessions = getSortedSessions(clientsData[selectedClient]?.sessions);
+  
+  // --- MODIFIED (STEP 2.5) ---
+  // Log the sessions we are checking
+  console.log(`[getPreviousSessionStats] Checking ${sessions.length} sorted sessions for exercise: "${currentExerciseName}"`);
+  console.log(`[getPreviousSessionStats] Current session date: ${selectedSession.date}`);
   
   for (const sess of sessions) {
     // Skip the currently selected session
-    if (sess === selectedSession) continue;
+    if (sess === selectedSession) {
+      console.log(`[getPreviousSessionStats] -> Skipping current session (Date: ${sess.date})`);
+      continue;
+    }
+
+    console.log(`[getPreviousSessionStats] -> Checking session (Date: ${sess.date}, Name: ${sess.session_name})`);
 
     // Find the exercise in this older session
-    const exercise = (sess.exercises || []).find(ex => ex.exercise === exerciseName);
+    // --- MODIFIED (STEP 2.5) ---
+    const exercise = (sess.exercises || []).find(ex => ex.exercise.trim().toLowerCase() === currentExerciseName);
 
     if (exercise && exercise.sets && exercise.sets.length > 0) {
       // Found the most recent previous session with this exercise.
+      console.log(`[getPreviousSessionStats] -> MATCH FOUND! Aggregating stats.`);
+      
       // Now, aggregate the stats for it.
       const sets = exercise.sets;
       const totalSets = sets.length;
@@ -633,9 +676,14 @@ function getPreviousSessionStats(exerciseName) {
 
       // Return the stats for *this* session's exercise
       return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+    } else if (exercise) {
+      console.log(`[getPreviousSessionStats] -> Found exercise, but it has 0 sets. Skipping.`);
+    } else {
+      console.log(`[getPreviousSessionStats] -> Exercise not found in this session. Skipping.`);
     }
   }
 
+  console.log(`[getPreviousSessionStats] -> No previous session found with this exercise.`);
   return null; // No previous session found with this exercise
 }
 
@@ -649,12 +697,14 @@ function runComparisonLogic() {
     return;
   }
 
+  console.log("--- WORKOUT COMPARISON (STEP 2.5) ---");
+  
   const currentStats = getCurrentSessionStats();
+  // Pass the actual exercise name to the function
   const prevStats = getPreviousSessionStats(selectedExercise.exercise);
 
-  console.log("--- WORKOUT COMPARISON (STEP 2) ---");
-  console.log("Current Stats:", currentStats);
-  console.log("Previous Stats:", prevStats);
+  console.log("[runComparisonLogic] Current Stats:", currentStats);
+  console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
   // For this step, we'll just show the banner if we have data,
