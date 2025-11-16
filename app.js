@@ -276,6 +276,7 @@ document.getElementById("addSessionBtn").onclick = () => {
   if (!selectedClient) { alert("Select a client first"); return; }
   const name = prompt("Enter session name:");
   if (!name) return;
+  // Make sure to add the 'date' field
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
   clientsData[selectedClient].sessions.push(session);
   saveUserJson();
@@ -289,7 +290,12 @@ function renderSessions() {
   document.getElementById("selectedSessionLabel").textContent = "";
 
   const sessions = clientsData[selectedClient]?.sessions || [];
-  sessions.forEach((sess, idx) => {
+  
+  // --- NEW (STEP 2) ---
+  // Sort sessions by date, most recent first. .slice() makes a copy.
+  const sortedSessions = sessions.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  sortedSessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
 
@@ -303,7 +309,9 @@ function renderSessions() {
         e.stopPropagation();
         return;
       }
-      selectSession(idx);
+      // --- MODIFIED (STEP 2) ---
+      // Pass the session object itself, not the index
+      selectSession(sess);
     };
 
     // 3. Create the delete button
@@ -313,9 +321,16 @@ function renderSessions() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
-        clientsData[selectedClient].sessions.splice(idx, 1);
-        saveUserJson();
-        renderSessions();
+        
+        // --- MODIFIED (STEP 2) ---
+        // Find the actual index of this session in the *original* array
+        const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
+        if (sessionIndex > -1) {
+          clientsData[selectedClient].sessions.splice(sessionIndex, 1);
+          saveUserJson();
+          renderSessions();
+        }
+
         // If they deleted the selected session, go back
         if (selectedSession === sess) {
           navigateTo(SCREENS.SESSIONS, 'back');
@@ -334,9 +349,10 @@ function renderSessions() {
 }
 
 
-// THIS IS THE FIXED FUNCTION
-function selectSession(idx) {
-  selectedSession = clientsData[selectedClient].sessions[idx];
+// --- MODIFIED (STEP 2) ---
+// Now accepts the full session object
+function selectSession(sessionObject) {
+  selectedSession = sessionObject; // <-- Pass the whole object
   selectedExercise = null;
   document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
   renderExercises();
@@ -409,25 +425,49 @@ function renderExercises() {
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
-  renderSets();
+  renderSets(); // This will now trigger the console.log
   navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden"); // This is still needed
 }
 
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
+
+// --- MODIFIED (STEP 2) ---
+// Updated prompt logic to be clearer
 document.getElementById("addSetBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
-  const reps = parseInt(prompt("Reps:"));
-  if (isNaN(reps)) return;
-  const weight = parseFloat(prompt("Weight:"));
-  if (isNaN(weight)) return;
-  const notes = prompt("Notes:") || "";
+
+  // Get last set from *current* session for quick copy
+  const lastSetInCurrentSession = selectedExercise.sets[selectedExercise.sets.length - 1];
+  
+  // Get last set from *previous* session for comparison
+  const prevSet = getPreviousSet(); // This now uses the new sorted logic
+  
+  // Default prompt values: Use last set from *this* session if it exists, otherwise last set from *previous* session
+  const repsPrompt = lastSetInCurrentSession ? lastSetInCurrentSession.reps : (prevSet ? prevSet.reps : "");
+  const weightPrompt = lastSetInCurrentSession ? lastSetInCurrentSession.weight : (prevSet ? prevSet.weight : "");
+  
+  // Text for the prompt:
+  const prevRepsText = prevSet ? ` (prev sess: ${prevSet.reps})` : "";
+  const prevWeightText = prevSet ? ` (prev sess: ${prevSet.weight})` : "";
+
+
+  let reps = prompt(`Reps (last: ${repsPrompt})${prevRepsText}:`);
+  if (!reps || isNaN(reps)) return;
+  reps = parseInt(reps);
+
+  let weight = prompt(`Weight (last: ${weightPrompt})${prevWeightText}:`);
+  if (!weight || isNaN(weight)) return;
+  weight = parseFloat(weight);
+
+  let notes = prompt("Notes:") || "";
   const timestamp = new Date().toISOString();
   const volume = reps * weight;
+
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson();
-  renderSets();
+  saveUserJson(); // AUTO-SAVE
+  renderSets(); // This will re-render and trigger runComparisonLogic()
 };
 
 function renderSets() {
@@ -442,7 +482,7 @@ function renderSets() {
       <td>${s.weight}</td>
       <td>${s.volume}</td>
       <td>${s.notes}</td>
-      <td>${s.timestamp}</td>
+      <td>${new Date(s.timestamp).toLocaleString()}</td>
     `;
     
     // We don't add listeners here anymore
@@ -458,7 +498,7 @@ function renderSets() {
       showDeleteConfirm(`Are you sure you want to delete set ${idx + 1}?`, () => {
         selectedExercise.sets.splice(idx, 1);
         saveUserJson();
-        renderSets();
+        renderSets(); // Re-render, which will also update the comparison
       });
     };
     deleteTd.appendChild(deleteBtn);
@@ -469,10 +509,13 @@ function renderSets() {
   });
   // After rendering, hook listeners
   hookEditables();
+
+  // --- NEW (STEP 2) ---
+  // Run the comparison logic and log to console
+  runComparisonLogic();
 }
 
 
-// ------------------ PLOTLY GRAPH ------------------
 // ------------------ PLOTLY GRAPH ------------------
 document.getElementById("showGraphBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
@@ -518,14 +561,19 @@ function hideAllDetails() {
 
 // ------------------ AUTO-SAVE & PREVIOUS SETS ------------------
 
-// Get the last set for the same exercise across previous sessions
+// --- MODIFIED (STEP 2) ---
+// Updated to use new sorting logic for consistency
 function getPreviousSet() {
   if (!selectedClient || !selectedExercise) return null;
-  const sessions = clientsData[selectedClient].sessions || [];
-  for (let i = sessions.length - 1; i >= 0; i--) {
-    const sess = sessions[i];
+  
+  // Get all sessions, sorted by date descending (most recent first)
+  const sessions = (clientsData[selectedClient].sessions || []).slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  for (const sess of sessions) {
     if (sess === selectedSession) continue; // skip current session
-    for (const ex of sess.exercises || []) {
+    
+    for (const ex of (sess.exercises || [])) {
       if (ex.exercise === selectedExercise.exercise && ex.sets && ex.sets.length) {
         return ex.sets[ex.sets.length - 1]; // last set
       }
@@ -534,30 +582,91 @@ function getPreviousSet() {
   return null;
 }
 
-// Override add set button
-document.getElementById("addSetBtn").onclick = () => {
-  if (!selectedExercise) { alert("Select an exercise first"); return; }
+// ------------------ NEW COMPARISON LOGIC (STEP 2) ------------------
 
-  const prevSet = getPreviousSet();
-  const prevReps = prevSet ? prevSet.reps : "";
-  const prevWeight = prevSet ? prevSet.weight : "";
+/**
+ * Calculates aggregate stats for the current exercise in the current session.
+ * @returns {object|null} An object with { sets, reps, volume, wpr } or null if no sets.
+ */
+function getCurrentSessionStats() {
+  if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+    return null;
+  }
 
-  let reps = prompt(`Reps (previous: ${prevReps || "N/A"}):`);
-  if (!reps || isNaN(reps)) return;
-  reps = parseInt(reps);
+  const sets = selectedExercise.sets;
+  const totalSets = sets.length;
+  const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
+  const totalVolume = sets.reduce((sum, set) => sum + set.volume, 0);
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0; // Avg Weight per Rep
 
-  let weight = prompt(`Weight (previous: ${prevWeight || "N/A"}):`);
-  if (!weight || isNaN(weight)) return;
-  weight = parseFloat(weight);
+  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+}
 
-  let notes = prompt("Notes:") || "";
-  const timestamp = new Date().toISOString();
-  const volume = reps * weight;
+/**
+ * Finds the most recent previous session with the same exercise and calculates its stats.
+ * @param {string} exerciseName The name of the exercise to look for.
+ * @returns {object|null} An object with { sets, reps, volume, wpr } or null if not found.
+ */
+function getPreviousSessionStats(exerciseName) {
+  if (!selectedClient || !exerciseName) return null;
 
-  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson(); // AUTO-SAVE
-  renderSets();
-};
+  // Get all sessions, sorted by date descending (most recent first)
+  // .slice() creates a copy so we don't mutate the original array
+  const sessions = (clientsData[selectedClient].sessions || []).slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  for (const sess of sessions) {
+    // Skip the currently selected session
+    if (sess === selectedSession) continue;
+
+    // Find the exercise in this older session
+    const exercise = (sess.exercises || []).find(ex => ex.exercise === exerciseName);
+
+    if (exercise && exercise.sets && exercise.sets.length > 0) {
+      // Found the most recent previous session with this exercise.
+      // Now, aggregate the stats for it.
+      const sets = exercise.sets;
+      const totalSets = sets.length;
+      const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
+      const totalVolume = sets.reduce((sum, set) => sum + set.volume, 0);
+      const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
+
+      // Return the stats for *this* session's exercise
+      return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+    }
+  }
+
+  return null; // No previous session found with this exercise
+}
+
+/**
+ * Main function to run the comparison and log it.
+ */
+function runComparisonLogic() {
+  const banner = document.getElementById('comparisonBanner'); // Get the banner
+  if (!selectedExercise) {
+    banner.classList.add('hidden'); // Hide banner if no exercise
+    return;
+  }
+
+  const currentStats = getCurrentSessionStats();
+  const prevStats = getPreviousSessionStats(selectedExercise.exercise);
+
+  console.log("--- WORKOUT COMPARISON (STEP 2) ---");
+  console.log("Current Stats:", currentStats);
+  console.log("Previous Stats:", prevStats);
+  console.log("-------------------------------------");
+  
+  // For this step, we'll just show the banner if we have data,
+  // but we won't color it yet.
+  if (!currentStats || !prevStats) {
+    banner.classList.add('hidden');
+  } else {
+    banner.classList.remove('hidden');
+  }
+}
+
+// ------------------ EDIT MODE ------------------
 
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
@@ -571,7 +680,7 @@ editToggleBtn.onclick = () => {
   document.body.classList.toggle('edit-mode-active');
 
   if (!editMode) {
-    // Done pressed → save changes automatically
+    // Done pressed  save changes automatically
     saveUserJson();
   }
 };
@@ -600,31 +709,41 @@ function makeEditable(element, type, parentIdx = null) {
         renderClients();
         break;
 
+      // --- MODIFIED (STEP 2) ---
+      // Made this logic more robust, doesn't rely on selectedSession
       case "Session":
-        selectedSession.session_name = newVal;
-        renderSessions();
+        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
+        if (sessionToEdit) {
+            sessionToEdit.session_name = newVal;
+        }
+        renderSessions(); // Re-render to show the new name
         break;
 
+      // --- MODIFIED (STEP 2) ---
+      // Made this logic more robust
       case "Exercise":
-        selectedExercise.exercise = newVal;
+        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+        if(exerciseToEdit) {
+            exerciseToEdit.exercise = newVal;
+        }
         renderExercises();
         break;
 
       case "SetReps":
         selectedExercise.sets[parentIdx].reps = parseInt(newVal) || selectedExercise.sets[parentIdx].reps;
         selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
-        renderSets();
+        renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
 
       case "SetWeight":
         selectedExercise.sets[parentIdx].weight = parseFloat(newVal) || selectedExercise.sets[parentIdx].weight;
         selectedExercise.sets[parentIdx].volume = selectedExercise.sets[parentIdx].reps * selectedExercise.sets[parentIdx].weight;
-        renderSets();
+        renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
 
       case "SetNotes":
         selectedExercise.sets[parentIdx].notes = newVal;
-        renderSets();
+        renderSets(); // This will re-render and trigger runComparisonLogic()
         break;
     }
 
