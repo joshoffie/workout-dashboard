@@ -1,544 +1,544 @@
 /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
-  /* Dark Mode Palette */
-  --color-bg: #101010; /* Main background */
-  --color-card: #1c1c1c; /* Card/Header background */
-  --color-text: #f0f0f0; /* Primary text */
-  --color-text-muted: #8a8a8e; /* Softer text */
-  --color-border: #333333; /* Borders */
-  
-  /* Vibrant Accent (Inspired by Hevy/Setgraph) */
-  --color-primary: #007aff; /* Kept your blue, it's clean */
-  --color-primary-light: rgba(0, 122, 255, 0.1); /* Light blue for hover */
-  --color-secondary: #333333; /* Darker secondary button */
+  /* Dark Mode Palette */
+  --color-bg: #101010; /* Main background */
+  --color-card: #1c1c1c; /* Card/Header background */
+  --color-text: #f0f0f0; /* Primary text */
+  --color-text-muted: #8a8a8e; /* Softer text */
+  --color-border: #333333; /* Borders */
+  
+  /* Vibrant Accent (Inspired by Hevy/Setgraph) */
+  --color-primary: #007aff; /* Kept your blue, it's clean */
+  --color-primary-light: rgba(0, 122, 255, 0.1); /* Light blue for hover */
+  --color-secondary: #333333; /* Darker secondary button */
 
-  /* Gradient for "Add" buttons */
-  --grad-primary: linear-gradient(90deg, #007aff, #00A3FF);
+  /* Gradient for "Add" buttons */
+  --grad-primary: linear-gradient(90deg, #007aff, #00A3FF);
 
-  /* Status Colors */
-  --color-red: #ff3b30;
-  --color-green: #34c759;
-  --color-yellow: #ffcc00;
+  /* Status Colors */
+  --color-red: #ff3b30;
+  --color-green: #34c759;
+  --color-yellow: #ffcc00;
 
-  --color-overlay: rgba(0, 0, 0, 0.7);
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  --transition: 0.2s ease;
-  
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  
-  /* Smooth scrolling for native feel */
-  scroll-behavior: smooth;
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  --transition: 0.2s ease;
+  
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  
+  /* Smooth scrolling for native feel */
+  scroll-behavior: smooth;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
 }
 
 /* ===== UTILITIES ===== */
 .hidden {
-  display: none !important;
+  display: none !important;
 }
 
 /* ===== LOGIN MODAL ===== */
 .overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 .overlay:not(.hidden) {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 .modal {
-  background: var(--color-card);
-  border-radius: var(--radius-md);
-  padding: 2.5rem 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: 2.5rem 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
 }
 
 /* --- New Spiral Animation Styles --- */
 /* This came from your index.html, moved here for cleanliness */
 .modal-logo {
-  width: 100px; 
-  height: 100px;
-  margin: 0 auto 1.5rem auto; /* Centered */
-  position: relative;
+  width: 100px; 
+  height: 100px;
+  margin: 0 auto 1.5rem auto; /* Centered */
+  position: relative;
 }
 .tree-animation-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  viewBox: 0 0 100 100;
-  overflow: visible; 
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  viewBox: 0 0 100 100;
+  overflow: visible; 
 }
 .spiral-path {
-  fill: none;
-  stroke: var(--color-primary); /* <-- STYLED FOR DARK MODE */
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-dasharray: 1200; 
-  stroke-dashoffset: 1200;
-  transform-origin: 50px 50px;
-  animation: drawSpiral 4s ease-in-out infinite;
+  fill: none;
+  stroke: var(--color-primary); /* <-- STYLED FOR DARK MODE */
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1200; 
+  stroke-dashoffset: 1200;
+  transform-origin: 50px 50px;
+  animation: drawSpiral 4s ease-in-out infinite;
 }
 @keyframes drawSpiral {
-  0% {
-      stroke-dashoffset: 1200; 
-      stroke-width: 2;
-      transform: scale(1);
-  }
-  50% {
-      stroke-dashoffset: 0; 
-      stroke-width: 5;
-      transform: scale(1.2);
-  }
-  100% {
-      stroke-dashoffset: 1200;
-      stroke-width: 2;
-      transform: scale(1);
-  }
+  0% {
+      stroke-dashoffset: 1200; 
+      stroke-width: 2;
+      transform: scale(1);
+  }
+  50% {
+      stroke-dashoffset: 0; 
+      stroke-width: 5;
+      transform: scale(1.2);
+  }
+  100% {
+      stroke-dashoffset: 1200;
+      stroke-width: 2;
+      transform: scale(1);
+  }
 }
 /* --- End of Spiral Styles --- */
 
 .modal h2 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--color-text);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
 }
 .modal-subtitle {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
 }
 
 /* =====================================================
-  NEW DELETE MODAL STYLES
-  =====================================================
+  NEW DELETE MODAL STYLES
+  =====================================================
 */
 .delete-modal {
-  background: var(--color-card);
-  border-radius: var(--radius-md);
-  padding: 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
 }
 .delete-modal h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
 }
 .delete-modal p {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
 }
 .delete-modal-actions {
-  display: flex;
-  gap: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
 }
 /* ===================================================== */
 
 
 /* ===== BUTTONS (Aesthetic Update) ===== */
 .btn {
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.75rem 1.25rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  flex: 1; /* Make buttons in modal fill space */
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  flex: 1; /* Make buttons in modal fill space */
 }
 .btn-primary {
-  background: var(--grad-primary); /* <-- GRADIENT ADDED */
-  color: white;
-  box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2);
+  background: var(--grad-primary); /* <-- GRADIENT ADDED */
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2);
 }
 .btn-primary:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
+  filter: brightness(1.1);
+  transform: translateY(-2px);
 }
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 .btn-secondary:hover {
-  background-color: #444;
+  background-color: #444;
 }
 #modalLoginBtn {
-  width: 100%;
-  font-size: 1rem;
-  padding: 0.9rem 1.25rem;
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.9rem 1.25rem;
 }
 .btn-group {
-  display: flex;
-  gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* =====================================================
-  NEW BUTTON STYLES (for Delete Modal)
-  =====================================================
+  NEW BUTTON STYLES (for Delete Modal)
+  =====================================================
 */
 .btn-danger {
-  background-color: var(--color-red);
-  color: white;
+  background-color: var(--color-red);
+  color: white;
 }
 .btn-danger:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.1);
 }
 .btn-tertiary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
 }
 .btn-tertiary:hover {
-  background-color: #444;
+  background-color: #444;
 }
 /* ===================================================== */
 
 
 /* ===== HEADER ===== */
 .app-header {
-  background-color: var(--color-card);
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  background-color: var(--color-card);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 auto;
 }
 .app-header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
 }
 .auth-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 /* Make auth buttons not flex: 1 */
 .auth-controls .btn {
-  flex: 0 0 auto;
+  flex: 0 0 auto;
 }
 #userLabel {
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  display: none; /* Hidden on small mobile */
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  display: none; /* Hidden on small mobile */
 }
 
 /* ===== MAIN APP CONTAINER ===== */
 .app-container {
-  padding: 0; /* Remove padding, screens are full-width */
-  margin: 0 auto;
-  /* --- THIS IS A CRITICAL FIX --- */
-  position: relative;
-  overflow-x: hidden;
-  min-height: 100vh;
-  /* --- END FIX --- */
+  padding: 0; /* Remove padding, screens are full-width */
+  margin: 0 auto;
+  /* --- THIS IS A CRITICAL FIX --- */
+  position: relative;
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* --- END FIX --- */
 }
 
 /* ===== ITEM LISTS (Aesthetic Update) ===== */
 .item-list {
-  list-style: none;
-  width: 100%;
-  padding: 0 1rem; /* Add side padding */
-  /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 8.5rem; /* This provides ~136px of space */
-  /* --- END FIX --- */
+  list-style: none;
+  width: 100%;
+  padding: 0 1rem; /* Add side padding */
+  /* --- THIS IS A CRITICAL FIX --- */
+  padding-top: 8.5rem; /* This provides ~136px of space */
+  /* --- END FIX --- */
 }
 .item-list li {
-  font-size: 1.1rem;
-  font-weight: 500;
-  padding: 1.25rem 1rem; /* More tappable space */
-  border-bottom: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all var(--transition); /* Changed to 'all' */
-  
-  /* Hevy-inspired list style */
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-card);
-  margin-bottom: 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1.25rem 1rem; /* More tappable space */
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition); /* Changed to 'all' */
+  
+  /* Hevy-inspired list style */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-card);
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 
-  position: relative; /* <-- ADDED: For positioning the delete button */
+  position: relative; /* <-- ADDED: For positioning the delete button */
 }
 .item-list li:last-child {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 .item-list li:hover {
-  background-color: var(--color-primary-light);
+  background-color: var(--color-primary-light);
 }
 /* Add a "chevron" > to indicate tappable item */
 .item-list li::after {
-  
-  content: '>';
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  transition: transform 0.2s ease;
+  
+  content: '>';
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
 }
 .item-list li > span {
-  flex: 1;
-  /* Add padding to the right so text doesn't 
-     touch the delete button when it appears */
-  padding-right: 1rem; 
+  flex: 1;
+  /* Add padding to the right so text doesn't 
+     touch the delete button when it appears */
+  padding-right: 1rem; 
 }
 /* Hide chevron when in edit mode */
 .edit-mode-active .item-list li::after {
-  transform: translateX(20px);
-  opacity: 0;
+  transform: translateX(20px);
+  opacity: 0;
 }
 
 
 /* ===== SETS TABLE (Aesthetic Update) ===== */
 .table-container {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 0 1rem 2rem 1rem; /* Add padding */
-  /* Remove margin-top, it's now on the wrapper */
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 1rem 2rem 1rem; /* Add padding */
+  /* Remove margin-top, it's now on the wrapper */
 }
 table {
-  width: 100%;
-  border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 table th, table td {
-  text-align: left;
-  padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
-  white-space: nowrap;
-  color: var(--color-text-muted);
-  vertical-align: middle;
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  vertical-align: middle;
 }
 table th {
-  background-color: var(--color-bg);
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.75rem;
+  background-color: var(--color-bg);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 table tbody tr {
-  background-color: var(--color-card);
+  background-color: var(--color-card);
 }
 table tbody tr:hover {
-  background-color: #2a2a2a;
+  background-color: #2a2a2a;
 }
 table tbody td {
-  color: var(--color-text);
-  font-weight: 500;
+  color: var(--color-text);
+  font-weight: 500;
 }
 /* Right-align the delete button cell */
 table th:last-child,
 table td:last-child {
-  text-align: right;
-  padding: 0.5rem;
+  text-align: right;
+  padding: 0.5rem;
 }
 
 /* --- NEW Day Divider Styles --- */
 /*
-  This targets the <td> elements of the row
-  that has been marked as the end of a day's sets.
+  This targets the <td> elements of the row
+  that has been marked as the end of a day's sets.
 */
 tr.day-end-row td {
-  /* We override the default 1px grey border with
-    a 2px yellow border, applying the opacity
-    from the original .divider-line style.
-    --color-yellow is #ffcc00
-  */
-  border-bottom: 2px solid rgba(255, 204, 0, 0.6);
+  /* We override the default 1px grey border with
+    a 2px yellow border, applying the opacity
+    from the original .divider-line style.
+    --color-yellow is #ffcc00
+  */
+  border-bottom: 2px solid rgba(255, 204, 0, 0.6);
 }
 /* --- END Day Divider Styles --- */
 
 
 /* =====================================================
-  NEW DELETE BUTTON & EDIT MODE STYLES
-  =====================================================
+  NEW DELETE BUTTON & EDIT MODE STYLES
+  =====================================================
 */
 
 /* The "Red X" button */
 .btn-delete {
-  display: none; /* Hidden by default */
-  font-family: inherit;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-red);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  
-  /* Animation */
-  opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.2s ease;
-  
-  /* For list items */
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%) scale(0.5);
-  z-index: 5;
+  display: none; /* Hidden by default */
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  
+  /* Animation */
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s ease;
+  
+  /* For list items */
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%) scale(0.5);
+  z-index: 5;
 }
 
 /* Table delete button is slightly different */
 td .btn-delete {
-  position: relative;
-  right: 0;
-  top: 0;
-  transform: scale(0.5);
-  padding: 0.5rem;
-  margin: 0;
+  position: relative;
+  right: 0;
+  top: 0;
+  transform: scale(0.5);
+  padding: 0.5rem;
+  margin: 0;
 }
 
 /* This is the magic: Show the button when in edit mode */
 .edit-mode-active .btn-delete {
-  display: inline-flex;
-  opacity: 1;
-  transform: scale(1);
+  display: inline-flex;
+  opacity: 1;
+  transform: scale(1);
 }
 /* For table button */
 .edit-mode-active td .btn-delete {
-  transform: scale(1);
+  transform: scale(1);
 }
 
 /* Style the editable text when in edit mode */
 .edit-mode-active .editable {
-  color: var(--color-primary) !important;
-  text-decoration: underline dashed 1px;
+  color: var(--color-primary) !important;
+  text-decoration: underline dashed 1px;
 }
 /* ===================================================== */
 
 
 /* ===== GRAPH (Dark Mode Fix) ===== */
 #graphDiv {
-  width: 100%;
-  min-height: 400px;
-  padding: 1rem;
-  background-color: var(--color-card); /* Give graph a card bg */
-  border-radius: var(--radius-md);
-  margin: 0 1rem;
-  width: calc(100% - 2rem); /* Ensure it respects padding */
+  width: 100%;
+  min-height: 400px;
+  padding: 1rem;
+  background-color: var(--color-card); /* Give graph a card bg */
+  border-radius: var(--radius-md);
+  margin: 0 1rem;
+  width: calc(100% - 2rem); /* Ensure it respects padding */
 }
 
 /* --- Plotly Dark Mode --- */
 /* ... (unchanged) ... */
 .plotly-bg {
-  background-color: var(--color-card) !important;
+  background-color: var(--color-card) !important;
 }
 .plot-container .plotly .modebar {
-  background-color: var(--color-card) !important;
+  background-color: var(--color-card) !important;
 }
 .plot-container .plotly .modebar-btn path {
-  fill: var(--color-text-muted) !important;
+  fill: var(--color-text-muted) !important;
 }
 .plot-container .plotly .g-xtitle,
 .plot-container .plotly .g-ytitle {
-  fill: var(--color-text-muted) !important;
+  fill: var(--color-text-muted) !important;
 }
 .plot-container .plotly .xtick text,
 .plot-container .plotly .ytick text {
-  fill: var(--color-text-muted) !important;
+  fill: var(--color-text-muted) !important;
 }
 .plot-container .plotly .grid .zeroline,
 .plot-container .plotly .grid path {
-  stroke: var(--color-border) !important;
+  stroke: var(--color-border) !important;
 }
 .plot-container .plotly .legendtext {
-  fill: var(--color-text) !important;
+  fill: var(--color-text) !important;
 }
 .plot-container .plotly .title {
-  fill: var(--color-text) !important;
-  font-weight: 600 !important;
+  fill: var(--color-text) !important;
+  font-weight: 600 !important;
 }
 
 /* ===== RESPONSIVE (Desktop / Tablet) ===== */
 @media(min-width: 768px) {
-  body {
-    font-size: 18px; 
-  }
-  .app-container {
-    padding: 0;
-  }
-  .app-header h1 {
-    font-size: 1.75rem;
-  }
-  #userLabel {
-    display: inline; /* Show user label on desktop */
-  }
+  body {
+    font-size: 18px; 
+  }
+  .app-container {
+    padding: 0;
+  }
+  .app-header h1 {
+    font-size: 1.75rem;
+  }
+  #userLabel {
+    display: inline; /* Show user label on desktop */
+  }
 
-  /* Make comparison banner flex-row on desktop */
-  .comparison-banner {
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
-  }
+  /* Make comparison banner flex-row on desktop */
+  .comparison-banner {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
 }
 
 /* ===== NAVIGATION & SCREEN STYLES (THE FIX) ===== */
 
 /* This turns our <section> elements into full-screen pages */
 .screen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  min-height: 100vh;
-  background-color: var(--color-bg);
-  
-  /* Reset card styles so it's not a 'card' anymore */
-  border-radius: 0;
-  box-shadow: none;
-  overflow-y: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  
+  /* Reset card styles so it's not a 'card' anymore */
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
 }
 
 /* We need to make the container a 'viewport' for our screens */
@@ -547,51 +547,51 @@ td .btn-delete {
 
 /* Style the new back button (inspired by iOS) */
 .btn-back {
-  font-family: inherit;
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  margin-left: -0.5rem;
-  /* Ensure it's not hidden */
-  z-index: 20;
-  flex: 0 0 auto; /* Stop it from growing */
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: -0.5rem;
+  /* Ensure it's not hidden */
+  z-index: 20;
+  flex: 0 0 auto; /* Stop it from growing */
 }
 
 /* Make card headers sticky like a native app header */
 .card-header {
-  position: sticky;
-  top: 0;
-  background-color: var(--color-card);
-  z-index: 10;
-  padding-top: calc(1rem + 60px);
-  margin-top: -60px;
-  /* Add a subtle gradient to headers */
-  background-image: linear-gradient(to bottom, #222, var(--color-card));
+  position: sticky;
+  top: 0;
+  background-color: var(--color-card);
+  z-index: 10;
+  padding-top: calc(1rem + 60px);
+  margin-top: -60px;
+  /* Add a subtle gradient to headers */
+  background-image: linear-gradient(to bottom, #222, var(--color-card));
 }
 /* We need to re-add the top border it lost */
 .card-header::before {
-  content: '';
-  position: absolute;
-  top: 60px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--color-border);
+  content: '';
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-border);
 }
 .card-header h3 {
-  color: var(--color-text);
-  z-index: 5; /* Ensure text is above back button if it overlaps */
-  flex: 1; /* Allow h3 to take space */
-  text-align: center; /* Center the title */
-  margin: 0 1rem;
+  color: var(--color-text);
+  z-index: 5; /* Ensure text is above back button if it overlaps */
+  flex: 1; /* Allow h3 to take space */
+  text-align: center; /* Center the title */
+  margin: 0 1rem;
 }
 /* Adjust header button group */
 .card-header .btn-group {
-  flex: 0 0 auto;
+  flex: 0 0 auto;
 }
 
 
@@ -600,87 +600,87 @@ td .btn-delete {
 
 /* We also need to push down the graph and table */
 #graphContainer .card-header ~ #graphDiv {
-  margin-top: 8.5rem;
+  margin-top: 8.5rem;
 }
 
 /* This targets the new wrapper div */
 #setsDiv .sets-content-wrapper {
-  margin-top: 8.5rem;
+  margin-top: 8.5rem;
 }
 
 
 /* ===== ANIMATIONS ===== */
 @keyframes slideInFromRight {
-  from { transform: translateX(100%); opacity: 0.5; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(100%); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToLeft {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-25%); opacity: 0; } /* Fade out faster */
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-25%); opacity: 0; } /* Fade out faster */
 }
 @keyframes slideInFromLeft {
-  from { transform: translateX(-25%); opacity: 0; } /* Start from part-way */
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(-25%); opacity: 0; } /* Start from part-way */
+  to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToRight {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(100%); opacity: 0.5; }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.5; }
 }
 
 /* Animation helper classes */
 .slide-in-right {
-  animation: slideInFromRight 0.3s forwards ease-out;
-  z-index: 2; /* Ensure new screen is on top */
+  animation: slideInFromRight 0.3s forwards ease-out;
+  z-index: 2; /* Ensure new screen is on top */
 }
 .slide-out-left {
-  animation: slideOutToLeft 0.3s forwards ease-out;
-  z-index: 1;
+  animation: slideOutToLeft 0.3s forwards ease-out;
+  z-index: 1;
 }
 .slide-in-left {
-  animation: slideInFromLeft 0.3s forwards ease-out;
-  z-index: 2;
+  animation: slideInFromLeft 0.3s forwards ease-out;
+  z-index: 2;
 }
 .slide-out-right {
-  animation: slideOutToRight 0.3s forwards ease-out;
-  z-index: 1;
+  animation: slideOutToRight 0.3s forwards ease-out;
+  z-index: 1;
 }
 
 /* =====================================================
-  NEW COMPARISON BANNER STYLES (FINAL)
+  NEW COMPARISON BANNER STYLES (FINAL)
 ===================================================== */
 .comparison-banner {
-  display: flex;
-  flex-direction: column; /* Stack on mobile */
-  gap: 1rem;
-  background-color: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  margin: 0 1rem 1rem 1rem; /* Add margin */
+  display: flex;
+  flex-direction: column; /* Stack on mobile */
+  gap: 1rem;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin: 0 1rem 1rem 1rem; /* Add margin */
 }
 
 .stat-comparison {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Align left on mobile */
-  gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Align left on mobile */
+  gap: 0.75rem;
 }
 
 .stat-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  min-width: 60px; /* Give labels consistent width */
-  flex-shrink: 0; /* Don't let label shrink */
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  min-width: 60px; /* Give labels consistent width */
+  flex-shrink: 0; /* Don't let label shrink */
 }
 
 .stat-arrow {
-  font-size: 1.25rem;
-  font-weight: bold;
-  min-width: 20px;
-  text-align: center;
-  flex-shrink: 0;
+  font-size: 1.25rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* --- Arrow Colors --- */
@@ -689,56 +689,167 @@ td .btn-delete {
 .stat-arrow.neutral { color: var(--color-yellow); }
 
 .stat-svg-container {
-  width: 25px;
-  height: 25px;
-  position: relative;
-  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  position: relative;
+  flex-shrink: 0;
 }
 
 .comparison-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  viewBox: 0 0 100 100;
-  overflow: visible;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  viewBox: 0 0 100 100;
+  overflow: visible;
 }
 
 .comparison-spiral {
-  fill: none;
-  /* stroke: var(--color-text-muted); */ /* <-- REMOVED default stroke */
-  stroke-width: 5; /* Thicker for visibility */
-  stroke-linecap: round;
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  transform-origin: 50px 50px;
-  animation: drawSpiral 4s ease-in-out infinite;
+  fill: none;
+  /* stroke: var(--color-text-muted); */ /* <-- REMOVED default stroke */
+  stroke-width: 5; /* Thicker for visibility */
+  stroke-linecap: round;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+s  transform-origin: 50px 50px;
+  animation: drawSpiral 4s ease-in-out infinite;
 }
 
 /* --- Spiral Colors & Animations --- */
 .comparison-spiral.increase {
-  stroke: var(--color-green);
-  animation-duration: 2s; /* Faster */
+  stroke: var(--color-green);
+  animation-duration: 2s; /* Faster */
 }
 .comparison-spiral.decrease {
-  stroke: var(--color-red);
-  animation-duration: 6s; /* Slower */
+  stroke: var(--color-red);
+  animation-duration: 6s; /* Slower */
 }
 .comparison-spiral.neutral {
-  stroke: var(--color-yellow);
-  animation-duration: 4s; /* Normal */
+  stroke: var(--color-yellow);
+  animation-duration: 4s; /* Normal */
 }
 
 /* --- NEW: Data Text Styles --- */
 .stat-data {
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-left: auto; /* This pushes it to the right */
-  text-align: right;
-  white-space: nowrap; /* Prevent ugly wrapping */
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-left: auto; /* This pushes it to the right */
+  text-align: right;
+  white-space: nowrap; /* Prevent ugly wrapping */
 }
 
 .stat-data.increase { color: var(--color-green); }
 .stat-data.decrease { color: var(--color-red); }
 .stat-data.neutral { color: var(--color-yellow); }
+
+
+/* =====================================================
+  ADDED: Animated Logo Styles
+===================================================== 
+*/
+
+#animated-logo {
+  /* Adjusted to fit your existing header style */
+  height: 36px; 
+  width: auto;
+  overflow: visible;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem; /* Matches your original h1 font-size */
+}
+
+/*
+ * == Animation Definitions ==
+ */
+
+/* Bouncing arrow */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); animation-timing-function: ease-in; }
+  50% { transform: translateY(-10px); animation-timing-function: ease-out; }
+}
+
+/* MASTER KEYFRAME (Clockwise) */
+@keyframes master-spin-float-loop {
+  0%    { transform: rotate(0deg)   translate(0, 0); }
+  18%   { transform: rotate(720deg) translate(0, 0); } /* Spin finishes at 1.8s */
+  
+  /* Float Cycle 1 */
+  24.8% { transform: rotate(720deg) translate(-1px, -2px); }
+  31.6% { transform: rotate(720deg) translate(0, 0); }
+  38.4% { transform: rotate(720deg) translate(1px, 2px); }
+  45.2% { transform: rotate(720deg) translate(0, 0); }
+  
+  /* Float Cycle 2 */
+  52.0% { transform: rotate(720deg) translate(-1px, -2px); }
+  58.8% { transform: rotate(720deg) translate(0, 0); }
+  65.6% { transform: rotate(720deg) translate(1px, 2px); }
+  72.4% { transform: rotate(720deg) translate(0, 0); }
+  
+  /* Float Cycle 3 */
+  79.2% { transform: rotate(720deg) translate(-1px, -2px); }
+  86.0% { transform: rotate(720deg) translate(0, 0); }
+  92.8% { transform: rotate(720deg) translate(1px, 2px); }
+  100%  { transform: rotate(720deg) translate(0, 0); } /* Loop restarts */
+}
+
+/* MASTER KEYFRAME (Counter-Clockwise) */
+@keyframes master-spin-reverse-float-loop {
+  0%    { transform: rotate(0deg)   translate(0, 0); }
+  18%   { transform: rotate(-720deg) translate(0, 0); } /* Spin finishes at 1.8s */
+  
+  /* Float Cycle 1 */
+  24.8% { transform: rotate(-720deg) translate(-1px, -2px); }
+  31.6% { transform: rotate(-720deg) translate(0, 0); }
+  38.4% { transform: rotate(-720deg) translate(1px, 2px); }
+  45.2% { transform: rotate(-720deg) translate(0, 0); }
+  
+  /* Float Cycle 2 */
+  52.0% { transform: rotate(-720deg) translate(-1px, -2px); }
+  58.8% { transform: rotate(-720deg) translate(0, 0); }
+  65.6% { transform: rotate(-720deg) translate(1px, 2px); }
+  72.4% { transform: rotate(-720deg) translate(0, 0); }
+  
+  /* Float Cycle 3 */
+  79.2% { transform: rotate(-720deg) translate(-1px, -2px); }
+  86.0% { transform: rotate(-720deg) translate(0, 0); }
+  92.8% { transform: rotate(-720deg) translate(1px, 2px); }
+  100%  { transform: rotate(-720deg) translate(0, 0); } /* Loop restarts */
+}
+
+/*
+ * == Animation Applications ==
+ */
+
+#logo-arrow {
+  animation: bounce 1.4s infinite;
+}
+
+/* Basic setup for all letters */
+#logo-t,
+#logo-r,
+#logo-u,
+#logo-n,
+#logo-k {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Apply CLOCKWISE loop */
+#logo-t {
+  animation: master-spin-float-loop 10s 0.4s infinite ease-in-out;
+}
+#logo-u {
+  animation: master-spin-float-loop 10s 0.1s infinite ease-in-out;
+}
+#logo-k {
+  animation: master-spin-float-loop 10s 0.5s infinite ease-in-out;
+}
+
+/* Apply COUNTER-CLOCKWISE loop */
+#logo-r {
+  animation: master-spin-reverse-float-loop 10s 0.2s infinite ease-in-out;
+}
+#logo-n {
+  animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out;
+}
