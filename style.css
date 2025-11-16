@@ -384,22 +384,17 @@ table td:last-child {
 }
 
 /* --- NEW Day Divider Styles --- */
-.day-divider td {
-  padding: 0.5rem 0 !important; /* Small vertical padding, no horizontal */
-  border-bottom: none; /* No border on the <td> itself */
-  background-color: var(--color-card); /* Match row background */
-}
-
-.divider-line {
-  height: 2px; /* "small" */
-  width: 100%;
-  background-color: var(--color-yellow); /* "yellow" */
-  opacity: 0.6; /* Soften it slightly */
-}
-
-/* Make sure divider rows don't have hover effects */
-tr.day-divider:hover {
-  background-color: var(--color-card) !important;
+/*
+  This targets the <td> elements of the row
+  that has been marked as the end of a day's sets.
+*/
+tr.day-end-row td {
+  /* We override the default 1px grey border with
+    a 2px yellow border, applying the opacity
+    from the original .divider-line style.
+    --color-yellow is #ffcc00
+  */
+  border-bottom: 2px solid rgba(255, 204, 0, 0.6);
 }
 /* --- END Day Divider Styles --- */
 
