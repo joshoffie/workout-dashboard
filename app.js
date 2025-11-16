@@ -494,15 +494,16 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
 
-  // Sort sets by timestamp, most recent first, for display
-  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // --- MODIFIED: Sort sets by timestamp ASCENDING (earliest first) ---
+  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  let lastSetDate = null; // <-- ADDED: To track the date
+  let lastSetDate = null; // <-- To track the date
+  let setCounter = 0; // <-- ADDED: To count sets per day
 
   sortedSets.forEach((s, idx) => {
-    const currentSetDate = new Date(s.timestamp); // <-- ADDED
+    const currentSetDate = new Date(s.timestamp); // <-- Get current set's date
 
-    // --- ADDED: Check if we need to add a divider ---
+    // --- Check if we need to add a divider ---
     if (lastSetDate && !isSameDay(currentSetDate, lastSetDate)) {
       // It's a new day! Add the divider row.
       const dividerTr = document.createElement("tr");
@@ -512,8 +513,12 @@ function renderSets() {
       dividerTd.innerHTML = `<div class="divider-line"></div>`;
       dividerTr.appendChild(dividerTd);
       setsTable.appendChild(dividerTr);
+      
+      setCounter = 0; // <-- ADDED: Reset the counter for the new day
     }
     // --- END ADD ---
+
+    setCounter++; // <-- ADDED: Increment the set counter for this day
 
     const tr = document.createElement("tr");
     
@@ -521,7 +526,7 @@ function renderSets() {
     const originalIndex = selectedExercise.sets.indexOf(s);
     
     tr.innerHTML = `
-      <td>${idx + 1}</td>
+      <td>${setCounter}</td> <!-- MODIFIED: Use setCounter instead of idx + 1 -->
       <td>${s.reps}</td>
       <td>${s.weight}</td>
       <td>${s.volume}</td>
@@ -549,7 +554,7 @@ function renderSets() {
 
     setsTable.appendChild(tr);
 
-    lastSetDate = currentSetDate; // <-- ADDED: Update the last date
+    lastSetDate = currentSetDate; // <-- Update the last date
   });
   // After rendering, hook listeners
   hookEditables(sortedSets); // Pass sorted sets to hookables
