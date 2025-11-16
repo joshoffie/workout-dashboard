@@ -656,6 +656,7 @@ td .btn-delete {
   color: var(--color-text-muted);
   text-transform: uppercase;
   min-width: 60px; /* Give labels consistent width */
+  flex-shrink: 0; /* Don't let label shrink */
 }
 
 .stat-arrow {
@@ -663,9 +664,10 @@ td .btn-delete {
   font-weight: bold;
   min-width: 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
-/* --- NEW (STEP 3B): Arrow Colors --- */
+/* --- Arrow Colors --- */
 .stat-arrow.increase { color: var(--color-green); }
 .stat-arrow.decrease { color: var(--color-red); }
 .stat-arrow.neutral { color: var(--color-yellow); }
@@ -674,6 +676,7 @@ td .btn-delete {
   width: 25px;
   height: 25px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .comparison-svg {
@@ -688,7 +691,7 @@ td .btn-delete {
 
 .comparison-spiral {
   fill: none;
-  /* stroke: var(--color-text-muted); */ /* <-- REMOVED this default stroke */
+  /* stroke: var(--color-text-muted); */ /* <-- REMOVED default stroke */
   stroke-width: 5; /* Thicker for visibility */
   stroke-linecap: round;
   stroke-dasharray: 1200;
@@ -697,7 +700,7 @@ td .btn-delete {
   animation: drawSpiral 4s ease-in-out infinite;
 }
 
-/* --- NEW (STEP 3B): Spiral Colors & Animations --- */
+/* --- Spiral Colors & Animations --- */
 .comparison-spiral.increase {
   stroke: var(--color-green);
   animation-duration: 2s; /* Faster */
@@ -710,3 +713,16 @@ td .btn-delete {
   stroke: var(--color-yellow);
   animation-duration: 4s; /* Normal */
 }
+
+/* --- NEW: Data Text Styles --- */
+.stat-data {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-left: auto; /* This pushes it to the right */
+  text-align: right;
+  white-space: nowrap; /* Prevent ugly wrapping */
+}
+
+.stat-data.increase { color: var(--color-green); }
+.stat-data.decrease { color: var(--color-red); }
+.stat-data.neutral { color: var(--color-yellow); }
