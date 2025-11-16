@@ -587,70 +587,80 @@ function hideAllDetails() {
 // ------------------ NEW COMPARISON LOGIC (STEP 2.8) ------------------
 
 /**
- * Checks if two Date objects are on the same calendar day.
- * @param {Date} d1 - First date
- * @param {Date} d2 - Second date
+// ... existing code ... -->
  * @returns {boolean}
  */
 function isSameDay(d1, d2) {
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
+// ... existing code ... -->
          d1.getDate() === d2.getDate();
 }
 
 /**
- * Aggregates stats for a given array of set objects.
- * @param {Array} setsArray - An array of set objects
+// ... existing code ... -->
  * @returns {object} An object with { sets, reps, volume, wpr }
  */
 function aggregateStats(setsArray) {
-  if (!setsArray || setsArray.length === 0) {
-    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
-  }
-
-  const totalSets = setsArray.length;
-  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
-  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
+// ... existing code ... -->
   const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0; // Avg Weight per Rep
 
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
+// --- NEW (STEP 3A) ---
+/**
+ * Updates a single stat row in the comparison banner.
+ * @param {string} statName - The prefix ('sets', 'reps', 'volume', 'wpr')
+ * @param {number} currentValue - The current workout's value
+ * @param {number} previousValue - The previous workout's value
+ */
+function updateStatUI(statName, currentValue, previousValue) {
+  const arrowEl = document.getElementById(statName + 'Arrow');
+  const spiralEl = document.getElementById(statName + 'Spiral');
+  
+  if (!arrowEl || !spiralEl) {
+    console.warn(`Could not find UI elements for stat: ${statName}`);
+    return;
+  }
+
+  let status = 'neutral';
+  let arrow = '—'; // Neutral arrow
+
+  // Use a small epsilon for floating point comparison (for wpr)
+  const epsilon = 0.01; 
+
+  if (currentValue > previousValue + epsilon) {
+    status = 'increase';
+    arrow = '▲'; // Up arrow
+  } else if (currentValue < previousValue - epsilon) {
+    status = 'decrease';
+    arrow = '▼'; // Down arrow
+  }
+
+  // Update Arrow
+  arrowEl.textContent = arrow;
+  arrowEl.classList.remove('increase', 'decrease', 'neutral');
+  arrowEl.classList.add(status);
+
+  // Update Spiral
+  spiralEl.classList.remove('increase', 'decrease', 'neutral');
+  spiralEl.classList.add(status);
+}
+
+
 /**
  * Main function to run the comparison based on timestamps.
  */
 function runComparisonLogic() {
-  const banner = document.getElementById('comparisonBanner');
+// ... existing code ... -->
   if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length < 2) {
     banner.classList.add('hidden'); // Hide banner if not enough data
     return;
   }
-
-  console.log("--- WORKOUT COMPARISON (STEP 2.8) ---");
+  
+  console.log("--- WORKOUT COMPARISON (STEP 3A) ---"); // <-- Updated log
   
   // 1. Get all sets and sort them, most recent first
-  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // 2. Find the date of the most recent workout
-  const mostRecentDate = new Date(allSets[0].timestamp);
-  
-  // 3. Get all sets from that date
-  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
-  
-  // 4. Find the first set that is *not* from the most recent date
-  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
-
-  // 5. If no such set exists, there is no previous workout to compare to
-  if (!previousWorkoutSet) {
-    console.log("[runComparisonLogic] Found current stats, but no previous workout day found.");
-    banner.classList.add('hidden');
-    return;
-  }
-
-  // 6. Get the date of that previous workout
-  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
-
-  // 7. Get all sets matching that previous workout date
+// ... existing code ... -->
   const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
 
   // 8. Aggregate stats for both days
@@ -659,129 +669,22 @@ function runComparisonLogic() {
 
   // 9. Log everything to the console for this step
   console.log(`[runComparisonLogic] Most Recent Date: ${mostRecentDate.toDateString()}`);
-  console.log("[runComparisonLogic] Current Stats:", currentStats);
+// ... existing code ... -->
   console.log(`[runComparisonLogic] Previous Workout Date: ${previousWorkoutDate.toDateString()}`);
   console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
-  // Show the banner (it's still static, but now it appears)
+  // --- MODIFIED (STEP 3A) ---
+  // Hook up the data to the UI
+  updateStatUI('sets', currentStats.sets, prevStats.sets);
+  updateStatUI('reps', currentStats.reps, prevStats.reps);
+  updateStatUI('volume', currentStats.volume, prevStats.volume);
+  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
+  
+  // Show the banner
   banner.classList.remove('hidden');
 }
 
 
 // ------------------ EDIT MODE ------------------
-
-let editMode = false;
-const editToggleBtn = document.getElementById("editToggleBtn");
-
-editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = editMode ? "Done" : "Edit";
-
-  // This class now controls all edit-mode UI (delete buttons, text color)
-  // The CSS file will do all the work.
-  document.body.classList.toggle('edit-mode-active');
-
-  if (!editMode) {
-    // Done pressed  save changes automatically
-    saveUserJson();
-  }
-};
-
-
-// ------------------ MAKE ELEMENTS EDITABLE ------------------
-// --- MODIFIED (STEP 2.8) ---
-// Now takes sortedSets as an argument to find the correct original index
-function makeEditable(element, type, parentIdx, sortedSets) {
-  element.classList.add("editable");
-  element.style.cursor = "pointer";
-
-  element.addEventListener("click", (e) => {
-    if (!editMode) return; // allow normal click to propagate
-    e.stopPropagation();
-
-    const currentVal = element.textContent;
-    const newVal = prompt(`Edit ${type}:`, currentVal);
-    if (!newVal || newVal === currentVal) return;
-
-    // --- NEW (STEP 2.8) ---
-    // Find the *original* index before editing
-    let originalIndex = -1;
-    if (type.startsWith("Set")) {
-        const sortedSetObject = sortedSets[parentIdx];
-        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
-        if (originalIndex === -1) {
-            console.error("Could not find set to edit!");
-            return;
-        }
-    }
-    // --- END NEW ---
-
-    switch(type) {
-      case "Client":
-        const data = clientsData[currentVal];
-        delete clientsData[currentVal];
-        data.client_name = newVal;
-        clientsData[newVal] = data;
-        if (selectedClient === currentVal) selectedClient = newVal;
-        renderClients();
-        break;
-
-      case "Session":
-        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
-        if (sessionToEdit) {
-            sessionToEdit.session_name = newVal;
-        }
-        renderSessions(); // Re-render to show the new name
-        break;
-
-      case "Exercise":
-        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
-        if(exerciseToEdit) {
-            exerciseToEdit.exercise = newVal;
-        }
-        renderExercises();
-        break;
-
-      case "SetReps":
-        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
-        break;
-
-      case "SetWeight":
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
-        break;
-
-      case "SetNotes":
-        selectedExercise.sets[originalIndex].notes = newVal;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
-        break;
-    }
-
-    saveUserJson();
-  });
-}
-
-// ------------------ HOOK EDITABLES ------------------
-// --- MODIFIED (STEP 2.8) ---
-// Now passes the sortedSets array to makeEditable
-function hookEditables(sortedSets = []) {
-  // Clients
-  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
-  // Sessions
-  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
-  // Exercises
-  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
-  
-  // Sets table
-  setsTable.querySelectorAll("tr").forEach((tr, idx) => {
-    const tds = tr.querySelectorAll("td");
-    // Pass 'sortedSets' to find the correct item
-    makeEditable(tds[1], "SetReps", idx, sortedSets);
-    makeEditable(tds[2], "SetWeight", idx, sortedSets);
-    makeEditable(tds[4], "SetNotes", idx, sortedSets);
-  });
-}
+// ... existing code ... -->
