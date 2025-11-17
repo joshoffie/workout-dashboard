@@ -290,7 +290,7 @@ body {
   width: 100%;
   padding: 0 1rem; /* Add side padding */
   /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 0rem; /* This provides ~136px of space */
+  padding-top: 7rem; /* This provides ~136px of space */
   /* --- END FIX --- */
 }
 .item-list li {
@@ -590,12 +590,12 @@ td .btn-delete {
 
 /* We also need to push down the graph and table */
 #graphContainer .card-header ~ #graphDiv {
-  margin-top: 0rem;
+  margin-top: 7rem;
 }
 
 /* This targets the new wrapper div */
 #setsDiv .sets-content-wrapper {
-  margin-top: 0rem;
+  margin-top: 7rem;
 }
 
 
