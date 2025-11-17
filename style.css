@@ -290,7 +290,7 @@ body {
   width: 100%;
   padding: 0 1rem; /* Add side padding */
   /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 8.5rem; /* This provides ~136px of space */
+  padding-top: 7rem; /* This provides ~136px of space */
   /* --- END FIX --- */
 }
 .item-list li {
@@ -565,24 +565,13 @@ td .btn-delete {
 /* Make card headers sticky like a native app header */
 .card-header {
   position: sticky;
-  top: 0;
+  top: 56px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
   background-color: var(--color-card);
   z-index: 10;
-  padding-top: calc(1rem + 60px);
-  margin-top: -60px;
-  /* Add a subtle gradient to headers */
-  background-image: linear-gradient(to bottom, #222, var(--color-card));
+  padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
+  /* Removed padding-top, margin-top, and background-image */
 }
-/* We need to re-add the top border it lost */
-.card-header::before {
-  content: '';
-  position: absolute;
-  top: 60px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--color-border);
-}
+
 .card-header h3 {
   color: var(--color-text);
   z-index: 5; /* Ensure text is above back button if it overlaps */
@@ -601,12 +590,12 @@ td .btn-delete {
 
 /* We also need to push down the graph and table */
 #graphContainer .card-header ~ #graphDiv {
-  margin-top: 8.5rem;
+  margin-top: 7rem;
 }
 
 /* This targets the new wrapper div */
 #setsDiv .sets-content-wrapper {
-  margin-top: 8.5rem;
+  margin-top: 7rem;
 }
 
 
