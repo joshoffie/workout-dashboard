@@ -546,20 +546,52 @@ td .btn-delete {
 /* This rule is now defined in .app-container near the top */
 
 
-/* Style the new back button (inspired by iOS) */
+/* === NEW Back Button Style === */
+/* This replaces the old .btn-back rule */
 .btn-back {
-  font-family: inherit;
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  margin-left: -0.5rem;
-  /* Ensure it's not hidden */
-  z-index: 20;
-  flex: 0 0 auto; /* Stop it from growing */
+  font-family: inherit; /* */
+  color: white; /* This will be the SVG arrow color */
+  background-color: var(--color-red); /* */
+  border: none; /* */
+  cursor: pointer; /* */
+
+  /* Sizing and Shape */
+  width: 36px; /* A good tap size */
+  height: 36px;
+  border-radius: 50%;
+  padding: 0; /* Override old padding */
+
+  /* Flex properties for centering SVG */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Layout properties (CRITICAL) */
+  flex: 0 0 auto; /* Kept from original to preserve layout */
+  z-index: 20; /* Kept from original */
+  margin-left: 0; /* Adjusted from -0.5rem */
+
+  /* Animation */
+  animation: move-back-and-forth 1.3s ease-in-out infinite;
+
+  /* Polish */
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+  transition: all var(--transition); /* */
+}
+
+.btn-back:hover {
+  background-color: #ff4d42; /* Brighter red on hover */
+  transform: scale(1.05);
+  animation-play-state: paused; /* Stop animation on hover */
+}
+
+.back-arrow-svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor; /* Inherits 'color: white' from .btn-back */
+  /* Move arrow slightly left to feel centered */
+  position: relative;
+  left: -1px;
 }
 
 /* Make card headers sticky like a native app header */
@@ -600,6 +632,12 @@ td .btn-delete {
 
 
 /* ===== ANIMATIONS ===== */
+@keyframes move-back-and-forth {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-4px); }
+  60% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
 @keyframes slideInFromRight {
   from { transform: translateX(100%); opacity: 0.5; }
   to { transform: translateX(0); opacity: 1; }
@@ -752,6 +790,13 @@ td .btn-delete {
  */
 
 /* Bouncing arrow (unchanged) */
+
+@keyframes move-back-and-forth {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-4px); }
+  60% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
 @keyframes bounce {
   0%, 100% { transform: translateY(0); animation-timing-function: ease-in; }
   50% { transform: translateY(-10px); animation-timing-function: ease-out; }
