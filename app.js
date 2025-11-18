@@ -951,3 +951,92 @@ function hookEditables(sortedSets = []) {
     setRowIdx++; // Increment only when we've processed a set row
   });
 }
+
+// ------------------ SWIPE NAVIGATION ------------------
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoveX = 0;
+let touchMoveY = 0;
+
+// Minimum distance (in pixels) to trigger a "back" swipe
+const MIN_SWIPE_DISTANCE = 75;
+// Maximum distance (in pixels) from the left edge to *start* the swipe
+const MAX_START_EDGE = 50;
+
+/**
+ * Stores the starting coordinates of a touch.
+ */
+document.body.addEventListener('touchstart', (e) => {
+    // Only track one finger
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    // Reset move coordinates
+    touchMoveX = 0;
+    touchMoveY = 0;
+}, { passive: true }); // Use passive for better scrolling performance
+
+/**
+ * Stores the last-known coordinates during a touch-move.
+ */
+document.body.addEventListener('touchmove', (e) => {
+    touchMoveX = e.touches[0].clientX;
+    touchMoveY = e.touches[0].clientY;
+}, { passive: true });
+
+/**
+ * On touch-end, check if a valid "swipe back" gesture was made.
+ */
+document.body.addEventListener('touchend', () => {
+    // Check if move coordinates were ever set. If not, it was a tap.
+    if (touchMoveX === 0 && touchMoveY === 0) {
+        return;
+    }
+
+    const deltaX = touchMoveX - touchStartX;
+    const deltaY = touchMoveY - touchStartY;
+
+    // --- Failsafe Checks ---
+    
+    // 1. Failsafe: Must be a swipe from the left edge of the screen.
+    if (touchStartX > MAX_START_EDGE) {
+        return;
+    }
+    
+    // 2. Failsafe: Must be a "swipe right" (positive deltaX)
+    //    and meet the minimum distance.
+    if (deltaX < MIN_SWIPE_DISTANCE) {
+        return;
+    }
+    
+    // 3. Failsafe: Must be more horizontal than vertical
+    //    (to avoid conflicts with scrolling down the page).
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        return;
+    }
+    
+    // --- Gesture Passed All Checks ---
+    // Trigger the correct back button based on the current screen[cite: 4].
+    // This is the safest method as it re-uses all your existing logic.
+    switch (currentScreen) {
+        case SCREENS.SESSIONS:
+            document.getElementById('backToClientsBtn').click(); // 
+            break;
+        case SCREENS.EXERCISES:
+            document.getElementById('backToSessionsBtn').click(); // [cite: 16]
+            break;
+        case SCREENS.SETS:
+            document.getElementById('backToExercisesBtn').click(); // [cite: 17]
+            break;
+        case SCREENS.GRAPH:
+            document.getElementById('backToSetsFromGraphBtn').click(); // [cite: 18]
+            break;
+        case SCREENS.CLIENTS:
+            // At the root screen, do nothing.
+            break;
+    }
+    
+    // Reset start coordinates
+    touchStartX = 0;
+    touchStartY = 0;
+});
