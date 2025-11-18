@@ -664,16 +664,14 @@ td .btn-delete {
 
 
 /* --- THE Z-INDEX BUG FIX --- */
-/* This rule is now defined in .item-list near the top */
-
-/* We also need to push down the graph and table */
+/* ... existing code ... -->
 #graphContainer .card-header ~ #graphDiv {
   margin-top: 7rem;
 }
 
 /* This targets the new wrapper div */
 #setsDiv .sets-content-wrapper {
-  margin-top: 7rem;
+  margin-top: 11rem; /* UPDATED: Was 7rem. Increased to clear both headers */
 }
 
 
@@ -717,6 +715,29 @@ td .btn-delete {
 .slide-out-right {
   animation: slideOutToRight 0.3s forwards ease-out;
   z-index: 1;
+}
+
+/* =====================================================
+  NEW ACTION HEADER STYLES (for Sets page)
+===================================================== */
+.action-header {
+  position: sticky;
+  /* 16px (top) + 68px (header height) = 84px */
+  top: 84px; 
+  background-color: var(--color-card);
+  z-index: 9; /* Below main header (10), above content */
+  padding: 0 1.5rem 1rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  /* Add a border to separate from content */
+  border-bottom: 1px solid var(--color-border);
+}
+.action-header .btn-group {
+  width: 100%;
+  max-width: 500px; /* Max width for the button group */
+}
+.action-header .btn {
+  flex: 1; /* Make buttons share space equally */
 }
 
 /* =====================================================
