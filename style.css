@@ -586,12 +586,16 @@ td .btn-delete {
 
 /* Make card headers sticky like a native app header */
 .card-header {
-  position: sticky;
-  top: 16px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
-  background-color: var(--color-card);
-  z-index: 10;
-  padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
-  /* Removed padding-top, margin-top, and background-image */
+  position: sticky;
+  top: 16px; 
+  background-color: var(--color-card);
+  z-index: 10;
+  padding: 1rem 1.5rem; 
+  
+  /* --- ADD THESE 3 LINES --- */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .card-header h3 {
@@ -884,18 +888,3 @@ td .btn-delete {
 #logo-n { transform-origin: 89px 22px; }
 #logo-k { transform-origin: 114px 22px; }
 
-/* ADD THIS */
-@keyframes moveBackAndForth {
-  0% {
-    transform: rotate(45deg) translateX(0);
-  }
-  50% {
-    transform: rotate(45deg) translateX(-4px);
-  }
-  100% {
-    transform: rotate(45deg) translateX(0);
-  }
-}
-/* END ADD */
-
-@keyframes slideInFromRight {
