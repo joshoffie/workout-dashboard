@@ -550,8 +550,8 @@ td .btn-delete {
 /* This replaces the old .btn-back rule */
 .btn-back {
   font-family: inherit; /* */
-  color: white; /* This will be the SVG arrow color */
-  background-color: var(--color-red); /* */
+  color: var(--color-red);
+  background-color: var(--color-secondary);
   border: none; /* */
   cursor: pointer; /* */
 
@@ -575,12 +575,12 @@ td .btn-delete {
   animation: move-back-and-forth 1.3s ease-in-out infinite;
 
   /* Polish */
-  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+  border: 1px solid var(--color-border);
   transition: all var(--transition); /* */
 }
 
 .btn-back:hover {
-  background-color: #ff4d42; /* Brighter red on hover */
+  background-color: #444;
   transform: scale(1.05);
   animation-play-state: paused; /* Stop animation on hover */
 }
