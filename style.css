@@ -883,3 +883,18 @@ td .btn-delete {
 #logo-n { transform-origin: 89px 22px; }
 #logo-k { transform-origin: 114px 22px; }
 
+/* ADD THIS */
+@keyframes moveBackAndForth {
+  0% {
+    transform: rotate(45deg) translateX(0);
+  }
+  50% {
+    transform: rotate(45deg) translateX(-4px);
+  }
+  100% {
+    transform: rotate(45deg) translateX(0);
+  }
+}
+/* END ADD */
+
+@keyframes slideInFromRight {
