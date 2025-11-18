@@ -218,9 +218,10 @@ body {
 }
 
 /* --- FIX: Override flex: 1 for buttons directly in the header --- */
-.card-header > .btn {
+/* .card-header > .btn {
   flex: 0 0 auto; /* Stop buttons from expanding */
-}
+/* } */
+/* ^^^ REMOVED old flexbox fix */
 
 /* =====================================================
   NEW BUTTON STYLES (for Delete Modal)
@@ -580,9 +581,9 @@ td .btn-delete {
   justify-content: center;
 
   /* Layout properties (CRITICAL) */
-  flex: 0 0 auto; /* Kept from original to preserve layout */
+  /* flex: 0 0 auto; */ /* <-- REMOVED this, using absolute now */
   z-index: 20; /* Kept from original */
-  margin-left: 0; /* Adjusted from -0.5rem */
+  /* margin-left: 0; */ /* <-- REMOVED this */
 
   /* Animation */
   animation: move-back-and-forth 1.3s ease-in-out infinite;
@@ -590,6 +591,11 @@ td .btn-delete {
   /* Polish */
   border: 1px solid var(--color-border);
   transition: all var(--transition); /* */
+  
+  /* --- NEW POSITIONING SYSTEM --- */
+  position: absolute;
+  top: 1rem; /* Align with header padding */
+  left: 1.5rem; /* Align with header padding */
 }
 
 .btn-back:hover {
@@ -615,28 +621,35 @@ td .btn-delete {
   z-index: 10;
   padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
   /* Removed padding-top, margin-top, and background-image */
-
-  /* --- NEW FIX: Add flex properties for alignment --- */
-  display: flex;
-  align-items: center;
+  
+  /* --- NEW POSITIONING SYSTEM --- */
+  position: relative; /* This is the anchor for the absolute buttons */
+  /* Ensure it has a minimum height for the buttons */
+  min-height: 52px; /* 1rem padding + 36px button + 1rem padding */
 }
 
+/* --- H3 is GONE --- */
+/*
 .card-header h3 {
-  color: var(--color-text);
-  z-index: 5; /* Ensure text is above back button if it overlaps */
-  flex: 1; /* Allow h3 to take space */
-  text-align: center; /* Center the title */
-  margin: 0 1rem;
+  ...
 }
-
-/* NEW: Rule to hide the old H3s */
 .card-header h3.hidden {
   display: none;
 }
+*/
 
-/* Adjust header button group */
+/* --- NEW POSITIONING FOR ADD BUTTONS/GROUPS --- */
+.card-header .btn-primary,
 .card-header .btn-group {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 1rem; /* Align with header padding */
+  right: 1.5rem; /* Align with header padding */
+  z-index: 20;
+}
+/* Ensure the btn-group (on Sets page) doesn't wrap */
+.card-header .btn-group {
+  flex-wrap: nowrap;
+  width: auto;
 }
 
 
@@ -937,16 +950,21 @@ td .btn-delete {
   /* Positioning */
   flex: 1; /* Take up space */
   text-align: center; /* Center it */
-  margin: 0 1rem;
   
   /* This is the key to aligning with the back button */
-  /* The button is 36px high, this centers the text */
-  line-height: 36px; 
+  /* The header is 1rem + 36px + 1rem = 68px tall. This centers the text. */
+  line-height: 36px;
+  padding: 0 4rem; /* Give space for buttons on both sides */
   
   /* For animations */
   position: relative;
   /* Prevent text selection during animation */
   user-select: none;
+  
+  /* Ensure it's a block to center */
+  display: block;
+  margin: 0; /* Override default h2 margin */
+  width: 100%; /* Take full width */
 }
 
 /* Individual spans for letters */
