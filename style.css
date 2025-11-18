@@ -547,11 +547,9 @@ td .btn-delete {
 
 
 /* Style the new back button (inspired by iOS) */
-/* Style the new back button (animated icon) */
-/* Style the new back button (inspired by iOS) */
 .btn-back {
   font-family: inherit;
-font-size: 1.05rem;
+  font-size: 1.05rem;
   font-weight: 500;
   color: var(--color-primary);
   background: none;
@@ -559,34 +557,19 @@ font-size: 1.05rem;
   cursor: pointer;
   padding: 0.5rem;
   margin-left: -0.5rem;
-/* Ensure it's not hidden */
+  /* Ensure it's not hidden */
   z-index: 20;
-  flex: 0 0 auto;
-/* Stop it from growing */
-}
-
-.btn-back:hover {
-  background-color: #444; /* Darker on hover */
-}
-
-/* ADD THIS NEW RULE FOR THE ARROW */
-.arrow-icon {
-  width: 10px;
-  height: 10px;
-  border-left: 3px solid var(--color-red);
-  border-bottom: 3px solid var(--color-red);
-  
-  /* Point the arrow left and apply animation */
-  animation: moveBackAndForth 1.2s ease-in-out infinite;
+  flex: 0 0 auto; /* Stop it from growing */
 }
 
 /* Make card headers sticky like a native app header */
 .card-header {
-  position: sticky;
-  top: 16px; 
-  background-color: var(--color-card);
-  z-index: 10;
-  padding: 1rem 1.5rem; 
+  position: sticky;
+  top: 16px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
+  background-color: var(--color-card);
+  z-index: 10;
+  padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
+  /* Removed padding-top, margin-top, and background-image */
 }
 
 .card-header h3 {
