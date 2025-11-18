@@ -216,6 +216,11 @@ body {
   gap: 0.5rem;
 }
 
+/* --- FIX: Override flex: 1 for buttons directly in the header --- */
+.card-header > .btn {
+  flex: 0 0 auto; /* Stop buttons from expanding */
+}
+
 /* =====================================================
   NEW BUTTON STYLES (for Delete Modal)
   =====================================================
