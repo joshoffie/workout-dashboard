@@ -90,10 +90,10 @@
   <!-- App Content -->
   <main class="app-container">
     
-    <!-- ... (Clients screen is unchanged) ... -->
+    <!-- Clients Screen -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
-        <!-- FIX: Changed from h3 to h2 to match other titles -->
+        <!-- NEW: Replaced H3 -->
         <h2 class="animated-title" aria-label="Clients">Clients</h2>
         <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
       </div>
@@ -106,10 +106,10 @@
         <button id="backToClientsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- OLD H3 (HIDDEN) -->
-        <h3 class="hidden"><span id="selectedClientLabel"></span></h3>
-        <!-- NEW ANIMATED TITLE -->
+        <!-- NEW: Replaced H3 -->
         <h2 class="animated-title" aria-label="Sessions">Sessions</h2>
+        <!-- This span will be updated by JS, but it's hidden by default -->
+        <span id="selectedClientLabel" class="hidden"></span>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
       </div>
       <ul id="sessionList" class="item-list"></ul>
@@ -121,10 +121,10 @@
         <button id="backToSessionsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- OLD H3 (HIDDEN) -->
-        <h3 class="hidden"><span id="selectedSessionLabel"></span></h3>
-        <!-- NEW ANIMATED TITLE -->
+        <!-- NEW: Replaced H3 -->
         <h2 id="sessionExercisesTitle" class="animated-title" aria-label="Exercises">Exercises</h2>
+        <!-- This span will be updated by JS, but it's hidden by default -->
+        <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
       <ul id="exerciseList" class="item-list"></ul>
@@ -136,13 +136,13 @@
         <button id="backToExercisesBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- OLD H3 (HIDDEN) -->
-        <h3 class="hidden"><span id="selectedExerciseLabel"></span></h3>
-        <!-- NEW ANIMATED TITLE -->
+        <!-- NEW: Replaced H3 -->
         <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise">
           <!-- This span will be updated by JS -->
           <span id="exerciseSetsTitleSpan">Exercise</span>
         </h2>
+        <!-- This span will be updated by JS, but it's hidden by default -->
+        <span id="selectedExerciseLabel" class="hidden"></span>
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
           <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
