@@ -565,7 +565,7 @@ td .btn-delete {
 /* Make card headers sticky like a native app header */
 .card-header {
   position: sticky;
-  top: 68px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
+  top: 10px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
   background-color: var(--color-card);
   z-index: 10;
   padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
