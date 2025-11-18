@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   
   <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -55,7 +58,15 @@
   <header class="app-header">
     <!-- ... (unchanged) ... -->
     <div class="header-content">
-      <h1>MyWorkout</h1>
+      <svg id="animated-logo" viewBox="0 0 130 50" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="40">
+          <tspan id="logo-t" fill="var(--color-green)">T</tspan>
+          <tspan id="logo-r" fill="var(--color-green)">R</tspan>
+          <tspan id="logo-u" fill="var(--color-red)">U</tspan>
+          <tspan id="logo-n" fill="var(--color-yellow)">N</tspan>
+          <tspan id="logo-k" fill="var(--color-green)">K</tspan>
+        </text>
+      </svg>
       <div id="authDiv" class="auth-controls">
         <span id="userLabel"></span>
         <button id="editToggleBtn" class="btn btn-secondary">Edit</button>
