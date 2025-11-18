@@ -85,6 +85,7 @@ document.getElementById('backToSessionsBtn').onclick = () => {
 document.getElementById('backToExercisesBtn').onclick = () => {
   // Reset downstream state
   selectedExercise = null;
+  renderExercises(); // <-- FIX #3: Re-run render to update colors
   navigateTo(SCREENS.EXERCISES, 'back'); // <-- FIX: This was targeting the wrong screen
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
@@ -301,10 +302,12 @@ function applyTitleStyling(element, text, colorData) {
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
   // Shuffle the colors array for a mixed effect
+  /* <-- FIX #2: RE-ENABLED SHUFFLE per your request --> */
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
+  /* <-- END FIX #2 --> */
 
   // Apply to spans
   chars.forEach((char, i) => {
@@ -577,21 +580,10 @@ function renderExercises() {
       });
     };
     
-    // --- NEW: Apply styling to the exercise name in the list ---
-    // This just colors the text, no animation
-    nameSpan.style.color = 'var(--color-text)'; // Reset to default
-    if (ex.colorData && ex.colorData.total > 0) {
-      const { red, green, yellow } = ex.colorData;
-      if (green > red && green > yellow) {
-        nameSpan.style.color = 'var(--color-green)';
-      } else if (red > green && red > yellow) {
-        nameSpan.style.color = 'var(--color-red)';
-      } else if (yellow > green && yellow > red) {
-        nameSpan.style.color = 'var(--color-yellow)';
-      } else {
-        nameSpan.style.color = 'var(--color-text-muted)';
-      }
-    }
+    // --- FIX #1: Apply full styling to list items, not just one color ---
+    // This replaces the old single-color logic block.
+    applyTitleStyling(nameSpan, ex.exercise, ex.colorData);
+    // --- END FIX #1 ---
 
     // 4. Append the new span and the button
     li.appendChild(nameSpan);
