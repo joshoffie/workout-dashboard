@@ -58,15 +58,26 @@
   <header class="app-header">
     <!-- ... (unchanged) ... -->
     <div class="header-content">
-      <svg id="animated-logo" viewBox="0 0 130 50" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="40">
-          <tspan id="logo-t" fill="var(--color-green)">T</tspan>
-          <tspan id="logo-r" fill="var(--color-green)">R</tspan>
-          <tspan id="logo-u" fill="var(--color-red)">U</tspan>
-          <tspan id="logo-n" fill="var(--color-yellow)">N</tspan>
-          <tspan id="logo-k" fill="var(--color-green)">K</tspan>
-        </text>
-      </svg>
+      <h1>
+        <svg id="animated-logo" aria-label="Trunk Logo" viewBox="0 0 145 50" xmlns="http://www.w3.org/2000/svg">
+          <g class="logo-text">
+              <text id="logo-t" x="0" y="40" fill="#9ACA3C">T</text>
+              <text id="logo-r" x="24" y="40" fill="#E64A45">r</text>
+              <text id="logo-u" x="46" y="40" fill="#F4B400">u</text>
+              <text id="logo-n" x="75" y="40" fill="#9ACA3C">n</text>
+              <text id="logo-k" x="101" y="40" fill="#9ACA3C">k</text>
+          </g>
+          <path 
+            id="logo-arrow" 
+            d="M 125 22 L 125 6 M 121 14 L 125 6 L 129 14" 
+            fill="none" 
+            stroke="#9ACA3C" 
+            stroke-width="4" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+          />
+        </svg>
+      </h1>
       <div id="authDiv" class="auth-controls">
         <span id="userLabel"></span>
         <button id="editToggleBtn" class="btn btn-secondary">Edit</button>
