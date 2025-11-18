@@ -609,6 +609,10 @@ td .btn-delete {
   z-index: 10;
   padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
   /* Removed padding-top, margin-top, and background-image */
+
+  /* --- NEW FIX: Add flex properties for alignment --- */
+  display: flex;
+  align-items: center;
 }
 
 .card-header h3 {
