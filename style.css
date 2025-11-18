@@ -591,11 +591,6 @@ td .btn-delete {
   background-color: var(--color-card);
   z-index: 10;
   padding: 1rem 1.5rem; 
-  
-  /* --- ADD THESE 3 LINES --- */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .card-header h3 {
