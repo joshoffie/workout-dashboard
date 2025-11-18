@@ -290,7 +290,7 @@ body {
   width: 100%;
   padding: 0 1rem; /* Add side padding */
   /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 7rem; /* This provides ~136px of space */
+  padding-top: 2rem; /* This provides ~136px of space */
   /* --- END FIX --- */
 }
 .item-list li {
