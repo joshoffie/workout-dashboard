@@ -187,7 +187,7 @@ body {
   justify-content: center;
   gap: 0.5rem;
   text-decoration: none;
-  flex: 1; /* Make buttons in modal fill space */
+  /* flex: 1; */ /* <-- THIS WAS THE MISTAKE. REMOVE THIS LINE. */
 }
 .btn-primary {
   background: var(--grad-primary); /* <-- GRADIENT ADDED */
@@ -210,6 +210,7 @@ body {
   width: 100%;
   font-size: 1rem;
   padding: 0.9rem 1.25rem;
+  flex: 1; /* <-- ADD FLEX: 1 HERE, where it belongs */
 }
 .btn-group {
   display: flex;
@@ -295,7 +296,7 @@ body {
   width: 100%;
   padding: 0 1rem; /* Add side padding */
   /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 2rem; /* This provides ~136px of space */
+  padding-top: 7rem; /* <-- FIX: Was 2rem. This adds space for the sticky header. */
   /* --- END FIX --- */
 }
 .item-list li {
