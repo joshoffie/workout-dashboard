@@ -200,6 +200,132 @@ async function saveUserJson() {
   await db.collection("clients").doc(uid).set(clientsData);
 }
 
+// ------------------ NEW ANIMATED TITLE HELPERS ------------------
+
+/**
+ * Splits a string into spans for each character.
+ * @param {HTMLElement} element - The container element (e.g., h2 or span)
+ * @param {string} text - The text to display
+ */
+function setTextAsChars(element, text) {
+  element.innerHTML = ''; // Clear old content
+  if (!text || text.trim() === '') {
+      // Handle empty or space-only text
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.innerHTML = '&nbsp;'; // Use non-breaking space
+      element.appendChild(span);
+      return;
+  }
+  for (let char of text) {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.textContent = char;
+    if (char === ' ') {
+        span.innerHTML = '&nbsp;'; // Use non-breaking space for spaces
+    }
+    element.appendChild(span);
+  }
+}
+
+/**
+ * Applies color and animation to a title element based on colorData.
+ * @param {HTMLElement} element - The container element (h2 or span)
+ * @param {string} text - The text to display
+ * @param {object} colorData - Object with { red, green, yellow, total }
+ */
+function applyTitleStyling(element, text, colorData) {
+  if (!element) return;
+
+  // 1. Set the text
+  setTextAsChars(element, text);
+
+  // 2. Clear old animation classes
+  // We need to find the parent .animated-title to remove classes
+  const parentTitle = element.closest('.animated-title');
+  if (parentTitle) {
+    parentTitle.classList.remove('happy', 'sad', 'calm');
+  } else {
+    // Fallback if the element itself is the title (like sessionExercisesTitle)
+    element.classList.remove('happy', 'sad', 'calm');
+  }
+
+
+  // If no color data, just show default text
+  if (!colorData || colorData.total === 0) {
+    // Ensure all characters have the default color
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+    });
+    return;
+  }
+
+  const { red, green, yellow, total } = colorData;
+  const chars = element.querySelectorAll('.char');
+  const numChars = chars.length;
+  if (numChars === 0) return;
+
+  // 3. Apply colors to letters
+  const colors = [];
+  
+  // Use Math.round to get proportional counts
+  let greenCount = Math.round((green / total) * numChars);
+  let redCount = Math.round((red / total) * numChars);
+  let yellowCount = Math.round((yellow / total) * numChars);
+
+  // Adjust counts to match numChars if rounding is off
+  while (greenCount + redCount + yellowCount < numChars) {
+      // Add to the largest category to fill space
+      if (green >= red && green >= yellow) greenCount++;
+      else if (red >= green && red >= yellow) redCount++;
+      else yellowCount++;
+  }
+  while (greenCount + redCount + yellowCount > numChars) {
+      // Subtract from the smallest non-zero category
+      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
+      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
+      else if (greenCount > 0) greenCount--;
+      // Handle edge case where one count is 0 but needs adjustment
+      else if (yellowCount > 0 && yellow <= red) yellowCount--;
+      else if (redCount > 0 && red <= green) redCount--;
+      else if (greenCount > 0) greenCount--;
+      // Final fallback
+      else if (yellowCount > 0) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+  }
+
+
+  for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
+  for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
+  for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
+  // Shuffle the colors array for a mixed effect
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+
+  // Apply to spans
+  chars.forEach((char, i) => {
+    // Use colors[i] or default to text color
+    char.style.color = colors[i] || 'var(--color-text)';
+  });
+
+  // 4. Apply animation class
+  const targetElement = parentTitle || element; // Apply class to the .animated-title
+  if (green > red && green > yellow) {
+    targetElement.classList.add('happy');
+  } else if (red > green && red > yellow) {
+    targetElement.classList.add('sad');
+  } else if (yellow > green && yellow > red) {
+    targetElement.classList.add('calm');
+  } else if (green + red + yellow > 0) {
+    // Default to calm if there's a tie or no clear majority
+    targetElement.classList.add('calm');
+  }
+}
+
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
@@ -265,7 +391,7 @@ function selectClient(name) {
   selectedClient = name;
   selectedSession = null;
   selectedExercise = null;
-  document.getElementById("selectedClientLabel").textContent = name;
+  // document.getElementById("selectedClientLabel").textContent = name; // <-- REMOVED
   renderSessions();
   navigateTo(SCREENS.SESSIONS, 'forward');
 }
@@ -312,7 +438,7 @@ function renderSessions() {
   sessionList.innerHTML = "";
   if (!selectedClient) return;
   selectedSession = null;
-  document.getElementById("selectedSessionLabel").textContent = "";
+  // document.getElementById("selectedSessionLabel").textContent = ""; // <-- REMOVED
 
   const sessions = clientsData[selectedClient]?.sessions || [];
   
@@ -375,7 +501,7 @@ function renderSessions() {
 function selectSession(sessionObject) {
   selectedSession = sessionObject; // <-- Pass the whole object
   selectedExercise = null;
-  document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name;
+  // document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name; // <-- REMOVED
   renderExercises();
   navigateTo(SCREENS.EXERCISES, 'forward'); // <-- THIS IS THE FIX
 }
@@ -394,12 +520,30 @@ document.getElementById("addExerciseBtn").onclick = () => {
 
 function renderExercises() {
   exerciseList.innerHTML = "";
-  if (!selectedSession) return;
+  // --- NEW: Get session title element ---
+  const sessionTitleElement = document.getElementById('sessionExercisesTitle');
+  
+  if (!selectedSession) {
+    // --- NEW: Reset title if no session ---
+    applyTitleStyling(sessionTitleElement, 'Exercises', null);
+    return;
+  }
+  
   selectedExercise = null;
-  document.getElementById("selectedExerciseLabel").textContent = "";
+  // document.getElementById("selectedExerciseLabel").textContent = ""; // <-- REMOVED
 
-  // INSIDE renderExercises()
+  // --- NEW: Aggregate color data for session title ---
+  let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
   selectedSession.exercises.forEach((ex, idx) => {
+    // If exercise has color data, add it to the session total
+    if (ex.colorData) {
+      sessionColorData.red += ex.colorData.red;
+      sessionColorData.green += ex.colorData.green;
+      sessionColorData.yellow += ex.colorData.yellow;
+      sessionColorData.total += ex.colorData.total;
+    }
+
     const li = document.createElement("li");
     li.style.cursor = "pointer";
 
@@ -432,6 +576,22 @@ function renderExercises() {
         }
       });
     };
+    
+    // --- NEW: Apply styling to the exercise name in the list ---
+    // This just colors the text, no animation
+    nameSpan.style.color = 'var(--color-text)'; // Reset to default
+    if (ex.colorData && ex.colorData.total > 0) {
+      const { red, green, yellow } = ex.colorData;
+      if (green > red && green > yellow) {
+        nameSpan.style.color = 'var(--color-green)';
+      } else if (red > green && red > yellow) {
+        nameSpan.style.color = 'var(--color-red)';
+      } else if (yellow > green && yellow > red) {
+        nameSpan.style.color = 'var(--color-yellow)';
+      } else {
+        nameSpan.style.color = 'var(--color-text-muted)';
+      }
+    }
 
     // 4. Append the new span and the button
     li.appendChild(nameSpan);
@@ -439,14 +599,18 @@ function renderExercises() {
 
     exerciseList.appendChild(li);
   });
+  
+  // --- NEW: Apply aggregated data to session title ---
+  applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
+
   // After rendering, hook listeners
   hookEditables();
 }
 
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
-  document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise;
-  renderSets(); // This will now trigger the console.log
+  // document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise; // <-- REMOVED
+  renderSets(); // This will now trigger runComparisonLogic, which updates the new title
   navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden"); // This is still needed
 }
@@ -565,16 +729,6 @@ function renderSets() {
       // --- Add to our flat array for hookEditables ---
       renderedSetsInOrder.push(s);
     });
-
-    // --- 7. REMOVED the divider <tr> logic ---
-    /*
-    if (dayIndex < sortedDays.length - 1) {
-      const dividerTr = document.createElement("tr");
-...
-      dividerTr.appendChild(dividerTd);
-      setsTable.appendChild(dividerTr);
-    }
-    */
   });
 
   // --- 8. Hook editables ---
@@ -680,6 +834,7 @@ function formatNum(num) {
  * @param {string} statName - The prefix ('sets', 'reps', 'volume', 'wpr')
  * @param {number} currentValue - The current workout's value
  * @param {number} previousValue - The previous workout's value
+ * @returns {string} The status ('increase', 'decrease', 'neutral')
  */
 function updateStatUI(statName, currentValue, previousValue) {
   // Get all the elements for this stat row
@@ -689,7 +844,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   
   if (!arrowEl || !spiralEl || !dataEl) { // <-- MODIFIED
     console.warn(`Could not find all UI elements for stat: ${statName}`);
-    return;
+    return 'neutral'; // Return a default
   }
 
   // --- 1. Determine Status & Arrow ---
@@ -757,6 +912,9 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.textContent = `${currentString} ${changeString}`;
   dataEl.classList.remove(...classesToRemove);
   dataEl.classList.add(status);
+
+  // --- NEW: Return the status ---
+  return status;
 }
 
 
@@ -765,8 +923,27 @@ function updateStatUI(statName, currentValue, previousValue) {
  */
 function runComparisonLogic() {
   const banner = document.getElementById('comparisonBanner');
-  if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length < 2) {
+  // --- NEW: Get title element ---
+  const titleElement = document.getElementById('exerciseSetsTitleSpan');
+
+  if (!selectedExercise) {
+    banner.classList.add('hidden');
+    // --- NEW: Reset title if no exercise ---
+    if (titleElement) {
+        applyTitleStyling(titleElement, 'Exercise', null);
+    }
+    return;
+  }
+  
+  // --- NEW: Reset title on load ---
+  applyTitleStyling(titleElement, selectedExercise.exercise, null);
+
+  if (!selectedExercise.sets || selectedExercise.sets.length < 2) {
     banner.classList.add('hidden'); // Hide banner if not enough data
+    // Still show the title, just with no styling
+    applyTitleStyling(titleElement, selectedExercise.exercise, null);
+    // --- NEW: Clear color data if no sets ---
+    selectedExercise.colorData = { red: 0, green: 0, yellow: 0, total: 0 };
     return;
   }
   
@@ -788,6 +965,9 @@ function runComparisonLogic() {
   if (!previousWorkoutSet) {
     console.log("[runComparisonLogic] Found current stats, but no previous workout day found.");
     banner.classList.add('hidden');
+    // --- NEW: Clear color data ---
+    selectedExercise.colorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    applyTitleStyling(titleElement, selectedExercise.exercise, null);
     return;
   }
 
@@ -808,11 +988,26 @@ function runComparisonLogic() {
   console.log("[runComparisonLogic] Previous Stats:", prevStats);
   console.log("-------------------------------------");
   
-  // 10. Hook up the data to the UI
-  updateStatUI('sets', currentStats.sets, prevStats.sets);
-  updateStatUI('reps', currentStats.reps, prevStats.reps);
-  updateStatUI('volume', currentStats.volume, prevStats.volume);
-  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
+  // --- 10. Hook up the data to the UI ---
+  // --- NEW: Collect statuses ---
+  const statuses = [];
+  statuses.push(updateStatUI('sets', currentStats.sets, prevStats.sets));
+  statuses.push(updateStatUI('reps', currentStats.reps, prevStats.reps));
+  statuses.push(updateStatUI('volume', currentStats.volume, prevStats.volume));
+  statuses.push(updateStatUI('wpr', currentStats.wpr, prevStats.wpr));
+
+  // --- 11. Calculate colorData ---
+  const red = statuses.filter(s => s === 'decrease').length;
+  const green = statuses.filter(s => s === 'increase').length;
+  const yellow = statuses.filter(s => s === 'neutral').length;
+  const total = statuses.length; // Ensure total is 4
+  const colorData = { red, green, yellow, total };
+
+  // --- 12. Store on exercise object ---
+  selectedExercise.colorData = colorData;
+  
+  // --- 13. Apply styling to title ---
+  applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
   
   // Show the banner
   banner.classList.remove('hidden');
