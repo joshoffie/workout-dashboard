@@ -622,10 +622,15 @@ td .btn-delete {
   padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
   /* Removed padding-top, margin-top, and background-image */
   
-  /* --- NEW POSITIONING SYSTEM --- */
-  position: relative; /* This is the anchor for the absolute buttons */
-  /* Ensure it has a minimum height for the buttons */
-  min-height: 52px; /* 1rem padding + 36px button + 1rem padding */
+  /* --- NEW GRID POSITIONING SYSTEM --- */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* 3 columns: Left(auto) | Center(flex) | Right(auto) */
+  align-items: center;
+  gap: 1rem; /* Space between items */
+
+  /* Remove old properties */
+  /* position: relative; */ 
+  min-height: 52px; 
 }
 
 /* --- H3 is GONE --- */
@@ -641,10 +646,15 @@ td .btn-delete {
 /* --- NEW POSITIONING FOR ADD BUTTONS/GROUPS --- */
 .card-header .btn-primary,
 .card-header .btn-group {
-  position: absolute;
-  top: 1rem; /* Align with header padding */
-  right: 1.5rem; /* Align with header padding */
-  z-index: 20;
+  /* This is no longer absolute */
+  /* position: absolute; */
+  /* top: 1rem; */
+  /* right: 1.5rem; */ 
+  /* z-index: 20; */
+
+  /* NEW: Place in 3rd grid column and align to the right */
+  grid-column: 3;
+  justify-self: end;
 }
 /* Ensure the btn-group (on Sets page) doesn't wrap */
 .card-header .btn-group {
@@ -948,13 +958,13 @@ td .btn-delete {
   color: var(--color-text); /* Default color */
   
   /* Positioning */
-  flex: 1; /* Take up space */
+  /* flex: 1; */ /* Removed flex */
   text-align: center; /* Center it */
   
   /* This is the key to aligning with the back button */
   /* The header is 1rem + 36px + 1rem = 68px tall. This centers the text. */
   line-height: 36px;
-  padding: 0 4rem; /* Give space for buttons on both sides */
+  /* padding: 0 4rem; */ /* <-- REMOVED this padding */
   
   /* For animations */
   position: relative;
@@ -964,7 +974,14 @@ td .btn-delete {
   /* Ensure it's a block to center */
   display: block;
   margin: 0; /* Override default h2 margin */
-  width: 100%; /* Take full width */
+  /* width: 100%; */ /* Removed width */
+
+  /* NEW: Place in 2nd grid column */
+  grid-column: 2;
+  /* Prevent title from being too long and overlapping */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Individual spans for letters */
