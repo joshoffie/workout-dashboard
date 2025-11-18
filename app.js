@@ -960,9 +960,9 @@ let touchMoveX = 0;
 let touchMoveY = 0;
 
 // Minimum distance (in pixels) to trigger a "back" swipe
-const MIN_SWIPE_DISTANCE = 75;
+const MIN_SWIPE_DISTANCE = 85;
 // Maximum distance (in pixels) from the left edge to *start* the swipe
-const MAX_START_EDGE = 50;
+const MAX_START_EDGE = 150;
 
 /**
  * Stores the starting coordinates of a touch.
