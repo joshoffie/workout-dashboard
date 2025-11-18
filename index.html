@@ -90,7 +90,7 @@
   <!-- App Content -->
   <main class="app-container">
     
-    <!-- ... (Clients, Sessions, Exercises screens are unchanged) ... -->
+    <!-- ... (Clients screen is unchanged) ... -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
         <h3>Clients</h3>
@@ -99,35 +99,49 @@
       <ul id="clientList" class="item-list"></ul>
     </section>
 
+    <!-- Sessions Screen -->
     <section class="screen hidden" id="sessionsDiv">
       <div class="card-header">
         <button id="backToClientsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <h3><span id="selectedClientLabel"></span></h3>
+        <!-- OLD H3 (HIDDEN) -->
+        <h3 class="hidden"><span id="selectedClientLabel"></span></h3>
+        <!-- NEW ANIMATED TITLE -->
+        <h2 class="animated-title" aria-label="Exercises">Exercises</h2>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
       </div>
       <ul id="sessionList" class="item-list"></ul>
     </section>
 
+    <!-- Exercises Screen -->
     <section class="screen hidden" id="exercisesDiv">
       <div class="card-header">
         <button id="backToSessionsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <h3><span id="selectedSessionLabel"></span></h3>
+        <!-- OLD H3 (HIDDEN) -->
+        <h3 class="hidden"><span id="selectedSessionLabel"></span></h3>
+        <!-- NEW ANIMATED TITLE -->
+        <h2 id="sessionExercisesTitle" class="animated-title" aria-label="Exercises">Exercises</h2>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
       <ul id="exerciseList" class="item-list"></ul>
     </section>
 
-    <!-- Sets -->
+    <!-- Sets Screen -->
     <section class="screen hidden" id="setsDiv">
       <div class="card-header">
         <button id="backToExercisesBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <h3><span id="selectedExerciseLabel"></span></h3>
+        <!-- OLD H3 (HIDDEN) -->
+        <h3 class="hidden"><span id="selectedExerciseLabel"></span></h3>
+        <!-- NEW ANIMATED TITLE -->
+        <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise">
+          <!-- This span will be updated by JS -->
+          <span id="exerciseSetsTitleSpan">Exercise</span>
+        </h2>
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
           <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
