@@ -915,18 +915,33 @@ td .btn-delete {
     animation-delay: calc(var(--char-index) * 0.1s);
 }
 
-/* Calm-3: The "Idle Bounce" - Head bobbing to music */
-@keyframes calm-bounce {
+/* Calm-3: The "Diverge" - Green Up, Red Down, Yellow Still */
+@keyframes calm-up {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(3px); }
+    50% { transform: translateY(-6px); } /* Move Up */
 }
+@keyframes calm-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); } /* Move Down */
+}
+
 .animated-title .char.calm-3 {
-    animation-name: calm-bounce;
-    animation-duration: 1.2s; /* Beat pacing */
+    /* Base state for Yellow (and others if no specific color class): No animation */
+    animation: none;
+}
+
+.animated-title .char.calm-3.calm-3-green {
+    animation-name: calm-up;
+    animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    /* Stagger for a ripple bounce */
-    animation-delay: calc(var(--char-index) * 0.08s);
+}
+
+.animated-title .char.calm-3.calm-3-red {
+    animation-name: calm-down;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
 }
 
 .animated-title .char:nth-child(1) { --char-index: 1; }
