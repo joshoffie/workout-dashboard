@@ -19,7 +19,6 @@ let selectedExercise = null;
 
 // ------------------ NAVIGATION ------------------
 
-// This maps all our screens
 const SCREENS = {
   CLIENTS: 'clientsDiv',
   SESSIONS: 'sessionsDiv',
@@ -28,14 +27,8 @@ const SCREENS = {
   GRAPH: 'graphContainer'
 };
 
-// This will store which screen is currently visible
 let currentScreen = SCREENS.CLIENTS;
 
-/**
- * Handles all screen-to-screen navigation with animations.
- * @param {string} targetScreenId - The ID of the screen to show (e.g., SCREENS.SESSIONS)
- * @param {'forward' | 'back'} direction - The animation direction
- */
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
@@ -45,51 +38,44 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
-  // 1. Prepare target screen
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   targetScreen.classList.add(enterClass);
 
-  // 2. Animate current screen out
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   currentScreenEl.classList.add(exitClass);
 
-  // 3. Update current screen variable
   currentScreen = targetScreenId;
 
-  // 4. Clean up classes after animation
   currentScreenEl.addEventListener('animationend', () => {
     currentScreenEl.classList.add('hidden');
     currentScreenEl.classList.remove(exitClass);
-  }, { once: true }); // 'once: true' removes the listener after it fires
+  }, { once: true });
 
   targetScreen.addEventListener('animationend', () => {
     targetScreen.classList.remove(enterClass);
   }, { once: true });
 }
 
-
 // --- Wire up the new Back Buttons ---
 document.getElementById('backToClientsBtn').onclick = () => {
-  // Reset all state when going to main screen
   selectedClient = null;
   selectedSession = null;
   selectedExercise = null;
+  renderClients(); // Update clients list when returning
   navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
-  // Reset downstream state
   selectedSession = null;
   selectedExercise = null;
+  renderSessions(); // Update sessions list when returning
   navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
-  // Reset downstream state
   selectedExercise = null;
-  renderExercises(); // <-- FIX #3: Re-run render to update colors
-  navigateTo(SCREENS.EXERCISES, 'back'); // <-- FIX: This was targeting the wrong screen
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'back');
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
-  // No state to reset, just navigate
   navigateTo(SCREENS.SETS, 'back');
 };
 
@@ -97,31 +83,24 @@ document.getElementById('backToSetsFromGraphBtn').onclick = () => {
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
-
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
 
-// ADD THESE LINES
 const deleteModal = document.getElementById('deleteModal');
 const deleteModalMessage = document.getElementById('deleteModalMessage');
 const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
-// Show modal if user is not logged in
 auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // Hide modal
     modal.classList.add("hidden");
-    
     loginBtn.classList.add("hidden");
     logoutBtn.classList.remove("hidden");
     userLabel.textContent = `Logged in as ${user.displayName}`;
     await loadUserJson();
     renderClients();
   } else {
-    // Show modal
     modal.classList.remove("hidden");
-
     loginBtn.classList.remove("hidden");
     logoutBtn.classList.add("hidden");
     userLabel.textContent = "";
@@ -132,7 +111,6 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-// Login via modal button
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -142,39 +120,26 @@ modalLoginBtn.onclick = async () => {
   }
 };
 
-// Keep logoutBtn as is
 logoutBtn.onclick = async () => {
   await auth.signOut();
 };
 
-/**
- * Shows the custom confirmation modal.
- * @param {string} message - The message to display.
- * @param {function} onConfirm - The callback function to run if "Delete" is clicked.
- */
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
   deleteModal.classList.remove('hidden');
-
-  // We use { once: true } so these listeners automatically remove themselves
-  // This prevents bugs where clicking delete fires multiple times
   deleteConfirmBtn.addEventListener('click', () => {
     onConfirm();
     hideDeleteConfirm();
   }, { once: true });
-
   deleteCancelBtn.addEventListener('click', () => {
     hideDeleteConfirm();
   }, { once: true });
 }
 
-/** Hides the custom confirmation modal */
 function hideDeleteConfirm() {
   deleteModal.classList.add('hidden');
 }
-// Also hide modal if cancel is clicked (as a fallback)
 deleteCancelBtn.onclick = hideDeleteConfirm;
-
 
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
@@ -183,9 +148,9 @@ async function loadUserJson() {
   const docSnap = await docRef.get();
 
   if (docSnap.exists) {
-    clientsData = docSnap.data();  // load existing JSON
+    clientsData = docSnap.data();
   } else {
-    clientsData = {}; // empty structure
+    clientsData = {};
     await docRef.set(clientsData);
   }
   console.log("Data loaded from Firestore:", clientsData);
@@ -194,27 +159,17 @@ async function loadUserJson() {
 async function saveUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  
-  // REMOVED { merge: true }
-  // This ensures the document is fully overwritten, allowing
-  // top-level client deletions to be saved correctly.
   await db.collection("clients").doc(uid).set(clientsData);
 }
 
 // ------------------ NEW ANIMATED TITLE HELPERS ------------------
 
-/**
- * Splits a string into spans for each character.
- * @param {HTMLElement} element - The container element (e.g., h2 or span)
- * @param {string} text - The text to display
- */
 function setTextAsChars(element, text) {
-  element.innerHTML = ''; // Clear old content
+  element.innerHTML = '';
   if (!text || text.trim() === '') {
-      // Handle empty or space-only text
       const span = document.createElement('span');
       span.className = 'char';
-      span.innerHTML = '&nbsp;'; // Use non-breaking space
+      span.innerHTML = '&nbsp;';
       element.appendChild(span);
       return;
   }
@@ -223,38 +178,25 @@ function setTextAsChars(element, text) {
     span.className = 'char';
     span.textContent = char;
     if (char === ' ') {
-        span.innerHTML = '&nbsp;'; // Use non-breaking space for spaces
+        span.innerHTML = '&nbsp;';
     }
     element.appendChild(span);
   }
 }
 
-/**
- * Applies color and animation to a title element based on colorData.
- * @param {HTMLElement} element - The container element (h2 or span)
- * @param {string} text - The text to display
- * @param {object} colorData - Object with { red, green, yellow, total }
- */
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
 
-  // 1. Set the text
   setTextAsChars(element, text);
 
-  // 2. Clear old animation classes
-  // We need to find the parent .animated-title to remove classes
   const parentTitle = element.closest('.animated-title');
   if (parentTitle) {
     parentTitle.classList.remove('happy', 'sad', 'calm');
   } else {
-    // Fallback if the element itself is the title (like sessionExercisesTitle)
     element.classList.remove('happy', 'sad', 'calm');
   }
 
-
-  // If no color data, just show default text
   if (!colorData || colorData.total === 0) {
-    // Ensure all characters have the default color
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
     });
@@ -266,57 +208,42 @@ function applyTitleStyling(element, text, colorData) {
   const numChars = chars.length;
   if (numChars === 0) return;
 
-  // 3. Apply colors to letters
   const colors = [];
-  
-  // Use Math.round to get proportional counts
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
 
-  // Adjust counts to match numChars if rounding is off
   while (greenCount + redCount + yellowCount < numChars) {
-      // Add to the largest category to fill space
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
       else yellowCount++;
   }
   while (greenCount + redCount + yellowCount > numChars) {
-      // Subtract from the smallest non-zero category
       if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
       else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
       else if (greenCount > 0) greenCount--;
-      // Handle edge case where one count is 0 but needs adjustment
       else if (yellowCount > 0 && yellow <= red) yellowCount--;
       else if (redCount > 0 && red <= green) redCount--;
       else if (greenCount > 0) greenCount--;
-      // Final fallback
       else if (yellowCount > 0) yellowCount--;
       else if (redCount > 0) redCount--;
       else if (greenCount > 0) greenCount--;
   }
 
-
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
-  // Shuffle the colors array for a mixed effect
-  /* <-- FIX #2: RE-ENABLED SHUFFLE per your request --> */
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
-  /* <-- END FIX #2 --> */
 
-  // Apply to spans
   chars.forEach((char, i) => {
-    // Use colors[i] or default to text color
     char.style.color = colors[i] || 'var(--color-text)';
   });
 
-  // 4. Apply animation class
-  const targetElement = parentTitle || element; // Apply class to the .animated-title
+  const targetElement = parentTitle || element;
   if (green > red && green > yellow) {
     targetElement.classList.add('happy');
   } else if (red > green && red > yellow) {
@@ -324,58 +251,117 @@ function applyTitleStyling(element, text, colorData) {
   } else if (yellow > green && yellow > red) {
     targetElement.classList.add('calm');
   } else if (green + red + yellow > 0) {
-    // Default to calm if there's a tie or no clear majority
     targetElement.classList.add('calm');
   }
 }
+
+// --- NEW HELPER: Calculate comparison data without updating UI ---
+function getExerciseColorData(exercise) {
+  if (!exercise.sets || exercise.sets.length < 2) {
+      return { red: 0, green: 0, yellow: 0, total: 0 };
+  }
+  const allSets = exercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+
+  if (!previousWorkoutSet) {
+      return { red: 0, green: 0, yellow: 0, total: 0 };
+  }
+
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  const statuses = [];
+  statuses.push(calculateStatStatus(currentStats.sets, prevStats.sets));
+  statuses.push(calculateStatStatus(currentStats.reps, prevStats.reps));
+  statuses.push(calculateStatStatus(currentStats.volume, prevStats.volume));
+  statuses.push(calculateStatStatus(currentStats.wpr, prevStats.wpr));
+
+  const red = statuses.filter(s => s === 'decrease').length;
+  const green = statuses.filter(s => s === 'increase').length;
+  const yellow = statuses.filter(s => s === 'neutral').length;
+  return { red, green, yellow, total: statuses.length };
+}
+
+// Helper for pure calculation
+function calculateStatStatus(currentValue, previousValue) {
+  const epsilon = 0.01;
+  if (currentValue > previousValue + epsilon) return 'increase';
+  if (currentValue < previousValue - epsilon) return 'decrease';
+  return 'neutral';
+}
+
 
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
-  // INSIDE renderClients()
+  
+  // --- NEW: Global Color Accumulator ---
+  let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+  
   for (const name in clientsData) {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
 
-    // 1. Create a span for the editable text
     const nameSpan = document.createElement("span");
     nameSpan.textContent = name;
     
-    // 2. Add click listener to the *entire li* for non-edit mode
+    // --- NEW: Calculate Client Colors from all sessions ---
+    let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const sessions = clientsData[name].sessions || [];
+    sessions.forEach(session => {
+        const exercises = session.exercises || [];
+        exercises.forEach(ex => {
+            const cData = getExerciseColorData(ex);
+            clientColorData.red += cData.red;
+            clientColorData.green += cData.green;
+            clientColorData.yellow += cData.yellow;
+            clientColorData.total += cData.total;
+        });
+    });
+    
+    // Add to Global App Total
+    totalAppColorData.red += clientColorData.red;
+    totalAppColorData.green += clientColorData.green;
+    totalAppColorData.yellow += clientColorData.yellow;
+    totalAppColorData.total += clientColorData.total;
+    
+    // Apply styles to Client Name Span
+    applyTitleStyling(nameSpan, name, clientColorData);
+    // --- END NEW ---
+
     li.onclick = (e) => {
-      // If we're in edit mode, stop. The 'makeEditable' listener on the span will handle it.
-      if (editMode) {
-        e.stopPropagation(); 
-        return;
-      }
+      if (editMode) { e.stopPropagation(); return; }
       selectClient(name);
     };
 
-    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
-    deleteBtn.innerHTML = '&times;'; // 'x' icon
+    deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
-      e.stopPropagation(); // Stop it from selecting the client
-      showDeleteConfirm(`Are you sure you want to delete client "${name}"? This will delete all their sessions.`, () => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, () => {
         delete clientsData[name];
         saveUserJson();
         renderClients();
-        // If they deleted the currently selected client, go back
-        if (selectedClient === name) {
-          navigateTo(SCREENS.CLIENTS, 'back');
-        }
+        if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
       });
     };
 
-    // 4. Append the new span and the button
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
-    
     clientList.appendChild(li);
   }
-  // After rendering, hook listeners
+  
+  // --- NEW: Apply Global Colors to "Clients" Title ---
+  const clientsTitle = document.getElementById('clientsScreenTitle');
+  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  
   hookEditables();
 }
 
@@ -394,7 +380,6 @@ function selectClient(name) {
   selectedClient = name;
   selectedSession = null;
   selectedExercise = null;
-  // document.getElementById("selectedClientLabel").textContent = name; // <-- REMOVED
   renderSessions();
   navigateTo(SCREENS.SESSIONS, 'forward');
 }
@@ -402,35 +387,21 @@ function selectClient(name) {
 // ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
 
-/**
- * A robust helper function to sort sessions by date, descending.
- * Handles missing or invalid dates.
- * @param {Array} sessionsArray - The array of session objects to sort.
- * @returns {Array} A new, sorted array.
- */
 function getSortedSessions(sessionsArray) {
   if (!sessionsArray) return [];
-  
   return sessionsArray.slice().sort((a, b) => {
-    // Get date for B, default to 0 (epoch) if missing/invalid
     let dateB = b.date ? new Date(b.date) : new Date(0);
     if (isNaN(dateB.getTime())) dateB = new Date(0);
-
-    // Get date for A, default to 0 (epoch) if missing/invalid
     let dateA = a.date ? new Date(a.date) : new Date(0);
     if (isNaN(dateA.getTime())) dateA = new Date(0);
-
-    // Compare timestamps (most recent first)
     return dateB.getTime() - dateA.getTime();
   });
 }
-
 
 document.getElementById("addSessionBtn").onclick = () => {
   if (!selectedClient) { alert("Select a client first"); return; }
   const name = prompt("Enter session name:");
   if (!name) return;
-  // Make sure to add the 'date' field
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
   clientsData[selectedClient].sessions.push(session);
   saveUserJson();
@@ -441,72 +412,79 @@ function renderSessions() {
   sessionList.innerHTML = "";
   if (!selectedClient) return;
   selectedSession = null;
-  // document.getElementById("selectedSessionLabel").textContent = ""; // <-- REMOVED
+
+  // --- NEW: Client Total Accumulator ---
+  let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
 
   const sessions = clientsData[selectedClient]?.sessions || [];
-  
-  // Use the robust sorting function
   const sortedSessions = getSortedSessions(sessions);
 
   sortedSessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
 
-    // 1. Create a span for the editable text
     const nameSpan = document.createElement("span");
     nameSpan.textContent = sess.session_name;
+    
+    // --- NEW: Calculate Session Colors ---
+    let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const exercises = sess.exercises || [];
+    exercises.forEach(ex => {
+        const cData = getExerciseColorData(ex);
+        sessionColorData.red += cData.red;
+        sessionColorData.green += cData.green;
+        sessionColorData.yellow += cData.yellow;
+        sessionColorData.total += cData.total;
+    });
+    
+    // Add to Client Total
+    clientTotalColorData.red += sessionColorData.red;
+    clientTotalColorData.green += sessionColorData.green;
+    clientTotalColorData.yellow += sessionColorData.yellow;
+    clientTotalColorData.total += sessionColorData.total;
 
-    // 2. Add click listener to the *entire li* for non-edit mode
+    // Apply to Session Name
+    applyTitleStyling(nameSpan, sess.session_name, sessionColorData);
+    // --- END NEW ---
+
     li.onclick = (e) => {
-      if (editMode) {
-        e.stopPropagation();
-        return;
-      }
-      // Pass the session object itself, not the index
+      if (editMode) { e.stopPropagation(); return; }
       selectSession(sess);
     };
 
-    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
-        
-        // Find the actual index of this session in the *original* array
         const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
         if (sessionIndex > -1) {
           clientsData[selectedClient].sessions.splice(sessionIndex, 1);
           saveUserJson();
           renderSessions();
         }
-
-        // If they deleted the selected session, go back
-        if (selectedSession === sess) {
-          navigateTo(SCREENS.SESSIONS, 'back');
-        }
+        if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
       });
     };
 
-    // 4. Append the new span and the button
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
-    
     sessionList.appendChild(li);
   });
-  // After rendering, hook listeners
+  
+  // --- NEW: Apply Client Total Colors to "Sessions" Title ---
+  const sessionsTitle = document.getElementById('sessionsScreenTitle');
+  applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
+
   hookEditables();
 }
 
-
-// Now accepts the full session object
 function selectSession(sessionObject) {
-  selectedSession = sessionObject; // <-- Pass the whole object
+  selectedSession = sessionObject;
   selectedExercise = null;
-  // document.getElementById("selectedSessionLabel").textContent = selectedSession.session_name; // <-- REMOVED
   renderExercises();
-  navigateTo(SCREENS.EXERCISES, 'forward'); // <-- THIS IS THE FIX
+  navigateTo(SCREENS.EXERCISES, 'forward');
 }
 
 // ------------------ EXERCISES ------------------
@@ -523,47 +501,40 @@ document.getElementById("addExerciseBtn").onclick = () => {
 
 function renderExercises() {
   exerciseList.innerHTML = "";
-  // --- NEW: Get session title element ---
   const sessionTitleElement = document.getElementById('sessionExercisesTitle');
   
   if (!selectedSession) {
-    // --- NEW: Reset title if no session ---
     applyTitleStyling(sessionTitleElement, 'Exercises', null);
     return;
   }
   
   selectedExercise = null;
-  // document.getElementById("selectedExerciseLabel").textContent = ""; // <-- REMOVED
-
-  // --- NEW: Aggregate color data for session title ---
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
 
   selectedSession.exercises.forEach((ex, idx) => {
-    // If exercise has color data, add it to the session total
-    if (ex.colorData) {
-      sessionColorData.red += ex.colorData.red;
-      sessionColorData.green += ex.colorData.green;
-      sessionColorData.yellow += ex.colorData.yellow;
-      sessionColorData.total += ex.colorData.total;
+    // --- FIX: Use getExerciseColorData instead of relying on stored ex.colorData
+    // This ensures the "Exercises" screen is always up to date even if runComparisonLogic hasn't run
+    const colorData = getExerciseColorData(ex);
+    ex.colorData = colorData; // Store it for consistency if needed later
+
+    if (colorData) {
+      sessionColorData.red += colorData.red;
+      sessionColorData.green += colorData.green;
+      sessionColorData.yellow += colorData.yellow;
+      sessionColorData.total += colorData.total;
     }
 
     const li = document.createElement("li");
     li.style.cursor = "pointer";
 
-    // 1. Create a span for the editable text
     const nameSpan = document.createElement("span");
     nameSpan.textContent = ex.exercise;
 
-    // 2. Add click listener to the *entire li* for non-edit mode
     li.onclick = (e) => {
-      if (editMode) {
-        e.stopPropagation();
-        return;
-      }
+      if (editMode) { e.stopPropagation(); return; }
       selectExercise(idx);
     };
 
-    // 3. Create the delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -573,133 +544,91 @@ function renderExercises() {
         selectedSession.exercises.splice(idx, 1);
         saveUserJson();
         renderExercises();
-        // If they deleted the selected exercise, go back
-        if (selectedExercise === ex) {
-          navigateTo(SCREENS.EXERCISES, 'back');
-        }
+        if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
       });
     };
     
-    // --- FIX #1: Apply full styling to list items, not just one color ---
-    // This replaces the old single-color logic block.
-    applyTitleStyling(nameSpan, ex.exercise, ex.colorData);
-    // --- END FIX #1 ---
+    applyTitleStyling(nameSpan, ex.exercise, colorData);
 
-    // 4. Append the new span and the button
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
-
     exerciseList.appendChild(li);
   });
   
-  // --- NEW: Apply aggregated data to session title ---
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
-
-  // After rendering, hook listeners
   hookEditables();
 }
 
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
-  // document.getElementById("selectedExerciseLabel").textContent = selectedExercise.exercise; // <-- REMOVED
-  renderSets(); // This will now trigger runComparisonLogic, which updates the new title
+  renderSets();
   navigateTo(SCREENS.SETS, 'forward');
-  document.getElementById("graphContainer").classList.add("hidden"); // This is still needed
+  document.getElementById("graphContainer").classList.add("hidden");
 }
 
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
 
-// Get the very last set for this exercise, regardless of session
 function getLastSet() {
     if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
         return null;
     }
-    // Sort sets by timestamp to find the most recent one
     const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return sortedSets[0];
 }
 
 document.getElementById("addSetBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
-
-  // Get last set from *current* exercise object
   const lastSet = getLastSet();
-  
   const repsPrompt = lastSet ? lastSet.reps : "";
   const weightPrompt = lastSet ? lastSet.weight : "";
-
   let reps = prompt(`Reps (last: ${repsPrompt}):`);
   if (!reps || isNaN(reps)) return;
   reps = parseInt(reps);
-
   let weight = prompt(`Weight (last: ${weightPrompt}):`);
   if (!weight || isNaN(weight)) return;
   weight = parseFloat(weight);
-
   let notes = prompt("Notes:") || "";
   const timestamp = new Date().toISOString();
   const volume = reps * weight;
 
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson(); // AUTO-SAVE
-  renderSets(); // This will re-render and trigger runComparisonLogic()
+  saveUserJson();
+  renderSets();
 };
 
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
 
-  // --- 1. Sort sets by timestamp ASCENDING (earliest first) ---
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-  // --- 2. Create a map of sets grouped by day ---
   const setsByDay = new Map();
   sortedSets.forEach(set => {
     const setDate = new Date(set.timestamp);
-    const dayString = setDate.toDateString(); // "Sat Nov 15 2025"
-    if (!setsByDay.has(dayString)) {
-      setsByDay.set(dayString, []);
-    }
+    const dayString = setDate.toDateString();
+    if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
     setsByDay.get(dayString).push(set);
   });
 
-  // --- 3. Get the map keys (date strings) and sort them DESCENDING ---
   const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
-
-  // --- This array will hold the sets in the exact order they are rendered
   const renderedSetsInOrder = [];
 
-  // --- 4. Iterate over sorted days (most recent first) ---
   sortedDays.forEach((dayString, dayIndex) => {
-    
-    // --- 5. Get the sets for this day (they are already in ascending order) ---
     const daySets = setsByDay.get(dayString);
-    
-    // --- 6. Render the sets for this day ---
     daySets.forEach((s, setIdx) => {
       const tr = document.createElement("tr");
-      
-      // --- NEW: Check if this is the last set of the day ---
-      // and NOT the very last day in the list
       if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
         tr.classList.add("day-end-row");
       }
-      // --- END NEW ---
-
-      // Find the original index from the *unsorted* array
       const originalIndex = selectedExercise.sets.indexOf(s);
-      
       tr.innerHTML = `
-        <td>${setIdx + 1}</td> <!-- This is the setCounter, 1-based -->
+        <td>${setIdx + 1}</td>
         <td>${s.reps}</td>
         <td>${s.weight}</td>
         <td>${s.volume}</td>
         <td>${s.notes}</td>
         <td>${new Date(s.timestamp).toLocaleString()}</td>
       `;
-      
-      // --- Add delete button ---
       const deleteTd = document.createElement('td');
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'btn-delete';
@@ -707,27 +636,19 @@ function renderSets() {
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
         showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
-          // Use originalIndex to delete from the *unsorted* array
           selectedExercise.sets.splice(originalIndex, 1);
           saveUserJson();
-          renderSets(); // Re-render, which will also update the comparison
+          renderSets();
         });
       };
       deleteTd.appendChild(deleteBtn);
       tr.appendChild(deleteTd);
-      
       setsTable.appendChild(tr);
-
-      // --- Add to our flat array for hookEditables ---
       renderedSetsInOrder.push(s);
     });
   });
 
-  // --- 8. Hook editables ---
-  // Pass the flat array of sets *in render order*
   hookEditables(renderedSetsInOrder);
-
-  // Run the comparison logic
   runComparisonLogic();
 }
 
@@ -738,14 +659,13 @@ document.getElementById("showGraphBtn").onclick = () => {
   const sets = selectedExercise.sets;
   if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
 
-  // --- FIX #1: UN-HIDE THE CONTAINER *BEFORE* PLOTTING ---
   navigateTo(SCREENS.GRAPH, 'forward');;
 
   const dates = sets.map(s => s.timestamp);
   const reps = sets.map(s => s.reps);
   const weight = sets.map(s => s.weight);
   const volume = sets.map(s => s.volume);
-  const wpr = sets.map(s => s.volume / s.reps); // Note: This will be Infinity if reps=0, be careful
+  const wpr = sets.map(s => s.volume / s.reps);
   
   const traces = [
     { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
@@ -755,308 +675,168 @@ document.getElementById("showGraphBtn").onclick = () => {
   ];
   
   Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
-
-  // --- FIX #2: FORCE PLOTLY TO RESIZE (just in case) ---
   Plotly.Plots.resize('graphDiv');
 };
 
 // ------------------ HELPER ------------------
 function hideAllDetails() {
-  // Hide all screens instantly
   Object.values(SCREENS).forEach(screenId => {
     document.getElementById(screenId).classList.add('hidden');
   });
-
-  // Show the main one
   document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
   currentScreen = SCREENS.CLIENTS;
-
-  // Also clear the graph
   document.getElementById("graphDiv").innerHTML = "";
 }
 
 // ------------------ NEW COMPARISON LOGIC ------------------
 
-/**
- * Checks if two Date objects are on the same calendar day.
- * @param {Date} d1 - First date
- * @param {Date} d2 - Second date
- * @returns {boolean}
- */
 function isSameDay(d1, d2) {
   return d1.getFullYear() === d2.getFullYear() &&
          d1.getMonth() === d2.getMonth() &&
          d1.getDate() === d2.getDate();
 }
 
-/**
- * Aggregates stats for a given array of set objects.
- * @param {Array} setsArray - An array of set objects
- * @returns {object} An object with { sets, reps, volume, wpr }
- */
 function aggregateStats(setsArray) {
   if (!setsArray || setsArray.length === 0) {
     return { sets: 0, reps: 0, volume: 0, wpr: 0 };
   }
-
   const totalSets = setsArray.length;
   const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
   const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
-  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0; // Avg Weight per Rep
-
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
-/**
- * Helper to format numbers.
- * @param {number} num - The number to format
- * @returns {string} A formatted string
- */
 function formatNum(num) {
-  // Check if number is an integer
-  if (num % 1 === 0) {
-    return num.toString();
-  }
-  // Otherwise, return with 1 decimal place
+  if (num % 1 === 0) return num.toString();
   return num.toFixed(1);
 }
 
-/**
- * Updates a single stat row in the comparison banner.
- * @param {string} statName - The prefix ('sets', 'reps', 'volume', 'wpr')
- * @param {number} currentValue - The current workout's value
- * @param {number} previousValue - The previous workout's value
- * @returns {string} The status ('increase', 'decrease', 'neutral')
- */
 function updateStatUI(statName, currentValue, previousValue) {
-  // Get all the elements for this stat row
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral');
-  const dataEl = document.getElementById(statName + 'Data'); // <-- NEW
+  const dataEl = document.getElementById(statName + 'Data');
   
-  if (!arrowEl || !spiralEl || !dataEl) { // <-- MODIFIED
-    console.warn(`Could not find all UI elements for stat: ${statName}`);
-    return 'neutral'; // Return a default
-  }
+  if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
 
-  // --- 1. Determine Status & Arrow ---
-  let status = 'neutral';
-  let arrow = '—'; // Neutral arrow
-  const epsilon = 0.01; // For float comparison
-
-  if (currentValue > previousValue + epsilon) {
-    status = 'increase';
-    arrow = '&uarr;'; // Up arrow (FIXED)
-  } else if (currentValue < previousValue - epsilon) {
-    status = 'decrease';
-    arrow = '&darr;'; // Down arrow (FIXED)
-  }
+  const status = calculateStatStatus(currentValue, previousValue);
   
-  // --- 2. Calculate Change & Percentage ---
+  let arrow = '—';
+  if (status === 'increase') arrow = '&uarr;';
+  else if (status === 'decrease') arrow = '&darr;';
+  
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) {
     percentageChange = (change / previousValue) * 100;
   } else if (currentValue > 0) {
-    percentageChange = 100; // From 0 to something is +100%
+    percentageChange = 100;
   }
 
-  // --- 3. Format Strings ---
   let currentString = '';
-  let changeString = '';
   const changeSign = change > 0 ? '+' : '';
   
-  // Create the string for the current value
   switch(statName) {
-    case 'sets':
-      currentString = `${formatNum(currentValue)} Sets`;
-      break;
-    case 'reps':
-      currentString = `${formatNum(currentValue)} Reps`;
-      break;
-    case 'volume':
-      currentString = `${formatNum(currentValue)} lb`;
-      break;
-    case 'wpr':
-      currentString = `${formatNum(currentValue)} lb/rep`;
-      break;
+    case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
+    case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
   }
   
-  // Create the string for the change
-  changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
-  if (status === 'neutral') {
-    changeString = `(0 / 0%)`;
-  }
+  let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  if (status === 'neutral') changeString = `(0 / 0%)`;
   
-  // --- 4. Apply to UI ---
   const classesToRemove = ['increase', 'decrease', 'neutral'];
-
-  // Update Arrow
-  arrowEl.innerHTML = arrow; // <-- This was the typo fix
+  arrowEl.innerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
-  // Update Spiral
   spiralEl.classList.remove(...classesToRemove);
   spiralEl.classList.add(status);
   
-  // Update Data Text (NEW)
   dataEl.textContent = `${currentString} ${changeString}`;
   dataEl.classList.remove(...classesToRemove);
   dataEl.classList.add(status);
 
-  // --- NEW: Return the status ---
   return status;
 }
 
 
-/**
- * Main function to run the comparison based on timestamps.
- */
 function runComparisonLogic() {
   const banner = document.getElementById('comparisonBanner');
-  // --- NEW: Get title element ---
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
 
   if (!selectedExercise) {
     banner.classList.add('hidden');
-    // --- NEW: Reset title if no exercise ---
-    if (titleElement) {
-        applyTitleStyling(titleElement, 'Exercise', null);
-    }
+    if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
     return;
   }
   
-  // --- NEW: Reset title on load ---
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
-  if (!selectedExercise.sets || selectedExercise.sets.length < 2) {
-    banner.classList.add('hidden'); // Hide banner if not enough data
-    // Still show the title, just with no styling
-    applyTitleStyling(titleElement, selectedExercise.exercise, null);
-    // --- NEW: Clear color data if no sets ---
-    selectedExercise.colorData = { red: 0, green: 0, yellow: 0, total: 0 };
-    return;
+  // We use the new helper here to get the data, but we still need to run updateStatUI
+  // to actually update the DOM elements in the banner.
+  const colorData = getExerciseColorData(selectedExercise);
+  selectedExercise.colorData = colorData; // Save it
+
+  if (colorData.total === 0) {
+      banner.classList.add('hidden');
+      applyTitleStyling(titleElement, selectedExercise.exercise, null);
+      return;
   }
-  
-  console.log("--- WORKOUT COMPARISON (FINAL) ---"); // <-- Updated log
-  
-  // 1. Get all sets and sort them, most recent first
+
+  // Re-run UI updates specifically for the banner (since getExerciseColorData is pure)
+  // This is a bit redundant but keeps the logic safe and separate
   const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // 2. Find the date of the most recent workout
   const mostRecentDate = new Date(allSets[0].timestamp);
-  
-  // 3. Get all sets from that date
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
-  
-  // 4. Find the first set that is *not* from the most recent date
   const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
-
-  // 5. If no such set exists, there is no previous workout to compare to
-  if (!previousWorkoutSet) {
-    console.log("[runComparisonLogic] Found current stats, but no previous workout day found.");
-    banner.classList.add('hidden');
-    // --- NEW: Clear color data ---
-    selectedExercise.colorData = { red: 0, green: 0, yellow: 0, total: 0 };
-    applyTitleStyling(titleElement, selectedExercise.exercise, null);
-    return;
-  }
-
-  // 6. Get the date of that previous workout
   const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
-
-  // 7. Get all sets matching that previous workout date
   const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
-
-  // 8. Aggregate stats for both days
   const currentStats = aggregateStats(currentDaySets);
   const prevStats = aggregateStats(previousDaySets);
 
-  // 9. Log everything to the console
-  console.log(`[runComparisonLogic] Most Recent Date: ${mostRecentDate.toDateString()}`);
-  console.log("[runComparisonLogic] Current Stats:", currentStats);
-  console.log(`[runComparisonLogic] Previous Workout Date: ${previousWorkoutDate.toDateString()}`);
-  console.log("[runComparisonLogic] Previous Stats:", prevStats);
-  console.log("-------------------------------------");
+  updateStatUI('sets', currentStats.sets, prevStats.sets);
+  updateStatUI('reps', currentStats.reps, prevStats.reps);
+  updateStatUI('volume', currentStats.volume, prevStats.volume);
+  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
   
-  // --- 10. Hook up the data to the UI ---
-  // --- NEW: Collect statuses ---
-  const statuses = [];
-  statuses.push(updateStatUI('sets', currentStats.sets, prevStats.sets));
-  statuses.push(updateStatUI('reps', currentStats.reps, prevStats.reps));
-  statuses.push(updateStatUI('volume', currentStats.volume, prevStats.volume));
-  statuses.push(updateStatUI('wpr', currentStats.wpr, prevStats.wpr));
-
-  // --- 11. Calculate colorData ---
-  const red = statuses.filter(s => s === 'decrease').length;
-  const green = statuses.filter(s => s === 'increase').length;
-  const yellow = statuses.filter(s => s === 'neutral').length;
-  const total = statuses.length; // Ensure total is 4
-  const colorData = { red, green, yellow, total };
-
-  // --- 12. Store on exercise object ---
-  selectedExercise.colorData = colorData;
-  
-  // --- 13. Apply styling to title ---
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
-  
-  // Show the banner
   banner.classList.remove('hidden');
 }
 
 
 // ------------------ EDIT MODE ------------------
-
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
 
 editToggleBtn.onclick = () => {
   editMode = !editMode;
   editToggleBtn.textContent = editMode ? "Done" : "Edit";
-
-  // This class now controls all edit-mode UI (delete buttons, text color)
-  // The CSS file will do all the work.
   document.body.classList.toggle('edit-mode-active');
-
-  if (!editMode) {
-  	// Done pressed  save changes automatically
-  	saveUserJson();
-  }
+  if (!editMode) saveUserJson();
 };
 
-
 // ------------------ MAKE ELEMENTS EDITABLE ------------------
-// --- MODIFIED (STEP 2.8) ---
-// Now takes sortedSets as an argument to find the correct original index
 function makeEditable(element, type, parentIdx, sortedSets) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
 
   element.addEventListener("click", (e) => {
-    if (!editMode) return; // allow normal click to propagate
+    if (!editMode) return;
     e.stopPropagation();
 
     const currentVal = element.textContent;
     const newVal = prompt(`Edit ${type}:`, currentVal);
     if (!newVal || newVal === currentVal) return;
 
-    // --- NEW (STEP 2.8) ---
-    // Find the *original* index before editing
     let originalIndex = -1;
     if (type.startsWith("Set")) {
-        const sortedSetObject = sortedSets[parentIdx]; // Use parentIdx to find the set in the flat render-order array
-        if (!sortedSetObject) {
-            console.error("Could not find set object to edit!");
-            return;
-        }
-        originalIndex = selectedExercise.sets.indexOf(sortedSetObject); // Find its *true* index
-        if (originalIndex === -1) {
-            console.error("Could not find set to edit!");
-            return;
-        }
+        const sortedSetObject = sortedSets[parentIdx];
+        if (!sortedSetObject) return;
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        if (originalIndex === -1) return;
     }
-    // --- END NEW ---
 
     switch(type) {
       case "Client":
@@ -1070,35 +850,31 @@ function makeEditable(element, type, parentIdx, sortedSets) {
 
       case "Session":
         const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
-        if (sessionToEdit) {
-            sessionToEdit.session_name = newVal;
-        }
-        renderSessions(); // Re-render to show the new name
+        if (sessionToEdit) sessionToEdit.session_name = newVal;
+        renderSessions();
         break;
 
       case "Exercise":
         const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
-        if(exerciseToEdit) {
-            exerciseToEdit.exercise = newVal;
-        }
+        if(exerciseToEdit) exerciseToEdit.exercise = newVal;
         renderExercises();
         break;
 
       case "SetReps":
         selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
+        renderSets();
         break;
 
       case "SetWeight":
         selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
+        renderSets();
         break;
 
       case "SetNotes":
         selectedExercise.sets[originalIndex].notes = newVal;
-        renderSets(); // This will re-render and trigger runComparisonLogic()
+        renderSets();
         break;
     }
 
@@ -1106,124 +882,63 @@ function makeEditable(element, type, parentIdx, sortedSets) {
   });
 }
 
-// ------------------ HOOK EDITABLES ------------------
-// --- MODIFIED ---
-// Now passes the flat render-order array to makeEditable
 function hookEditables(sortedSets = []) {
-  // Clients
   document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
-  // Sessions
   document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
-  // Exercises
   document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
   
-  // Sets table
-  let setRowIdx = 0; // <-- Counter for *set rows only*
+  let setRowIdx = 0;
   setsTable.querySelectorAll("tr").forEach((tr) => {
-    // --- REMOVED: Day divider check is no longer needed ---
-    // if (tr.classList.contains('day-divider')) return;
-    // --- END REMOVED ---
-
     const tds = tr.querySelectorAll("td");
-    
-    // Safety check to ensure it's a set row
     if (tds.length < 5) return;
-    
-    // We use setRowIdx to look up the item in the flat sortedSets array
-    // This correctly skips the divider rows.
     makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
     makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
     makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
-    
-    setRowIdx++; // Increment only when we've processed a set row
+    setRowIdx++;
   });
 }
 
 // ------------------ SWIPE NAVIGATION ------------------
-
 let touchStartX = 0;
 let touchStartY = 0;
 let touchMoveX = 0;
 let touchMoveY = 0;
-
-// Minimum distance (in pixels) to trigger a "back" swipe
 const MIN_SWIPE_DISTANCE = 85;
-// Maximum distance (in pixels) from the left edge to *start* the swipe
 const MAX_START_EDGE = 150;
 
-/**
- * Stores the starting coordinates of a touch.
- */
 document.body.addEventListener('touchstart', (e) => {
-    // Only track one finger
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    // Reset move coordinates
     touchMoveX = 0;
     touchMoveY = 0;
-}, { passive: true }); // Use passive for better scrolling performance
+}, { passive: true });
 
-/**
- * Stores the last-known coordinates during a touch-move.
- */
 document.body.addEventListener('touchmove', (e) => {
     touchMoveX = e.touches[0].clientX;
     touchMoveY = e.touches[0].clientY;
 }, { passive: true });
 
-/**
- * On touch-end, check if a valid "swipe back" gesture was made.
- */
 document.body.addEventListener('touchend', () => {
-    // Check if move coordinates were ever set. If not, it was a tap.
-    if (touchMoveX === 0 && touchMoveY === 0) {
-        return;
-    }
-
+    if (touchMoveX === 0 && touchMoveY === 0) return;
     const deltaX = touchMoveX - touchStartX;
     const deltaY = touchMoveY - touchStartY;
-
-    // --- Failsafe Checks ---
+    if (touchStartX > MAX_START_EDGE) return;
+    if (deltaX < MIN_SWIPE_DISTANCE) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
     
-    // 1. Failsafe: Must be a swipe from the left edge of the screen.
-    if (touchStartX > MAX_START_EDGE) {
-        return;
-    }
-    
-    // 2. Failsafe: Must be a "swipe right" (positive deltaX)
-    //    and meet the minimum distance.
-    if (deltaX < MIN_SWIPE_DISTANCE) {
-        return;
-    }
-    
-    // 3. Failsafe: Must be more horizontal than vertical
-    //    (to avoid conflicts with scrolling down the page).
-    if (Math.abs(deltaY) > Math.abs(deltaX)) {
-        return;
-    }
-    
-    // --- Gesture Passed All Checks ---
-    // Trigger the correct back button based on the current screen[cite: 4].
-    // This is the safest method as it re-uses all your existing logic.
     switch (currentScreen) {
         case SCREENS.SESSIONS:
-            document.getElementById('backToClientsBtn').click(); // 
+            document.getElementById('backToClientsBtn').click();
             break;
         case SCREENS.EXERCISES:
-            document.getElementById('backToSessionsBtn').click(); // [cite: 16]
+            document.getElementById('backToSessionsBtn').click();
             break;
         case SCREENS.SETS:
-            document.getElementById('backToExercisesBtn').click(); // [cite: 17]
+            document.getElementById('backToExercisesBtn').click();
             break;
         case SCREENS.GRAPH:
-            document.getElementById('backToSetsFromGraphBtn').click(); // [cite: 18]
-            break;
-        case SCREENS.CLIENTS:
-            // At the root screen, do nothing.
+            document.getElementById('backToSetsFromGraphBtn').click();
             break;
     }
-    
-    // Reset start coordinates
-    touchStartX = 0;
-    touchStartY = 0;
+    touchStartX = 0; touchStartY = 0;
 });
