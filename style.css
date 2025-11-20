@@ -768,18 +768,13 @@ td .btn-delete {
   text-overflow: ellipsis;
 }
 
-/* CRITICAL FIX: GLOBAL CHAR ANIMATION SUPPORT
-   We no longer require .animated-title as a parent.
-   Any element with class .char that is inside a class .list-anim-container OR .animated-title
-   will now support animations.
-*/
-.animated-title .char,
-.list-anim-container .char {
+/* GLOBAL CHAR ANIMATION SUPPORT */
+.char {
   display: inline-block; /* MUST be inline-block for transforms to work */
   transition: color 0.3s ease;
 }
 
-/* This is for the title on the Sets page */
+/* Header Specific */
 #exerciseSetsTitleSpan .char {
   display: inline-block;
   transition: color 0.3s ease;
@@ -907,37 +902,27 @@ td .btn-delete {
 }
 
 /* -----------------------------------------------------
-   NEW: LIST ITEM ANIMATIONS (Diverge Only)
+   NEW: SIMPLE LIST ITEM ANIMATIONS (Up/Down)
    ----------------------------------------------------- */
 
-/* The Animations */
 @keyframes float-up {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); } /* Up */
+    50% { transform: translateY(-6px); }
 }
 @keyframes sink-down {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(6px); } /* Down */
+    50% { transform: translateY(6px); }
 }
 
-/* Base state: No animation */
-.char {
-    animation: none; 
+/* Use !important to force override any other potential animation conflicts.
+  These classes are toggled by JS.
+*/
+.char.animate-up {
+    animation: float-up 2s ease-in-out !important;
 }
 
-/* TRIGGER CLASSES: These are added by JS for 2 seconds */
-.char.trigger-anim.anim-up {
-    animation-name: float-up;
-    animation-duration: 2s;
-    animation-iteration-count: 1; /* Run once per trigger */
-    animation-timing-function: ease-in-out;
-}
-
-.char.trigger-anim.anim-down {
-    animation-name: sink-down;
-    animation-duration: 2s;
-    animation-iteration-count: 1; /* Run once per trigger */
-    animation-timing-function: ease-in-out;
+.char.animate-down {
+    animation: sink-down 2s ease-in-out !important;
 }
 
 /* Stagger delay helpers */
