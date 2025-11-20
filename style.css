@@ -853,7 +853,7 @@ td .btn-delete {
 }
 
 /*
- * == Animation Definitions ==
+ * == Animation Definitions (Legacy) ==
  */
 
 /* Bouncing arrow (unchanged) */
@@ -916,7 +916,7 @@ td .btn-delete {
 }
 
 /*
- * == Animation Applications ==
+ * == Animation Applications (Legacy) ==
  */
 
 #logo-arrow {
@@ -952,9 +952,9 @@ td .btn-delete {
   animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out;
 }
 
-/* ===== END LOGO ANIMATION ===== */
+/* ===== END LOGO ANIMATION (Legacy) ===== */
 /* =====================================================
-   LOGO ANIMATION FALLBACK (Mobile Fix)
+   LOGO ANIMATION FALLBACK (Mobile Fix) (Legacy)
    ===================================================== */
 /*
   This provides manual coordinates for mobile browsers that
@@ -1009,6 +1009,8 @@ td .btn-delete {
 .animated-title .char {
   display: inline-block; /* Allows transforms */
   transition: color 0.3s ease; /* Color change transition */
+  /* Remove old animations */
+  animation: none !important;
 }
 
 /* This is for the title on the Sets page */
@@ -1019,75 +1021,189 @@ td .btn-delete {
 }
 
 
-/* --- Animations --- */
+/* -----------------------------------------------------
+   NEW 9-TIER ANIMATION DEFINITIONS
+   ----------------------------------------------------- */
 
-/* 1. Happy (Green) */
-@keyframes happy-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+/*
+ * HAPPY (Green) - Crashing Through Obstacles, High Energy
+ */
+
+/* Happy-1: The Crash (Vertical/Rotation Stagger) */
+@keyframes happy-crash {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    15% { transform: translate(0, -6px) rotate(3deg); }
+    30% { transform: translate(0, 0) rotate(-3deg); }
+    45% { transform: translate(0, -3px) rotate(1deg); }
+    60% { transform: translate(0, 0) rotate(-1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
 }
-.animated-title.happy .char {
-  /* Stagger the animation */
-  animation: happy-bounce 0.8s ease-in-out infinite;
+.animated-title .char.happy-1 {
+    animation-name: happy-crash;
+    animation-duration: 0.6s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    /* Stagger delay */
+    animation-delay: calc(var(--char-index) * 0.04s);
 }
-/* Stagger delay for each letter */
-.animated-title.happy .char:nth-child(1) { animation-delay: 0s; }
-.animated-title.happy .char:nth-child(2) { animation-delay: 0.05s; }
-.animated-title.happy .char:nth-child(3) { animation-delay: 0.1s; }
-.animated-title.happy .char:nth-child(4) { animation-delay: 0.15s; }
-.animated-title.happy .char:nth-child(5) { animation-delay: 0.2s; }
-.animated-title.happy .char:nth-child(6) { animation-delay: 0.25s; }
-.animated-title.happy .char:nth-child(7) { animation-delay: 0.3s; }
-.animated-title.happy .char:nth-child(8) { animation-delay: 0.35s; }
-.animated-title.happy .char:nth-child(9) { animation-delay: 0.4s; }
-.animated-title.happy .char:nth-child(10) { animation-delay: 0.45s; }
-.animated-title.happy .char:nth-child(11) { animation-delay: 0.5s; }
-.animated-title.happy .char:nth-child(12) { animation-delay: 0.55s; }
+
+/* Happy-2: The Boost (Fast, forward motion) */
+@keyframes happy-boost {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    20% { transform: translateX(-2px) scaleY(0.95); }
+    40% { transform: translateX(3px) scaleY(1.05); }
+    60% { transform: translateX(-1px) scaleY(0.98); }
+    80% { transform: translateX(2px) scaleY(1.02); }
+}
+.animated-title .char.happy-2 {
+    animation-name: happy-boost;
+    animation-duration: 0.8s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Quick, punchy ease */
+    /* Stagger delay for wave effect */
+    animation-delay: calc(var(--char-index) * 0.05s);
+}
+
+/* Happy-3: The Jolt (Big, random movement - maximum character movement) */
+@keyframes happy-jolt {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(3px, -5px) rotate(5deg); }
+    50% { transform: translate(-3px, 5px) rotate(-5deg); }
+    75% { transform: translate(1px, -2px) rotate(2deg); }
+}
+.animated-title .char.happy-3 {
+    animation-name: happy-jolt;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    /* No stagger, all jolt together */
+}
+
+/*
+ * SAD (Red) - Running into Roadblocks, Slowing Down
+ */
+
+/* Sad-1: The Slow Drag (Leftward translation with reluctance) */
+@keyframes sad-drag {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-2px) translateY(1px); }
+}
+.animated-title .char.sad-1 {
+    animation-name: sad-drag;
+    animation-duration: 4s; /* Very slow pace */
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+    /* Reverse stagger: letters at the end drag the beginning */
+    animation-delay: calc((12 - var(--char-index)) * 0.1s);
+}
+
+/* Sad-2: The Tilt (Heavy, sloping downwards) */
+@keyframes sad-tilt {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(-4deg) translateY(2px); }
+}
+.animated-title .char.sad-2 {
+    animation-name: sad-tilt;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transform-origin: bottom center; /* Pivot from the bottom */
+    /* Stagger delay for a heavy, domino effect */
+    animation-delay: calc(var(--char-index) * 0.08s);
+}
+
+/* Sad-3: The Glitch (Subtle vertical jitter and blur/opacity) */
+@keyframes sad-glitch {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(1px); opacity: 0.95; }
+}
+.animated-title .char.sad-3 {
+    animation-name: sad-glitch;
+    animation-duration: 0.2s; /* Fast, but subtle movement */
+    animation-iteration-count: infinite;
+    animation-timing-function: steps(1, end); /* Jittery movement */
+    /* Randomize start time for a messy jitter */
+    animation-delay: calc(random() * 0.2s); 
+}
+/* Helper function for random in CSS is defined below */
 
 
-/* 2. Sad (Red) */
-@keyframes sad-droop {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(2px) rotate(-3deg); }
+/*
+ * CALM (Yellow) - Chill and Relaxed, Gentle Flow
+ */
+
+/* Calm-1: The Float (Gentle vertical drift) */
+@keyframes calm-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-1px); }
 }
-.animated-title.sad .char {
-  /* Stagger the animation */
-  animation: sad-droop 1.5s ease-in-out infinite;
+.animated-title .char.calm-1 {
+    animation-name: calm-float;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+    /* Gentle, slow wave */
+    animation-delay: calc(var(--char-index) * 0.15s);
 }
-/* Stagger delay for each letter */
-.animated-title.sad .char:nth-child(1) { transform-origin: bottom left; animation-delay: 0s; }
-.animated-title.sad .char:nth-child(2) { transform-origin: bottom left; animation-delay: 0.1s; }
-.animated-title.sad .char:nth-child(3) { transform-origin: bottom center; animation-delay: 0.2s; }
-.animated-title.sad .char:nth-child(4) { transform-origin: bottom center; animation-delay: 0.3s; }
-.animated-title.sad .char:nth-child(5) { transform-origin: bottom center; animation-delay: 0.4s; }
-.animated-title.sad .char:nth-child(6) { transform-origin: bottom center; animation-delay: 0.5s; }
-.animated-title.sad .char:nth-child(7) { transform-origin: bottom center; animation-delay: 0.6s; }
-.animated-title.sad .char:nth-child(8) { transform-origin: bottom right; animation-delay: 0.7s; }
-.animated-title.sad .char:nth-child(9) { transform-origin: bottom right; animation-delay: 0.8s; }
-.animated-title.sad .char:nth-child(10) { transform-origin: bottom right; animation-delay: 0.9s; }
-.animated-title.sad .char:nth-child(11) { transform-origin: bottom right; animation-delay: 1.0s; }
-.animated-title.sad .char:nth-child(12) { transform-origin: bottom right; animation-delay: 1.1s; }
+
+/* Calm-2: The Breath (Subtle scale and position change) */
+@keyframes calm-breath {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-0.5px) scale(1.005); }
+}
+.animated-title .char.calm-2 {
+    animation-name: calm-breath;
+    animation-duration: 5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+    /* Staggered breath */
+    animation-delay: calc(var(--char-index) * 0.2s);
+}
+
+/* Calm-3: The Ripple (Wave-like horizontal stagger) */
+@keyframes calm-ripple {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-1px) translateX(0.5px); }
+}
+.animated-title .char.calm-3 {
+    animation-name: calm-ripple;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+    /* Fast ripple wave */
+    animation-delay: calc(var(--char-index) * 0.1s);
+}
+
+/*
+ * --- CSS Helper for Sad-3 (Required for random delay) ---
+ * Note: Sass/Less functions like random() are not directly supported in pure CSS.
+ * Since this is an in-browser environment, we'll rely on the index or simply
+ * keep the stagger and comment out the random, as the JS already controls randomness
+ * via the changing class on page load.
+ */
+.animated-title .char.sad-3 {
+    animation-delay: calc(var(--char-index) * 0.02s); /* Reverting to index stagger */
+}
 
 
-/* 3. Calm (Yellow) */
-@keyframes calm-wobble {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(2px); }
-}
-.animated-title.calm .char {
-  animation: calm-wobble 2s ease-in-out infinite;
-}
-/* Stagger delay for each letter */
-.animated-title.calm .char:nth-child(even) { animation-direction: reverse; }
-.animated-title.calm .char:nth-child(1) { animation-delay: 0s; }
-.animated-title.calm .char:nth-child(2) { animation-delay: 0.1s; }
-.animated-title.calm .char:nth-child(3) { animation-delay: 0.2s; }
-.animated-title.calm .char:nth-child(4) { animation-delay: 0.3s; }
-.animated-title.calm .char:nth-child(5) { animation-delay: 0.4s; }
-.animated-title.calm .char:nth-child(6) { animation-delay: 0.5s; }
-.animated-title.calm .char:nth-child(7) { animation-delay: 0.6s; }
-.animated-title.calm .char:nth-child(8) { animation-delay: 0.7s; }
-.animated-title.calm .char:nth-child(9) { animation-delay: 0.8s; }
-.animated-title.calm .char:nth-child(10) { animation-delay: 0.9s; }
-.animated-title.calm .char:nth-child(11) { animation-delay: 1.0s; }
-.animated-title.calm .char:nth-child(12) { animation-delay: 1.1s; }
+/* --- Assigning character index for stagger/delay --- */
+/* This is a crucial step to enable the variable delay using CSS custom properties */
+.animated-title .char:nth-child(1) { --char-index: 1; }
+.animated-title .char:nth-child(2) { --char-index: 2; }
+.animated-title .char:nth-child(3) { --char-index: 3; }
+.animated-title .char:nth-child(4) { --char-index: 4; }
+.animated-title .char:nth-child(5) { --char-index: 5; }
+.animated-title .char:nth-child(6) { --char-index: 6; }
+.animated-title .char:nth-child(7) { --char-index: 7; }
+.animated-title .char:nth-child(8) { --char-index: 8; }
+.animated-title .char:nth-child(9) { --char-index: 9; }
+.animated-title .char:nth-child(10) { --char-index: 10; }
+.animated-title .char:nth-child(11) { --char-index: 11; }
+.animated-title .char:nth-child(12) { --char-index: 12; }
+
+/* The rest of the CSS (unchanged but kept for completeness) */
+/* ... (remaining original CSS content follows) ... */
