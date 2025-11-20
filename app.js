@@ -322,6 +322,9 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
 function applyRandomIntervalAnimation(element, text, colorData) {
   if (!element) return;
 
+  // ADDED: This class connects to the new CSS rule in style.rtf
+  element.classList.add('animatable-text');
+
   // 1. Setup Text
   setTextAsChars(element, text);
   
