@@ -770,15 +770,16 @@ td .btn-delete {
 
 /* CRITICAL FIX: GLOBAL CHAR ANIMATION SUPPORT
    We no longer require .animated-title as a parent.
-   Any element with class .char that is inside a class .animatable-text OR .animated-title
+   Any element with class .char that is inside a class .list-anim-container OR .animated-title
    will now support animations.
 */
 .animated-title .char,
-.animatable-text .char {
+.list-anim-container .char {
   display: inline-block; /* MUST be inline-block for transforms to work */
   transition: color 0.3s ease;
 }
 
+/* This is for the title on the Sets page */
 #exerciseSetsTitleSpan .char {
   display: inline-block;
   transition: color 0.3s ease;
@@ -786,11 +787,10 @@ td .btn-delete {
 
 
 /* -----------------------------------------------------
-   9-TIER ANIMATION DEFINITIONS
+   HEADER ANIMATION DEFINITIONS (Happy/Sad/Calm)
    ----------------------------------------------------- */
 
-/* * HAPPY (Green) - High Energy 
- */
+/* * HAPPY (Green) - High Energy */
 @keyframes happy-crash {
     0% { transform: translate(0, 0) rotate(0deg); }
     15% { transform: translate(0, -6px) rotate(3deg); }
@@ -799,7 +799,6 @@ td .btn-delete {
     60% { transform: translate(0, 0) rotate(-1deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
 }
-/* Selectors updated to work everywhere */
 .char.happy-1 {
     animation-name: happy-crash;
     animation-duration: 0.6s;
@@ -836,32 +835,27 @@ td .btn-delete {
     animation-timing-function: linear;
 }
 
-/* * SAD (Red) - Stagnant, Hitting Wall, Heavy
- */
-
-/* Sad-1: The "Bonk" - Hitting a Wall */
+/* * SAD (Red) - Stagnant, Hitting Wall, Heavy */
 @keyframes sad-wall {
     0% { transform: translateX(0) scaleX(1); }
-    60% { transform: translateX(6px) scaleX(1); } /* Move forward */
-    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } /* IMPACT! Compress against wall */
-    75% { transform: translateX(4px) scaleX(1.1); } /* Rebound slightly */
-    100% { transform: translateX(0) scaleX(1); } /* Reset */
+    60% { transform: translateX(6px) scaleX(1); } 
+    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } 
+    75% { transform: translateX(4px) scaleX(1.1); } 
+    100% { transform: translateX(0) scaleX(1); } 
 }
 .char.sad-1 {
     animation-name: sad-wall;
     animation-duration: 1.5s;
     animation-iteration-count: infinite;
     animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-    /* Stagger so they hit the wall one after another */
     animation-delay: calc(var(--char-index) * 0.08s);
 }
 
-/* Sad-2: The "Failed Rep" - Struggle and Drop */
 @keyframes sad-fail {
      0% { transform: translateY(0); }
-     40% { transform: translateY(-3px); } /* Try to lift */
-     50% { transform: translateY(-3px) rotate(2deg); } /* Shake at top */
-     60% { transform: translateY(4px) rotate(-5deg); } /* Drop/Fail */
+     40% { transform: translateY(-3px); } 
+     50% { transform: translateY(-3px) rotate(2deg); } 
+     60% { transform: translateY(4px) rotate(-5deg); } 
      100% { transform: translateY(0); }
 }
 .char.sad-2 {
@@ -869,44 +863,35 @@ td .btn-delete {
     animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    /* Domino effect failure */
     animation-delay: calc(var(--char-index) * 0.1s);
 }
 
-/* Sad-3: The "Drag" - Heavy and Slow */
 @keyframes sad-drag {
     0%, 100% { transform: translateX(0) skewX(0deg); }
-    50% { transform: translateX(-4px) skewX(10deg); } /* Leaning back, dragging feet */
+    50% { transform: translateX(-4px) skewX(10deg); } 
 }
 .char.sad-3 {
     animation-name: sad-drag;
     animation-duration: 3s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    /* Heavy wave */
     animation-delay: calc(var(--char-index) * 0.2s); 
 }
 
-
-/* * CALM (Yellow) - Chill Gym Vibes
- */
-
-/* Calm-1: The "Shrug" - Shoulders Up and Down */
+/* * CALM (Yellow) - Chill Gym Vibes */
 @keyframes calm-shrug {
     0%, 100% { transform: translateY(0); }
-    30% { transform: translateY(-5px); } /* Shrug up */
-    70% { transform: translateY(-5px); } /* Hold shrug */
+    30% { transform: translateY(-5px); } 
+    70% { transform: translateY(-5px); } 
 }
 .char.calm-1 {
     animation-name: calm-shrug;
     animation-duration: 2.5s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    /* Slight stagger to look like loose shoulders */
     animation-delay: calc(var(--char-index) * 0.05s);
 }
 
-/* Calm-2: The "Loosen Up" - Shake it out */
 @keyframes calm-shakeout {
     0%, 100% { transform: rotate(0deg); }
     25% { transform: rotate(3deg) translateX(1px); }
@@ -918,40 +903,44 @@ td .btn-delete {
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     transform-origin: center;
-    /* Loose wave */
     animation-delay: calc(var(--char-index) * 0.1s);
 }
 
-/* Calm-3: The "Diverge" - Green Up, Red Down, Yellow Still */
-@keyframes calm-up {
+/* -----------------------------------------------------
+   NEW: LIST ITEM ANIMATIONS (Diverge Only)
+   ----------------------------------------------------- */
+
+/* The Animations */
+@keyframes float-up {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); } /* Move Up */
+    50% { transform: translateY(-6px); } /* Up */
 }
-@keyframes calm-down {
+@keyframes sink-down {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(6px); } /* Move Down */
+    50% { transform: translateY(6px); } /* Down */
 }
 
-.char.calm-3 {
-    /* Base state for Yellow (and others if no specific color class): No animation */
-    animation: none;
+/* Base state: No animation */
+.char {
+    animation: none; 
 }
 
-.char.calm-3.calm-3-green {
-    animation-name: calm-up;
+/* TRIGGER CLASSES: These are added by JS for 2 seconds */
+.char.trigger-anim.anim-up {
+    animation-name: float-up;
     animation-duration: 2s;
-    animation-iteration-count: infinite;
+    animation-iteration-count: 1; /* Run once per trigger */
     animation-timing-function: ease-in-out;
 }
 
-.char.calm-3.calm-3-red {
-    animation-name: calm-down;
+.char.trigger-anim.anim-down {
+    animation-name: sink-down;
     animation-duration: 2s;
-    animation-iteration-count: infinite;
+    animation-iteration-count: 1; /* Run once per trigger */
     animation-timing-function: ease-in-out;
 }
 
-/* Char Index Helpers */
+/* Stagger delay helpers */
 .char:nth-child(1) { --char-index: 1; }
 .char:nth-child(2) { --char-index: 2; }
 .char:nth-child(3) { --char-index: 3; }
