@@ -768,8 +768,14 @@ td .btn-delete {
   text-overflow: ellipsis;
 }
 
-.animated-title .char {
-  display: inline-block;
+/* CRITICAL FIX: GLOBAL CHAR ANIMATION SUPPORT
+   We no longer require .animated-title as a parent.
+   Any element with class .char that is inside a class .animatable-text OR .animated-title
+   will now support animations.
+*/
+.animated-title .char,
+.animatable-text .char {
+  display: inline-block; /* MUST be inline-block for transforms to work */
   transition: color 0.3s ease;
 }
 
@@ -793,7 +799,8 @@ td .btn-delete {
     60% { transform: translate(0, 0) rotate(-1deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
 }
-.animated-title .char.happy-1 {
+/* Selectors updated to work everywhere */
+.char.happy-1 {
     animation-name: happy-crash;
     animation-duration: 0.6s;
     animation-iteration-count: infinite;
@@ -808,7 +815,7 @@ td .btn-delete {
     60% { transform: translateX(-1px) scaleY(0.98); }
     80% { transform: translateX(2px) scaleY(1.02); }
 }
-.animated-title .char.happy-2 {
+.char.happy-2 {
     animation-name: happy-boost;
     animation-duration: 0.8s;
     animation-iteration-count: infinite;
@@ -822,7 +829,7 @@ td .btn-delete {
     50% { transform: translate(-3px, 5px) rotate(-5deg); }
     75% { transform: translate(1px, -2px) rotate(2deg); }
 }
-.animated-title .char.happy-3 {
+.char.happy-3 {
     animation-name: happy-jolt;
     animation-duration: 0.5s;
     animation-iteration-count: infinite;
@@ -840,7 +847,7 @@ td .btn-delete {
     75% { transform: translateX(4px) scaleX(1.1); } /* Rebound slightly */
     100% { transform: translateX(0) scaleX(1); } /* Reset */
 }
-.animated-title .char.sad-1 {
+.char.sad-1 {
     animation-name: sad-wall;
     animation-duration: 1.5s;
     animation-iteration-count: infinite;
@@ -857,7 +864,7 @@ td .btn-delete {
      60% { transform: translateY(4px) rotate(-5deg); } /* Drop/Fail */
      100% { transform: translateY(0); }
 }
-.animated-title .char.sad-2 {
+.char.sad-2 {
     animation-name: sad-fail;
     animation-duration: 2s;
     animation-iteration-count: infinite;
@@ -871,7 +878,7 @@ td .btn-delete {
     0%, 100% { transform: translateX(0) skewX(0deg); }
     50% { transform: translateX(-4px) skewX(10deg); } /* Leaning back, dragging feet */
 }
-.animated-title .char.sad-3 {
+.char.sad-3 {
     animation-name: sad-drag;
     animation-duration: 3s;
     animation-iteration-count: infinite;
@@ -890,7 +897,7 @@ td .btn-delete {
     30% { transform: translateY(-5px); } /* Shrug up */
     70% { transform: translateY(-5px); } /* Hold shrug */
 }
-.animated-title .char.calm-1 {
+.char.calm-1 {
     animation-name: calm-shrug;
     animation-duration: 2.5s;
     animation-iteration-count: infinite;
@@ -905,7 +912,7 @@ td .btn-delete {
     25% { transform: rotate(3deg) translateX(1px); }
     75% { transform: rotate(-3deg) translateX(-1px); }
 }
-.animated-title .char.calm-2 {
+.char.calm-2 {
     animation-name: calm-shakeout;
     animation-duration: 3s;
     animation-iteration-count: infinite;
@@ -925,34 +932,35 @@ td .btn-delete {
     50% { transform: translateY(6px); } /* Move Down */
 }
 
-.animated-title .char.calm-3 {
+.char.calm-3 {
     /* Base state for Yellow (and others if no specific color class): No animation */
     animation: none;
 }
 
-.animated-title .char.calm-3.calm-3-green {
+.char.calm-3.calm-3-green {
     animation-name: calm-up;
     animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
 }
 
-.animated-title .char.calm-3.calm-3-red {
+.char.calm-3.calm-3-red {
     animation-name: calm-down;
     animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
 }
 
-.animated-title .char:nth-child(1) { --char-index: 1; }
-.animated-title .char:nth-child(2) { --char-index: 2; }
-.animated-title .char:nth-child(3) { --char-index: 3; }
-.animated-title .char:nth-child(4) { --char-index: 4; }
-.animated-title .char:nth-child(5) { --char-index: 5; }
-.animated-title .char:nth-child(6) { --char-index: 6; }
-.animated-title .char:nth-child(7) { --char-index: 7; }
-.animated-title .char:nth-child(8) { --char-index: 8; }
-.animated-title .char:nth-child(9) { --char-index: 9; }
-.animated-title .char:nth-child(10) { --char-index: 10; }
-.animated-title .char:nth-child(11) { --char-index: 11; }
-.animated-title .char:nth-child(12) { --char-index: 12; }
+/* Char Index Helpers */
+.char:nth-child(1) { --char-index: 1; }
+.char:nth-child(2) { --char-index: 2; }
+.char:nth-child(3) { --char-index: 3; }
+.char:nth-child(4) { --char-index: 4; }
+.char:nth-child(5) { --char-index: 5; }
+.char:nth-child(6) { --char-index: 6; }
+.char:nth-child(7) { --char-index: 7; }
+.char:nth-child(8) { --char-index: 8; }
+.char:nth-child(9) { --char-index: 9; }
+.char:nth-child(10) { --char-index: 10; }
+.char:nth-child(11) { --char-index: 11; }
+.char:nth-child(12) { --char-index: 12; }
