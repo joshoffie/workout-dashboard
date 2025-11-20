@@ -356,6 +356,7 @@ function setupListTextAnimation(element, text, colorData) {
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
     
+    // Determine which way this specific letter should move
     if (colors[i] === 'var(--color-green)') {
         char.dataset.moveDirection = 'up'; 
     } else if (colors[i] === 'var(--color-red)') {
@@ -363,15 +364,14 @@ function setupListTextAnimation(element, text, colorData) {
     }
   });
 
-  // 4. Start the Timer
+  // 4. Start the Timer for this list item
   runAnimationLoop(element);
 }
 
 function runAnimationLoop(element) {
-    // === HERE IS THE TIMER SETTING ===
-    // 3000ms = 3 seconds
-    // Added random small jitter (0-1000ms) so items don't look too robotic
-    const delay = 3000 + Math.random() * 1000; 
+    // === TIMER SETTING: 3 Seconds ===
+    // 3000ms = 3 seconds. 
+    const delay = 3000; 
 
     setTimeout(() => {
         // If user left the screen, element is gone, so stop loop
@@ -386,7 +386,7 @@ function runAnimationLoop(element) {
             if (dir === 'down') char.classList.add('animate-down');
         });
 
-        // B. Remove Class after 2s (CSS animation duration)
+        // B. Remove Class after 2s (CSS animation duration) to reset
         setTimeout(() => {
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
@@ -451,7 +451,7 @@ function renderClients() {
     li.style.cursor = "pointer";
 
     const nameSpan = document.createElement("span");
-    // NOTE: We do NOT set textContent here anymore, setupListTextAnimation does it
+    // setupListTextAnimation handles textContent via setTextAsChars
     
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
@@ -471,7 +471,7 @@ function renderClients() {
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
-    // USE THE NEW LOOP FUNCTION HERE
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
@@ -497,7 +497,7 @@ function renderClients() {
     clientList.appendChild(li);
   }
   
-  // Main Title uses standard logic
+  // Main Title still uses standard Logic
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
   
@@ -577,7 +577,7 @@ function renderSessions() {
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
 
-    // USE THE NEW LOOP FUNCTION HERE
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
 
     li.onclick = (e) => {
@@ -658,6 +658,7 @@ function renderExercises() {
     li.style.cursor = "pointer";
 
     const nameSpan = document.createElement("span");
+    nameSpan.textContent = ex.exercise;
 
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
@@ -677,7 +678,7 @@ function renderExercises() {
       });
     };
     
-    // USE THE NEW LOOP FUNCTION HERE
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
 
     li.appendChild(nameSpan);
@@ -902,7 +903,6 @@ function runComparisonLogic() {
     return;
   }
   
-  // Apply initial styling (sets random animation)
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
   const colorData = getExerciseColorData(selectedExercise);
