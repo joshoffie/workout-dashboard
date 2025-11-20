@@ -241,8 +241,6 @@ function applyTitleStyling(element, text, colorData) {
   
   // 4. Apply Mood & Animation Class to Parent (for reference)
   targetElement.classList.add(mood);
-  // Note: We apply the specific animation class to the CHARS, not the parent,
-  // but we update the global variable so we know what to use below.
   
   // 5. Handle "No Data" Case (Static Text)
   if (!colorData || colorData.total === 0) {
