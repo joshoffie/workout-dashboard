@@ -93,8 +93,8 @@
     <!-- Clients Screen -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
-        <!-- NEW: Replaced H3 -->
-        <h2 class="animated-title" aria-label="Clients">Clients</h2>
+        <!-- NEW: Added ID clientsScreenTitle -->
+        <h2 id="clientsScreenTitle" class="animated-title" aria-label="Clients">Clients</h2>
         <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
       </div>
       <ul id="clientList" class="item-list"></ul>
@@ -106,8 +106,8 @@
         <button id="backToClientsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Replaced H3 -->
-        <h2 class="animated-title" aria-label="Sessions">Sessions</h2>
+        <!-- NEW: Added ID sessionsScreenTitle -->
+        <h2 id="sessionsScreenTitle" class="animated-title" aria-label="Sessions">Sessions</h2>
         <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedClientLabel" class="hidden"></span>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
@@ -143,9 +143,6 @@
         </h2>
         <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedExerciseLabel" class="hidden"></span>
-        <!-- 
-          MOVED: The btn-group was here and is now gone.
-        -->
       </div>
 
       <!-- NEW: Action Header for buttons -->
@@ -156,15 +153,9 @@
         </div>
       </div>
 
-      <!--
-        START NEW CONTENT WRAPPER & COMPARISON BANNER
-      -->
+      <!-- Comparison Banner & Content -->
       <div class="sets-content-wrapper">
         
-        <!-- 
-          MODIFIED: This is the banner with the new <span> 
-          elements for the data text.
-        -->
         <div id="comparisonBanner" class="comparison-banner hidden">
           <!-- SETS -->
           <div class="stat-comparison">
@@ -173,18 +164,9 @@
             <div class="stat-svg-container">
               <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <path id="setsSpiral" class="comparison-spiral"
-                        d="M 50,50 
-                           C 58,50 58,58 50,58 
-                           C 42,58 42,42 50,42 
-                           C 66,42 66,66 50,66 
-                           C 34,66 34,34 50,34 
-                           C 74,34 74,74 50,74 
-                           C 26,74 26,26 50,26 
-                           C 82,26 82,82 50,82 
-                           C 18,82 18,18 50,18" />
+                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
               </svg>
             </div>
-            <!-- NEW: Data text span -->
             <span id="setsData" class="stat-data"></span>
           </div>
           <!-- REPS -->
@@ -194,18 +176,9 @@
             <div class="stat-svg-container">
               <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <path id="repsSpiral" class="comparison-spiral"
-                        d="M 50,50 
-                           C 58,50 58,58 50,58 
-                           C 42,58 42,42 50,42 
-                           C 66,42 66,66 50,66 
-                           C 34,66 34,34 50,34 
-                           C 74,34 74,74 50,74 
-                           C 26,74 26,26 50,26 
-                           C 82,26 82,82 50,82 
-                           C 18,82 18,18 50,18" />
+                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
               </svg>
             </div>
-            <!-- NEW: Data text span -->
             <span id="repsData" class="stat-data"></span>
           </div>
           <!-- VOLUME -->
@@ -215,18 +188,9 @@
             <div class="stat-svg-container">
               <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <path id="volumeSpiral" class="comparison-spiral"
-                        d="M 50,50 
-                           C 58,50 58,58 50,58 
-                           C 42,58 42,42 50,42 
-                           C 66,42 66,66 50,66 
-                           C 34,66 34,34 50,34 
-                           C 74,34 74,74 50,74 
-                           C 26,74 26,26 50,26 
-                           C 82,26 82,82 50,82 
-                           C 18,82 18,18 50,18" />
+                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
               </svg>
             </div>
-            <!-- NEW: Data text span -->
             <span id="volumeData" class="stat-data"></span>
           </div>
           <!-- AVG W/R -->
@@ -236,36 +200,26 @@
             <div class="stat-svg-container">
               <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <path id="wprSpiral" class="comparison-spiral"
-                        d="M 50,50 
-                           C 58,50 58,58 50,58 
-                           C 42,58 42,42 50,42 
-                           C 66,42 66,66 50,66 
-                           C 34,66 34,34 50,34 
-                           C 74,34 74,74 50,74 
-                           C 26,74 26,26 50,26 
-                           C 82,26 82,82 50,82 
-                           C 18,82 18,18 50,18" />
+                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
               </svg>
             </div>
-            <!-- NEW: Data text span -->
             <span id="wprData" class="stat-data"></span>
           </div>
         </div>
         
-        <!-- This is your existing table container -->
         <div class="table-container">
           <table id="setsTable">
             <thead>
               <tr>
                 <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-                <th></th> <!-- <-- ADDED: Empty header for delete button -->
+                <th></th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
 
-      </div> <!-- END of new sets-content-wrapper -->
+      </div> <!-- END of sets-content-wrapper -->
     </section>
 
     <!-- Graph -->
