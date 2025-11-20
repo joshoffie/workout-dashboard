@@ -1,4 +1,4 @@
- /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
+/* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
   /* Dark Mode Palette */
   --color-bg: #101010; /* Main background */
@@ -771,7 +771,6 @@ td .btn-delete {
 .animated-title .char {
   display: inline-block;
   transition: color 0.3s ease;
-  /* Removed "animation: none !important;" which was killing the animations */
 }
 
 #exerciseSetsTitleSpan .char {
@@ -784,7 +783,8 @@ td .btn-delete {
    9-TIER ANIMATION DEFINITIONS
    ----------------------------------------------------- */
 
-/* HAPPY */
+/* * HAPPY (Green) - High Energy 
+ */
 @keyframes happy-crash {
     0% { transform: translate(0, 0) rotate(0deg); }
     15% { transform: translate(0, -6px) rotate(3deg); }
@@ -829,84 +829,104 @@ td .btn-delete {
     animation-timing-function: linear;
 }
 
-/* SAD */
-@keyframes sad-drag {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(-2px) translateY(1px); }
+/* * SAD (Red) - Stagnant, Hitting Wall, Heavy
+ */
+
+/* Sad-1: The "Bonk" - Hitting a Wall */
+@keyframes sad-wall {
+    0% { transform: translateX(0) scaleX(1); }
+    60% { transform: translateX(6px) scaleX(1); } /* Move forward */
+    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } /* IMPACT! Compress against wall */
+    75% { transform: translateX(4px) scaleX(1.1); } /* Rebound slightly */
+    100% { transform: translateX(0) scaleX(1); } /* Reset */
 }
 .animated-title .char.sad-1 {
-    animation-name: sad-drag;
-    animation-duration: 4s;
+    animation-name: sad-wall;
+    animation-duration: 1.5s;
     animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    animation-direction: alternate;
-    animation-delay: calc((12 - var(--char-index)) * 0.1s);
-}
-
-@keyframes sad-tilt {
-    0%, 100% { transform: rotate(0deg) translateY(0); }
-    50% { transform: rotate(-4deg) translateY(2px); }
-}
-.animated-title .char.sad-2 {
-    animation-name: sad-tilt;
-    animation-duration: 3s;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    transform-origin: bottom center;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    /* Stagger so they hit the wall one after another */
     animation-delay: calc(var(--char-index) * 0.08s);
 }
 
-@keyframes sad-glitch {
-    0%, 100% { transform: translateY(0); opacity: 1; }
-    50% { transform: translateY(1px); opacity: 0.95; }
+/* Sad-2: The "Failed Rep" - Struggle and Drop */
+@keyframes sad-fail {
+     0% { transform: translateY(0); }
+     40% { transform: translateY(-3px); } /* Try to lift */
+     50% { transform: translateY(-3px) rotate(2deg); } /* Shake at top */
+     60% { transform: translateY(4px) rotate(-5deg); } /* Drop/Fail */
+     100% { transform: translateY(0); }
 }
-.animated-title .char.sad-3 {
-    animation-name: sad-glitch;
-    animation-duration: 0.2s;
-    animation-iteration-count: infinite;
-    animation-timing-function: steps(1, end);
-    animation-delay: calc(var(--char-index) * 0.02s); 
-}
-
-
-/* CALM */
-@keyframes calm-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-1px); }
-}
-.animated-title .char.calm-1 {
-    animation-name: calm-float;
-    animation-duration: 3s;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    animation-direction: alternate;
-    animation-delay: calc(var(--char-index) * 0.15s);
-}
-
-@keyframes calm-breath {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-0.5px) scale(1.005); }
-}
-.animated-title .char.calm-2 {
-    animation-name: calm-breath;
-    animation-duration: 5s;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    animation-direction: alternate;
-    animation-delay: calc(var(--char-index) * 0.2s);
-}
-
-@keyframes calm-ripple {
-    0%, 100% { transform: translateY(0) translateX(0); }
-    50% { transform: translateY(-1px) translateX(0.5px); }
-}
-.animated-title .char.calm-3 {
-    animation-name: calm-ripple;
+.animated-title .char.sad-2 {
+    animation-name: sad-fail;
     animation-duration: 2s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    animation-direction: alternate;
+    /* Domino effect failure */
     animation-delay: calc(var(--char-index) * 0.1s);
+}
+
+/* Sad-3: The "Drag" - Heavy and Slow */
+@keyframes sad-drag {
+    0%, 100% { transform: translateX(0) skewX(0deg); }
+    50% { transform: translateX(-4px) skewX(10deg); } /* Leaning back, dragging feet */
+}
+.animated-title .char.sad-3 {
+    animation-name: sad-drag;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    /* Heavy wave */
+    animation-delay: calc(var(--char-index) * 0.2s); 
+}
+
+
+/* * CALM (Yellow) - Chill Gym Vibes
+ */
+
+/* Calm-1: The "Shrug" - Shoulders Up and Down */
+@keyframes calm-shrug {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); } /* Shrug up */
+    70% { transform: translateY(-5px); } /* Hold shrug */
+}
+.animated-title .char.calm-1 {
+    animation-name: calm-shrug;
+    animation-duration: 2.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    /* Slight stagger to look like loose shoulders */
+    animation-delay: calc(var(--char-index) * 0.05s);
+}
+
+/* Calm-2: The "Loosen Up" - Shake it out */
+@keyframes calm-shakeout {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(3deg) translateX(1px); }
+    75% { transform: rotate(-3deg) translateX(-1px); }
+}
+.animated-title .char.calm-2 {
+    animation-name: calm-shakeout;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transform-origin: center;
+    /* Loose wave */
+    animation-delay: calc(var(--char-index) * 0.1s);
+}
+
+/* Calm-3: The "Idle Bounce" - Head bobbing to music */
+@keyframes calm-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+}
+.animated-title .char.calm-3 {
+    animation-name: calm-bounce;
+    animation-duration: 1.2s; /* Beat pacing */
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    /* Stagger for a ripple bounce */
+    animation-delay: calc(var(--char-index) * 0.08s);
 }
 
 .animated-title .char:nth-child(1) { --char-index: 1; }
