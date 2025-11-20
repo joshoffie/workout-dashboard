@@ -17,6 +17,59 @@ let selectedClient = null;
 let selectedSession = null;
 let selectedExercise = null;
 
+// =====================================================
+// NEW: ANIMATION CONFIGURATION
+// Define the 9 animation classes for each mood
+// =====================================================
+
+const ANIMATION_CLASSES = {
+  happy: ['happy-1', 'happy-2', 'happy-3'],
+  sad: ['sad-1', 'sad-2', 'sad-3'],
+  calm: ['calm-1', 'calm-2', 'calm-3'],
+};
+
+// State to store the currently selected animation class for global use
+let currentAnimationClass = getRandomAnimationClass(ANIMATION_CLASSES.calm); 
+// Default to a calm state initially
+
+/**
+ * Selects a random animation class from the list associated with a given mood.
+ * @param {string} mood - 'happy', 'sad', or 'calm'.
+ * @returns {string} The randomly selected CSS class name.
+ */
+function getRandomAnimationClass(mood) {
+  const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
+  const randomIndex = Math.floor(Math.random() * classes.length);
+  return classes[randomIndex];
+}
+
+/**
+ * Assigns a new random animation class based on the calculated mood
+ * and applies it to the title element.
+ * @param {HTMLElement} element - The .animated-title element to update.
+ * @param {string} mood - 'happy', 'sad', or 'calm'.
+ * @param {string} text - The text content.
+ * @param {object} colorData - The calculated color data.
+ */
+function applyMoodAnimation(element, mood) {
+  // 1. Determine the new animation class based on the mood
+  const newAnimationClass = getRandomAnimationClass(mood);
+
+  // 2. Clear old mood and animation classes from the title's parent
+  const parentTitle = element.closest('.animated-title');
+  const targetElement = parentTitle || element;
+  
+  targetElement.classList.remove('happy', 'sad', 'calm', ...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm);
+  
+  // 3. Set the new mood and animation class
+  targetElement.classList.add(mood);
+  targetElement.classList.add(newAnimationClass);
+  
+  // 4. Update the global state
+  currentAnimationClass = newAnimationClass;
+}
+
+
 // ------------------ NAVIGATION ------------------
 
 const SCREENS = {
@@ -34,6 +87,15 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const currentScreenEl = document.getElementById(currentScreen);
   
   if (!targetScreen || targetScreen === currentScreenEl) return;
+
+  // Re-render the target screen to ensure animation is updated on transition
+  // This is a simple way to ensure the animation class is constantly shifting
+  switch (targetScreenId) {
+    case SCREENS.CLIENTS: renderClients(); break;
+    case SCREENS.SESSIONS: renderSessions(); break;
+    case SCREENS.EXERCISES: renderExercises(); break;
+    case SCREENS.SETS: renderSets(); break;
+  }
 
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
@@ -189,20 +251,34 @@ function applyTitleStyling(element, text, colorData) {
 
   setTextAsChars(element, text);
 
-  const parentTitle = element.closest('.animated-title');
-  if (parentTitle) {
-    parentTitle.classList.remove('happy', 'sad', 'calm');
-  } else {
-    element.classList.remove('happy', 'sad', 'calm');
+  // Determine the mood (happy, sad, calm) based on colorData
+  let mood = 'calm'; 
+  if (colorData && colorData.total > 0) {
+    const { red, green, yellow } = colorData;
+    if (green > red && green > yellow) {
+      mood = 'happy';
+    } else if (red > green && red > yellow) {
+      mood = 'sad';
+    } else if (yellow > green && yellow > red) {
+      mood = 'calm';
+    } else {
+      mood = 'calm'; // Neutral/Even split defaults to calm
+    }
   }
+
+  // === NEW LOGIC: Apply the chosen random animation class ===
+  applyMoodAnimation(element, mood);
+  // =========================================================
 
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
+      char.classList.remove(currentAnimationClass); // Ensure no animation if no data
     });
     return;
   }
 
+  // Apply colors to characters based on the calculated distribution
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -213,6 +289,7 @@ function applyTitleStyling(element, text, colorData) {
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
 
+  // Distribution adjustment logic (kept for original coloring fidelity)
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -234,25 +311,18 @@ function applyTitleStyling(element, text, colorData) {
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
+  // Shuffle colors
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
+  // Apply colors and the current random animation class to individual chars
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
+    // Apply the current animation class to each character
+    char.classList.add(currentAnimationClass);
   });
-
-  const targetElement = parentTitle || element;
-  if (green > red && green > yellow) {
-    targetElement.classList.add('happy');
-  } else if (red > green && red > yellow) {
-    targetElement.classList.add('sad');
-  } else if (yellow > green && yellow > red) {
-    targetElement.classList.add('calm');
-  } else if (green + red + yellow > 0) {
-    targetElement.classList.add('calm');
-  }
 }
 
 // --- NEW HELPER: Calculate comparison data without updating UI ---
@@ -772,6 +842,10 @@ function runComparisonLogic() {
     return;
   }
   
+  // Re-run animation update on the inner span before we apply the styling
+  // This ensures the animation class is correctly set on the title span's chars
+  // even though the mood logic is in applyTitleStyling.
+  // applyTitleStyling will call applyMoodAnimation internally.
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
   // We use the new helper here to get the data, but we still need to run updateStatUI
@@ -801,6 +875,7 @@ function runComparisonLogic() {
   updateStatUI('volume', currentStats.volume, prevStats.volume);
   updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
   
+  // Apply final title styling, which determines the mood and applies the random class
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
   banner.classList.remove('hidden');
 }
