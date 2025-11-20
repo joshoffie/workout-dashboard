@@ -18,8 +18,7 @@ let selectedSession = null;
 let selectedExercise = null;
 
 // =====================================================
-// NEW: ANIMATION CONFIGURATION
-// Define the 9 animation classes for each mood
+// ANIMATION CONFIGURATION
 // =====================================================
 
 const ANIMATION_CLASSES = {
@@ -28,47 +27,13 @@ const ANIMATION_CLASSES = {
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
 
-// State to store the currently selected animation class for global use
-let currentAnimationClass = getRandomAnimationClass(ANIMATION_CLASSES.calm); 
-// Default to a calm state initially
+// Global state to store the current animation for consistency
+let currentAnimationClass = 'calm-1'; 
 
-/**
- * Selects a random animation class from the list associated with a given mood.
- * @param {string} mood - 'happy', 'sad', or 'calm'.
- * @returns {string} The randomly selected CSS class name.
- */
 function getRandomAnimationClass(mood) {
   const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
-  const randomIndex = Math.floor(Math.random() * classes.length);
-  return classes[randomIndex];
+  return classes[Math.floor(Math.random() * classes.length)];
 }
-
-/**
- * Assigns a new random animation class based on the calculated mood
- * and applies it to the title element.
- * @param {HTMLElement} element - The .animated-title element to update.
- * @param {string} mood - 'happy', 'sad', or 'calm'.
- * @param {string} text - The text content.
- * @param {object} colorData - The calculated color data.
- */
-function applyMoodAnimation(element, mood) {
-  // 1. Determine the new animation class based on the mood
-  const newAnimationClass = getRandomAnimationClass(mood);
-
-  // 2. Clear old mood and animation classes from the title's parent
-  const parentTitle = element.closest('.animated-title');
-  const targetElement = parentTitle || element;
-  
-  targetElement.classList.remove('happy', 'sad', 'calm', ...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm);
-  
-  // 3. Set the new mood and animation class
-  targetElement.classList.add(mood);
-  targetElement.classList.add(newAnimationClass);
-  
-  // 4. Update the global state
-  currentAnimationClass = newAnimationClass;
-}
-
 
 // ------------------ NAVIGATION ------------------
 
@@ -88,8 +53,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
   
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
-  // Re-render the target screen to ensure animation is updated on transition
-  // This is a simple way to ensure the animation class is constantly shifting
+  // Force re-render on navigation to trigger new random animations
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -123,13 +87,13 @@ document.getElementById('backToClientsBtn').onclick = () => {
   selectedClient = null;
   selectedSession = null;
   selectedExercise = null;
-  renderClients(); // Update clients list when returning
+  renderClients();
   navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
   selectedSession = null;
   selectedExercise = null;
-  renderSessions(); // Update sessions list when returning
+  renderSessions();
   navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
@@ -215,7 +179,6 @@ async function loadUserJson() {
     clientsData = {};
     await docRef.set(clientsData);
   }
-  console.log("Data loaded from Firestore:", clientsData);
 }
 
 async function saveUserJson() {
@@ -224,7 +187,7 @@ async function saveUserJson() {
   await db.collection("clients").doc(uid).set(clientsData);
 }
 
-// ------------------ NEW ANIMATED TITLE HELPERS ------------------
+// ------------------ ANIMATED TITLE HELPERS ------------------
 
 function setTextAsChars(element, text) {
   element.innerHTML = '';
@@ -251,34 +214,47 @@ function applyTitleStyling(element, text, colorData) {
 
   setTextAsChars(element, text);
 
-  // Determine the mood (happy, sad, calm) based on colorData
+  // 1. Clean up old classes from parent
+  const parentTitle = element.closest('.animated-title');
+  const targetElement = parentTitle || element;
+  
+  // Remove ALL possible animation classes
+  const allClasses = [
+    ...ANIMATION_CLASSES.happy, 
+    ...ANIMATION_CLASSES.sad, 
+    ...ANIMATION_CLASSES.calm, 
+    'happy', 'sad', 'calm'
+  ];
+  targetElement.classList.remove(...allClasses);
+
+  // 2. Determine Mood
   let mood = 'calm'; 
   if (colorData && colorData.total > 0) {
     const { red, green, yellow } = colorData;
-    if (green > red && green > yellow) {
-      mood = 'happy';
-    } else if (red > green && red > yellow) {
-      mood = 'sad';
-    } else if (yellow > green && yellow > red) {
-      mood = 'calm';
-    } else {
-      mood = 'calm'; // Neutral/Even split defaults to calm
-    }
+    if (green > red && green > yellow) mood = 'happy';
+    else if (red > green && red > yellow) mood = 'sad';
+    else if (yellow > green && yellow > red) mood = 'calm';
   }
 
-  // === NEW LOGIC: Apply the chosen random animation class ===
-  applyMoodAnimation(element, mood);
-  // =========================================================
-
+  // 3. Pick a Random Animation Class
+  const animClass = getRandomAnimationClass(mood);
+  
+  // 4. Apply Mood & Animation Class to Parent (for reference)
+  targetElement.classList.add(mood);
+  // Note: We apply the specific animation class to the CHARS, not the parent,
+  // but we update the global variable so we know what to use below.
+  
+  // 5. Handle "No Data" Case (Static Text)
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
-      char.classList.remove(currentAnimationClass); // Ensure no animation if no data
+      // Ensure no animation class is present
+      char.classList.remove(...allClasses);
     });
     return;
   }
 
-  // Apply colors to characters based on the calculated distribution
+  // 6. Calculate Colors
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -289,7 +265,6 @@ function applyTitleStyling(element, text, colorData) {
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
 
-  // Distribution adjustment logic (kept for original coloring fidelity)
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -300,7 +275,7 @@ function applyTitleStyling(element, text, colorData) {
       else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
       else if (greenCount > 0) greenCount--;
       else if (yellowCount > 0 && yellow <= red) yellowCount--;
-      else if (redCount > 0 && red <= green) redCount--;
+      else if (redCount > 0) redCount--;
       else if (greenCount > 0) greenCount--;
       else if (yellowCount > 0) yellowCount--;
       else if (redCount > 0) redCount--;
@@ -311,21 +286,19 @@ function applyTitleStyling(element, text, colorData) {
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
-  // Shuffle colors
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
-  // Apply colors and the current random animation class to individual chars
+  // 7. Apply Colors AND Animation Class to Chars
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    // Apply the current animation class to each character
-    char.classList.add(currentAnimationClass);
+    // IMPORTANT: Add the specific animation class (e.g., 'happy-1') to the char itself
+    char.classList.add(animClass);
   });
 }
 
-// --- NEW HELPER: Calculate comparison data without updating UI ---
 function getExerciseColorData(exercise) {
   if (!exercise.sets || exercise.sets.length < 2) {
       return { red: 0, green: 0, yellow: 0, total: 0 };
@@ -357,7 +330,6 @@ function getExerciseColorData(exercise) {
   return { red, green, yellow, total: statuses.length };
 }
 
-// Helper for pure calculation
 function calculateStatStatus(currentValue, previousValue) {
   const epsilon = 0.01;
   if (currentValue > previousValue + epsilon) return 'increase';
@@ -365,13 +337,11 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
-
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
   
-  // --- NEW: Global Color Accumulator ---
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   
   for (const name in clientsData) {
@@ -381,7 +351,6 @@ function renderClients() {
     const nameSpan = document.createElement("span");
     nameSpan.textContent = name;
     
-    // --- NEW: Calculate Client Colors from all sessions ---
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
     sessions.forEach(session => {
@@ -395,15 +364,12 @@ function renderClients() {
         });
     });
     
-    // Add to Global App Total
     totalAppColorData.red += clientColorData.red;
     totalAppColorData.green += clientColorData.green;
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
-    // Apply styles to Client Name Span
     applyTitleStyling(nameSpan, name, clientColorData);
-    // --- END NEW ---
 
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
@@ -428,13 +394,11 @@ function renderClients() {
     clientList.appendChild(li);
   }
   
-  // --- NEW: Apply Global Colors to "Clients" Title ---
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
   
   hookEditables();
 }
-
 
 // ------------------ CLIENT ACTIONS ------------------
 document.getElementById("addClientBtn").onclick = () => {
@@ -483,7 +447,6 @@ function renderSessions() {
   if (!selectedClient) return;
   selectedSession = null;
 
-  // --- NEW: Client Total Accumulator ---
   let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
 
   const sessions = clientsData[selectedClient]?.sessions || [];
@@ -496,7 +459,6 @@ function renderSessions() {
     const nameSpan = document.createElement("span");
     nameSpan.textContent = sess.session_name;
     
-    // --- NEW: Calculate Session Colors ---
     let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const exercises = sess.exercises || [];
     exercises.forEach(ex => {
@@ -507,15 +469,12 @@ function renderSessions() {
         sessionColorData.total += cData.total;
     });
     
-    // Add to Client Total
     clientTotalColorData.red += sessionColorData.red;
     clientTotalColorData.green += sessionColorData.green;
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
 
-    // Apply to Session Name
     applyTitleStyling(nameSpan, sess.session_name, sessionColorData);
-    // --- END NEW ---
 
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
@@ -543,7 +502,6 @@ function renderSessions() {
     sessionList.appendChild(li);
   });
   
-  // --- NEW: Apply Client Total Colors to "Sessions" Title ---
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
   applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
 
@@ -582,10 +540,8 @@ function renderExercises() {
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
 
   selectedSession.exercises.forEach((ex, idx) => {
-    // --- FIX: Use getExerciseColorData instead of relying on stored ex.colorData
-    // This ensures the "Exercises" screen is always up to date even if runComparisonLogic hasn't run
     const colorData = getExerciseColorData(ex);
-    ex.colorData = colorData; // Store it for consistency if needed later
+    ex.colorData = colorData; 
 
     if (colorData) {
       sessionColorData.red += colorData.red;
@@ -758,7 +714,7 @@ function hideAllDetails() {
   document.getElementById("graphDiv").innerHTML = "";
 }
 
-// ------------------ NEW COMPARISON LOGIC ------------------
+// ------------------ COMPARISON LOGIC ------------------
 
 function isSameDay(d1, d2) {
   return d1.getFullYear() === d2.getFullYear() &&
@@ -842,16 +798,11 @@ function runComparisonLogic() {
     return;
   }
   
-  // Re-run animation update on the inner span before we apply the styling
-  // This ensures the animation class is correctly set on the title span's chars
-  // even though the mood logic is in applyTitleStyling.
-  // applyTitleStyling will call applyMoodAnimation internally.
+  // Apply initial styling (sets random animation)
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
-  // We use the new helper here to get the data, but we still need to run updateStatUI
-  // to actually update the DOM elements in the banner.
   const colorData = getExerciseColorData(selectedExercise);
-  selectedExercise.colorData = colorData; // Save it
+  selectedExercise.colorData = colorData;
 
   if (colorData.total === 0) {
       banner.classList.add('hidden');
@@ -859,8 +810,6 @@ function runComparisonLogic() {
       return;
   }
 
-  // Re-run UI updates specifically for the banner (since getExerciseColorData is pure)
-  // This is a bit redundant but keeps the logic safe and separate
   const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const mostRecentDate = new Date(allSets[0].timestamp);
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
@@ -875,7 +824,6 @@ function runComparisonLogic() {
   updateStatUI('volume', currentStats.volume, prevStats.volume);
   updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
   
-  // Apply final title styling, which determines the mood and applies the random class
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
   banner.classList.remove('hidden');
 }
