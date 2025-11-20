@@ -292,8 +292,18 @@ function applyTitleStyling(element, text, colorData) {
   // 7. Apply Colors AND Animation Class to Chars
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    // IMPORTANT: Add the specific animation class (e.g., 'happy-1') to the char itself
     char.classList.add(animClass);
+
+    // --- NEW: Special handling for Calm-3 (The Diverge) ---
+    // If it's calm-3, we add specific sub-classes based on the color
+    if (animClass === 'calm-3') {
+        if (colors[i] === 'var(--color-green)') {
+            char.classList.add('calm-3-green');
+        } else if (colors[i] === 'var(--color-red)') {
+            char.classList.add('calm-3-red');
+        }
+        // Yellow (or default) gets no extra class, staying static
+    }
   });
 }
 
