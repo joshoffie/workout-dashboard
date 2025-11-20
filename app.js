@@ -29,7 +29,6 @@ const ANIMATION_CLASSES = {
 
 // Global state to store the current animation for consistency
 let currentAnimationClass = 'calm-1'; 
-// Store timestamps for when an item was last animated
 const animationCooldowns = {}; 
 const COOLDOWN_DURATION = 20000; // 20 seconds in ms
 
@@ -56,7 +55,6 @@ function navigateTo(targetScreenId, direction = 'forward') {
   
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
-  // Force re-render on navigation to trigger new random animations (if cooldown allows)
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -213,8 +211,7 @@ function setTextAsChars(element, text) {
 }
 
 /**
- * ORIGINAL TITLE ANIMATION (For Headers)
- * Applies mood-based animation with cooldown.
+ * ORIGINAL TITLE ANIMATION (For Headers - Happy/Sad/Calm logic)
  */
 function applyTitleStyling(element, text, colorData, cooldownKey = null) {
   if (!element) return;
@@ -263,6 +260,7 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
     return;
   }
 
+  // Basic Color distribution logic for Headers
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -304,37 +302,31 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
     
     if (shouldAnimate) {
         char.classList.add(animClass);
+        // Add specific Diverge logic for Calm-3 in headers too
         if (animClass === 'calm-3') {
-            if (colors[i] === 'var(--color-green)') {
-                char.classList.add('calm-3-green');
-            } else if (colors[i] === 'var(--color-red)') {
-                char.classList.add('calm-3-red');
-            }
+            if (colors[i] === 'var(--color-green)') char.classList.add('anim-up');
+            if (colors[i] === 'var(--color-red)') char.classList.add('anim-down');
         }
     }
   });
 }
 
 /**
- * NEW: RANDOM INTERVAL ANIMATION (For List Items)
- * Applies the "Diverge" (Calm-3) animation randomly every 1-40 seconds.
+ * =====================================================================
+ * NEW: FOOLPROOF LIST ANIMATOR (For Items)
+ * Directly applies colors and specific animation triggers.
+ * =====================================================================
  */
 function applyRandomIntervalAnimation(element, text, colorData) {
   if (!element) return;
 
-  // ADDED: This class connects to the new CSS rule in style.rtf
-  element.classList.add('animatable-text');
-
-  // 1. Setup Text
+  // 1. Prepare Text
   setTextAsChars(element, text);
   
-  // Clean parent styling just in case
-  const parentTitle = element.closest('.animated-title');
-  if (parentTitle) {
-      parentTitle.classList.remove('happy', 'sad', 'calm');
-  }
+  // 2. Important: Mark container so CSS knows how to treat .char children
+  element.classList.add('list-anim-container');
 
-  // Handle No Data
+  // Handle No Data case
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -342,7 +334,7 @@ function applyRandomIntervalAnimation(element, text, colorData) {
     return; 
   }
 
-  // 2. Calculate Colors (Same logic)
+  // 3. Calculate Colors (Standard Logic)
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -378,45 +370,56 @@ function applyRandomIntervalAnimation(element, text, colorData) {
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
-  // 3. Apply Colors & Store Type
+  // 4. Apply Colors & Assign Animation Role
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    if (colors[i] === 'var(--color-green)') char.dataset.colorType = 'green';
-    else if (colors[i] === 'var(--color-red)') char.dataset.colorType = 'red';
-    else char.dataset.colorType = 'yellow';
+    
+    // Store intention in dataset, doesn't animate yet
+    if (colors[i] === 'var(--color-green)') {
+        char.dataset.animType = 'up'; 
+    } else if (colors[i] === 'var(--color-red)') {
+        char.dataset.animType = 'down';
+    }
   });
 
-  // 4. Define the recursive trigger function
-  const triggerAnimation = () => {
-      // Safety check: Stop if element removed from DOM
+  // 5. The Random Trigger Loop
+  // This uses a self-contained function that persists as long as the element exists
+  const triggerLoop = () => {
+      // STOP if element is gone (user navigated away)
       if (!document.body.contains(element)) return;
 
+      // A. Trigger Animations
       chars.forEach(char => {
-          // Reset
-          char.classList.remove('calm-3', 'calm-3-green', 'calm-3-red');
-          void char.offsetWidth; // Reflow
+          // Clear old trigger class to reset
+          char.classList.remove('trigger-anim');
+          
+          // Force Reflow (Magic to restart CSS animation)
+          void char.offsetWidth; 
 
-          // Apply Animation Classes
-          char.classList.add('calm-3');
-          if (char.dataset.colorType === 'green') char.classList.add('calm-3-green');
-          if (char.dataset.colorType === 'red') char.classList.add('calm-3-red');
+          // Re-apply if it has a type
+          if (char.dataset.animType) {
+              char.classList.add('trigger-anim');
+              // Add specific directional class based on data set earlier
+              if (char.dataset.animType === 'up') char.classList.add('anim-up');
+              if (char.dataset.animType === 'down') char.classList.add('anim-down');
+          }
       });
 
-      // Remove classes after animation duration (2s)
+      // B. Cleanup classes after animation finishes (2s)
       setTimeout(() => {
           if (!document.body.contains(element)) return;
           chars.forEach(char => {
-               char.classList.remove('calm-3', 'calm-3-green', 'calm-3-red');
+             char.classList.remove('trigger-anim', 'anim-up', 'anim-down');
           });
-      }, 2000);
+      }, 2000); // Animation duration is 2s
 
-      // Schedule next run (Random: 1s - 40s)
-      const nextDelay = Math.random() * 39000 + 1000;
-      setTimeout(triggerAnimation, nextDelay);
+      // C. Schedule Next (Random 1s - 40s)
+      const nextDelay = Math.floor(Math.random() * 39000) + 1000; 
+      setTimeout(triggerLoop, nextDelay);
   };
 
-  // 5. Start Loop Immediately
-  triggerAnimation();
+  // Start the first loop immediately
+  triggerLoop();
 }
 
 
@@ -470,7 +473,7 @@ function renderClients() {
     li.style.cursor = "pointer";
 
     const nameSpan = document.createElement("span");
-    // NOTE: textContent is set inside applyRandomIntervalAnimation now
+    // Text is set inside applyRandomIntervalAnimation
     
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
@@ -490,7 +493,7 @@ function renderClients() {
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
-    // USE NEW RANDOM ANIMATION FUNCTION
+    // APPLY ANIMATION TO ITEM
     applyRandomIntervalAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
@@ -516,9 +519,9 @@ function renderClients() {
     clientList.appendChild(li);
   }
   
-  // Keep MAIN TITLE on standard animation logic
+  // Main Title (Still uses mood logic + cooldown)
   const clientsTitle = document.getElementById('clientsScreenTitle');
-  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData, 'page-title-clients');
   
   hookEditables();
 }
@@ -596,7 +599,7 @@ function renderSessions() {
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
 
-    // USE NEW RANDOM ANIMATION FUNCTION
+    // APPLY ANIMATION TO ITEM
     applyRandomIntervalAnimation(nameSpan, sess.session_name, sessionColorData);
 
     li.onclick = (e) => {
@@ -625,8 +628,9 @@ function renderSessions() {
     sessionList.appendChild(li);
   });
   
+  // Main Title (Standard animation)
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
-  applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
+  applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData, 'page-title-sessions');
 
   hookEditables();
 }
@@ -696,7 +700,7 @@ function renderExercises() {
       });
     };
     
-    // USE NEW RANDOM ANIMATION FUNCTION
+    // APPLY ANIMATION TO ITEM
     applyRandomIntervalAnimation(nameSpan, ex.exercise, colorData);
 
     li.appendChild(nameSpan);
@@ -704,7 +708,8 @@ function renderExercises() {
     exerciseList.appendChild(li);
   });
   
-  applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
+  // Main Title (Standard animation)
+  applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData, 'page-title-exercises');
   hookEditables();
 }
 
