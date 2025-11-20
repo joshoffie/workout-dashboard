@@ -1,4 +1,4 @@
-/* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
+ /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
   /* Dark Mode Palette */
   --color-bg: #101010; /* Main background */
@@ -82,11 +82,10 @@ body {
 }
 
 /* --- New Spiral Animation Styles --- */
-/* This came from your index.html, moved here for cleanliness */
 .modal-logo {
   width: 100px; 
   height: 100px;
-  margin: 0 auto 1.5rem auto; /* Centered */
+  margin: 0 auto 1.5rem auto; 
   position: relative;
 }
 .tree-animation-svg {
@@ -100,7 +99,7 @@ body {
 }
 .spiral-path {
   fill: none;
-  stroke: var(--color-primary); /* <-- STYLED FOR DARK MODE */
+  stroke: var(--color-primary);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 1200; 
@@ -125,7 +124,6 @@ body {
       transform: scale(1);
   }
 }
-/* --- End of Spiral Styles --- */
 
 .modal h2 {
   font-size: 1.75rem;
@@ -139,40 +137,7 @@ body {
   margin-bottom: 1.5rem;
 }
 
-/* =====================================================
-  NEW DELETE MODAL STYLES
-  =====================================================
-*/
-.delete-modal {
-  background: var(--color-card);
-  border-radius: var(--radius-md);
-  padding: 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  border: 1px solid var(--color-border);
-}
-.delete-modal h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 0.75rem;
-}
-.delete-modal p {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-.delete-modal-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-/* ===================================================== */
-
-
-/* ===== BUTTONS (Aesthetic Update) ===== */
+/* ===== BUTTONS ===== */
 .btn {
   font-family: inherit;
   font-size: 0.95rem;
@@ -187,10 +152,9 @@ body {
   justify-content: center;
   gap: 0.5rem;
   text-decoration: none;
-  /* flex: 1; */ /* <-- THIS WAS THE MISTAKE. REMOVE THIS LINE. */
 }
 .btn-primary {
-  background: var(--grad-primary); /* <-- GRADIENT ADDED */
+  background: var(--grad-primary);
   color: white;
   box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2);
 }
@@ -210,39 +174,12 @@ body {
   width: 100%;
   font-size: 1rem;
   padding: 0.9rem 1.25rem;
-  flex: 1; /* <-- ADD FLEX: 1 HERE, where it belongs */
+  flex: 1;
 }
 .btn-group {
   display: flex;
   gap: 0.5rem;
 }
-
-/* --- FIX: Override flex: 1 for buttons directly in the header --- */
-/* .card-header > .btn {
-  flex: 0 0 auto; /* Stop buttons from expanding */
-/* } */
-/* ^^^ REMOVED old flexbox fix */
-
-/* =====================================================
-  NEW BUTTON STYLES (for Delete Modal)
-  =====================================================
-*/
-.btn-danger {
-  background-color: var(--color-red);
-  color: white;
-}
-.btn-danger:hover {
-  filter: brightness(1.1);
-}
-.btn-tertiary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
-}
-.btn-tertiary:hover {
-  background-color: #444;
-}
-/* ===================================================== */
-
 
 /* ===== HEADER ===== */
 .app-header {
@@ -263,52 +200,46 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text);
-  overflow: hidden; /* <-- ADD THIS LINE */
+  overflow: hidden;
 }
 .auth-controls {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
-/* Make auth buttons not flex: 1 */
 .auth-controls .btn {
   flex: 0 0 auto;
 }
 #userLabel {
   font-size: 0.9rem;
   color: var(--color-text-muted);
-  display: none; /* Hidden on small mobile */
+  display: none; 
 }
 
 /* ===== MAIN APP CONTAINER ===== */
 .app-container {
-  padding: 0; /* Remove padding, screens are full-width */
+  padding: 0;
   margin: 0 auto;
-  /* --- THIS IS A CRITICAL FIX --- */
   position: relative;
   overflow-x: hidden;
   min-height: 100vh;
-  /* --- END FIX --- */
 }
 
-/* ===== ITEM LISTS (Aesthetic Update) ===== */
+/* ===== ITEM LISTS ===== */
 .item-list {
   list-style: none;
   width: 100%;
-  padding: 0 1rem; /* Add side padding */
-  /* --- THIS IS A CRITICAL FIX --- */
-  padding-top: 7rem; /* <-- FIX: Was 2rem. This adds space for the sticky header. */
-  /* --- END FIX --- */
+  padding: 0 1rem; 
+  padding-top: 7rem; 
 }
 .item-list li {
   font-size: 1.1rem;
   font-weight: 500;
-  padding: 1.25rem 1rem; /* More tappable space */
+  padding: 1.25rem 1rem;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
-  transition: all var(--transition); /* Changed to 'all' */
+  transition: all var(--transition);
   
-  /* Hevy-inspired list style */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -317,7 +248,7 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 
-  position: relative; /* <-- ADDED: For positioning the delete button */
+  position: relative;
 }
 .item-list li:last-child {
   border-bottom: 1px solid var(--color-border);
@@ -325,9 +256,7 @@ body {
 .item-list li:hover {
   background-color: var(--color-primary-light);
 }
-/* Add a "chevron" > to indicate tappable item */
 .item-list li::after {
-  
   content: '>';
   font-size: 1.1rem;
   font-weight: 600;
@@ -336,26 +265,21 @@ body {
 }
 .item-list li > span {
   flex: 1;
-  /* Add padding to the right so text doesn't 
-     touch the delete button when it appears */
   padding-right: 1rem; 
-  /* NEW: Allow color transitions */
   transition: color 0.3s ease;
 }
-/* Hide chevron when in edit mode */
 .edit-mode-active .item-list li::after {
   transform: translateX(20px);
   opacity: 0;
 }
 
 
-/* ===== SETS TABLE (Aesthetic Update) ===== */
+/* ===== SETS TABLE ===== */
 .table-container {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 1rem 2rem 1rem; /* Add padding */
-  /* Remove margin-top, it's now on the wrapper */
+  padding: 0 1rem 2rem 1rem;
 }
 table {
   width: 100%;
@@ -386,37 +310,18 @@ table tbody td {
   color: var(--color-text);
   font-weight: 500;
 }
-/* Right-align the delete button cell */
 table th:last-child,
 table td:last-child {
   text-align: right;
   padding: 0.5rem;
 }
-
-/* --- NEW Day Divider Styles --- */
-/*
-  This targets the <td> elements of the row
-  that has been marked as the end of a day's sets.
-*/
 tr.day-end-row td {
-  /* We override the default 1px grey border with
-    a 2px yellow border, applying the opacity
-    from the original .divider-line style.
-    --color-yellow is #ffcc00
-  */
   border-bottom: 2px solid rgba(255, 204, 0, 0.6);
 }
-/* --- END Day Divider Styles --- */
 
-
-/* =====================================================
-  NEW DELETE BUTTON & EDIT MODE STYLES
-  =====================================================
-*/
-
-/* The "Red X" button */
+/* ===== DELETE BUTTON & EDIT MODE ===== */
 .btn-delete {
-  display: none; /* Hidden by default */
+  display: none; 
   font-family: inherit;
   font-size: 1.25rem;
   font-weight: 700;
@@ -426,13 +331,9 @@ tr.day-end-row td {
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  
-  /* Animation */
   opacity: 0;
   transform: scale(0.5);
   transition: all 0.2s ease;
-  
-  /* For list items */
   position: absolute;
   right: 1rem;
   top: 50%;
@@ -440,7 +341,6 @@ tr.day-end-row td {
   z-index: 5;
 }
 
-/* Table delete button is slightly different */
 td .btn-delete {
   position: relative;
   right: 0;
@@ -450,38 +350,64 @@ td .btn-delete {
   margin: 0;
 }
 
-/* This is the magic: Show the button when in edit mode */
 .edit-mode-active .btn-delete {
   display: inline-flex;
   opacity: 1;
   transform: scale(1);
 }
-/* For table button */
 .edit-mode-active td .btn-delete {
   transform: scale(1);
 }
-
-/* Style the editable text when in edit mode */
 .edit-mode-active .editable {
   color: var(--color-primary) !important;
   text-decoration: underline dashed 1px;
 }
-/* ===================================================== */
+.delete-modal {
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
+}
+.delete-modal h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+.delete-modal p {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+.delete-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+.btn-danger {
+  background-color: var(--color-red);
+  color: white;
+}
+.btn-tertiary {
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+}
 
 
-/* ===== GRAPH (Dark Mode Fix) ===== */
+/* ===== GRAPH ===== */
 #graphDiv {
   width: 100%;
   min-height: 400px;
   padding: 1rem;
-  background-color: var(--color-card); /* Give graph a card bg */
+  background-color: var(--color-card);
   border-radius: var(--radius-md);
   margin: 0 1rem;
-  width: calc(100% - 2rem); /* Ensure it respects padding */
+  width: calc(100% - 2rem);
 }
-
-/* --- Plotly Dark Mode --- */
-/* ... (unchanged) ... */
 .plotly-bg {
   background-color: var(--color-card) !important;
 }
@@ -511,7 +437,7 @@ td .btn-delete {
   font-weight: 600 !important;
 }
 
-/* ===== RESPONSIVE (Desktop / Tablet) ===== */
+/* ===== RESPONSIVE ===== */
 @media(min-width: 768px) {
   body {
     font-size: 18px; 
@@ -523,25 +449,19 @@ td .btn-delete {
     font-size: 1.75rem;
   }
   #userLabel {
-    display: inline; /* Show user label on desktop */
+    display: inline; 
   }
-
-  /* Make comparison banner flex-row on desktop */
   .comparison-banner {
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
   }
-
-  /* Increase title font size on desktop */
   .animated-title {
     font-size: 2rem;
   }
 }
 
-/* ===== NAVIGATION & SCREEN STYLES (THE FIX) ===== */
-
-/* This turns our <section> elements into full-screen pages */
+/* ===== NAVIGATION & SCREEN STYLES ===== */
 .screen {
   position: absolute;
   top: 0;
@@ -549,133 +469,74 @@ td .btn-delete {
   width: 100%;
   min-height: 100vh;
   background-color: var(--color-bg);
-  
-  /* Reset card styles so it's not a 'card' anymore */
   border-radius: 0;
   box-shadow: none;
   overflow-y: auto;
 }
 
-/* We need to make the container a 'viewport' for our screens */
-/* This rule is now defined in .app-container near the top */
-
-
-/* === NEW Back Button Style === */
-/* This replaces the old .btn-back rule */
 .btn-back {
-  font-family: inherit; /* */
+  font-family: inherit;
   color: var(--color-red);
   background-color: var(--color-secondary);
-  border: none; /* */
-  cursor: pointer; /* */
-
-  /* Sizing and Shape */
-  width: 36px; /* A good tap size */
+  border: none; 
+  cursor: pointer;
+  width: 36px; 
   height: 36px;
   border-radius: 50%;
-  padding: 0; /* Override old padding */
-
-  /* Flex properties for centering SVG */
+  padding: 0; 
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* Layout properties (CRITICAL) */
-  /* flex: 0 0 auto; */ /* <-- REMOVED this, using absolute now */
-  z-index: 20; /* Kept from original */
-  /* margin-left: 0; */ /* <-- REMOVED this */
-
-  /* Animation */
+  z-index: 20; 
   animation: move-back-and-forth 1.3s ease-in-out infinite;
-
-  /* Polish */
   border: 1px solid var(--color-border);
-  transition: all var(--transition); /* */
-  
-  /* --- NEW POSITIONING SYSTEM --- */
+  transition: all var(--transition); 
   position: absolute;
-  top: 1rem; /* Align with header padding */
-  left: 1.5rem; /* Align with header padding */
+  top: 1rem; 
+  left: 1.5rem;
 }
 
 .btn-back:hover {
   background-color: #444;
   transform: scale(1.05);
-  animation-play-state: paused; /* Stop animation on hover */
+  animation-play-state: paused;
 }
 
 .back-arrow-svg {
   width: 24px;
   height: 24px;
-  fill: currentColor; /* Inherits 'color: white' from .btn-back */
-  /* Move arrow slightly left to feel centered */
+  fill: currentColor;
   position: relative;
   left: -1px;
 }
 
-/* Make card headers sticky like a native app header */
 .card-header {
   position: sticky;
-  top: 16px; /* <-- STICKY HEADER FIX: Stick below the 56px main header */
+  top: 16px; 
   background-color: var(--color-card);
   z-index: 10;
-  padding: 1rem 1.5rem; /* <-- STICKY HEADER FIX: Normal padding */
-  /* Removed padding-top, margin-top, and background-image */
-  
-  /* --- NEW GRID POSITIONING SYSTEM --- */
+  padding: 1rem 1.5rem; 
   display: grid;
-  grid-template-columns: 1fr auto 1fr; /* 3 columns: Left(auto) | Center(flex) | Right(auto) */
+  grid-template-columns: 1fr auto 1fr; 
   align-items: center;
-  gap: 1rem; /* Space between items */
-
-  /* Remove old properties */
-  /* position: relative; */ 
+  gap: 1rem; 
   min-height: 52px; 
 }
 
-/* --- H3 is GONE --- */
-/*
-.card-header h3 {
-  ...
-}
-.card-header h3.hidden {
-  display: none;
-}
-*/
-
-/* --- NEW POSITIONING FOR ADD BUTTONS/GROUPS --- */
 .card-header .btn-primary,
 .card-header .btn-group {
-  /* This is no longer absolute */
-  /* position: absolute; */
-  /* top: 1rem; */
-  /* right: 1.5rem; */ 
-  /* z-index: 20; */
-
-  /* NEW: Place in 3rd grid column and align to the right */
   grid-column: 3;
   justify-self: end;
 }
-/* Ensure the btn-group (on Sets page) doesn't wrap */
 .card-header .btn-group {
   flex-wrap: nowrap;
   width: auto;
 }
 
-
-/* --- THE Z-INDEX BUG FIX --- */
-/* ... existing code ... -->
-#graphContainer .card-header ~ #graphDiv {
-  margin-top: 7rem;
-}
-
-/* This targets the new wrapper div */
 #setsDiv .sets-content-wrapper {
-  margin-top: 11rem; /* UPDATED: Was 7rem. Increased to clear both headers */
+  margin-top: 11rem; 
 }
 
-
-/* ===== ANIMATIONS ===== */
 @keyframes move-back-and-forth {
   0% { transform: translateX(0); }
   40% { transform: translateX(-4px); }
@@ -688,10 +549,10 @@ td .btn-delete {
 }
 @keyframes slideOutToLeft {
   from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-25%); opacity: 0; } /* Fade out faster */
+  to { transform: translateX(-25%); opacity: 0; }
 }
 @keyframes slideInFromLeft {
-  from { transform: translateX(-25%); opacity: 0; } /* Start from part-way */
+  from { transform: translateX(-25%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToRight {
@@ -699,10 +560,9 @@ td .btn-delete {
   to { transform: translateX(100%); opacity: 0.5; }
 }
 
-/* Animation helper classes */
 .slide-in-right {
   animation: slideInFromRight 0.3s forwards ease-out;
-  z-index: 2; /* Ensure new screen is on top */
+  z-index: 2; 
 }
 .slide-out-left {
   animation: slideOutToLeft 0.3s forwards ease-out;
@@ -717,59 +577,49 @@ td .btn-delete {
   z-index: 1;
 }
 
-/* =====================================================
-  NEW ACTION HEADER STYLES (for Sets page)
-===================================================== */
 .action-header {
   position: sticky;
-  /* 16px (top) + 68px (header height) = 84px */
   top: 84px; 
   background-color: var(--color-card);
-  z-index: 9; /* Below main header (10), above content */
+  z-index: 9; 
   padding: 0 1.5rem 1rem 1.5rem;
   display: flex;
   justify-content: center;
-  /* Add a border to separate from content */
   border-bottom: 1px solid var(--color-border);
 }
 .action-header .btn-group {
   width: 100%;
-  max-width: 500px; /* Max width for the button group */
+  max-width: 500px; 
 }
 .action-header .btn {
-  flex: 1; /* Make buttons share space equally */
+  flex: 1; 
 }
 
-/* =====================================================
-  NEW COMPARISON BANNER STYLES (FINAL)
-===================================================== */
+/* ===== COMPARISON BANNER ===== */
 .comparison-banner {
   display: flex;
-  flex-direction: column; /* Stack on mobile */
+  flex-direction: column; 
   gap: 1rem;
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 1rem;
-  margin: 0 1rem 1rem 1rem; /* Add margin */
+  margin: 0 1rem 1rem 1rem;
 }
-
 .stat-comparison {
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* Align left on mobile */
+  justify-content: flex-start; 
   gap: 0.75rem;
 }
-
 .stat-label {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  min-width: 60px; /* Give labels consistent width */
-  flex-shrink: 0; /* Don't let label shrink */
+  min-width: 60px; 
+  flex-shrink: 0; 
 }
-
 .stat-arrow {
   font-size: 1.25rem;
   font-weight: bold;
@@ -777,8 +627,6 @@ td .btn-delete {
   text-align: center;
   flex-shrink: 0;
 }
-
-/* --- Arrow Colors --- */
 .stat-arrow.increase { color: var(--color-green); }
 .stat-arrow.decrease { color: var(--color-red); }
 .stat-arrow.neutral { color: var(--color-yellow); }
@@ -789,7 +637,6 @@ td .btn-delete {
   position: relative;
   flex-shrink: 0;
 }
-
 .comparison-svg {
   position: absolute;
   top: 0;
@@ -799,46 +646,39 @@ td .btn-delete {
   viewBox: 0 0 100 100;
   overflow: visible;
 }
-
 .comparison-spiral {
   fill: none;
-  /* stroke: var(--color-text-muted); */ /* <-- REMOVED default stroke */
-  stroke-width: 5; /* Thicker for visibility */
+  stroke-width: 5; 
   stroke-linecap: round;
   stroke-dasharray: 1200;
   stroke-dashoffset: 1200;
   transform-origin: 50px 50px;
   animation: drawSpiral 4s ease-in-out infinite;
 }
-
-/* --- Spiral Colors & Animations --- */
 .comparison-spiral.increase {
   stroke: var(--color-green);
-  animation-duration: 2s; /* Faster */
+  animation-duration: 2s;
 }
 .comparison-spiral.decrease {
   stroke: var(--color-red);
-  animation-duration: 6s; /* Slower */
+  animation-duration: 6s; 
 }
 .comparison-spiral.neutral {
   stroke: var(--color-yellow);
-  animation-duration: 4s; /* Normal */
+  animation-duration: 4s; 
 }
-
-/* --- NEW: Data Text Styles --- */
 .stat-data {
   font-size: 0.9rem;
   font-weight: 500;
-  margin-left: auto; /* This pushes it to the right */
+  margin-left: auto; 
   text-align: right;
-  white-space: nowrap; /* Prevent ugly wrapping */
+  white-space: nowrap; 
 }
-
 .stat-data.increase { color: var(--color-green); }
 .stat-data.decrease { color: var(--color-red); }
 .stat-data.neutral { color: var(--color-yellow); }
 
-/* ===== LOGO ANIMATION (from logomain.html) ===== */
+/* ===== LOGO ANIMATION ===== */
 #animated-logo {
   height: 50px;
   width: auto;
@@ -846,122 +686,61 @@ td .btn-delete {
   font-family: 'Fredoka', sans-serif;
   font-weight: 700;
   font-size: 38px;
-  /* Vertically center the logo in the header */
   display: block;
   margin-top: auto;
   margin-bottom: auto;
 }
 
-/*
- * == Animation Definitions (Legacy) ==
- */
-
-/* Bouncing arrow (unchanged) */
-
 @keyframes bounce {
   0%, 100% { transform: translateY(0); animation-timing-function: ease-in; }
   50% { transform: translateY(-10px); animation-timing-function: ease-out; }
 }
-
-/* NEW MASTER KEYFRAME (Clockwise):
-  Combines the spin, then the float, into one 10-second loop.
-*/
 @keyframes master-spin-float-loop {
   0%    { transform: rotate(0deg)   translate(0, 0); }
-  18%   { transform: rotate(720deg) translate(0, 0); } /* Spin finishes at 1.8s */
-  
-  /* Float Cycle 1 */
+  18%   { transform: rotate(720deg) translate(0, 0); } 
   24.8% { transform: rotate(720deg) translate(-1px, -2px); }
   31.6% { transform: rotate(720deg) translate(0, 0); }
   38.4% { transform: rotate(720deg) translate(1px, 2px); }
   45.2% { transform: rotate(720deg) translate(0, 0); }
-  
-  /* Float Cycle 2 */
   52.0% { transform: rotate(720deg) translate(-1px, -2px); }
   58.8% { transform: rotate(720deg) translate(0, 0); }
   65.6% { transform: rotate(720deg) translate(1px, 2px); }
   72.4% { transform: rotate(720deg) translate(0, 0); }
-  
-  /* Float Cycle 3 */
   79.2% { transform: rotate(720deg) translate(-1px, -2px); }
   86.0% { transform: rotate(720deg) translate(0, 0); }
   92.8% { transform: rotate(720deg) translate(1px, 2px); }
-  100%  { transform: rotate(720deg) translate(0, 0); } /* Loop restarts */
+  100%  { transform: rotate(720deg) translate(0, 0); } 
 }
-
-/* NEW MASTER KEYFRAME (Counter-Clockwise):
-  Same as above, but with negative rotation.
-*/
 @keyframes master-spin-reverse-float-loop {
   0%    { transform: rotate(0deg)   translate(0, 0); }
-  18%   { transform: rotate(-720deg) translate(0, 0); } /* Spin finishes at 1.8s */
-  
-  /* Float Cycle 1 */
+  18%   { transform: rotate(-720deg) translate(0, 0); } 
   24.8% { transform: rotate(-720deg) translate(-1px, -2px); }
   31.6% { transform: rotate(-720deg) translate(0, 0); }
   38.4% { transform: rotate(-720deg) translate(1px, 2px); }
   45.2% { transform: rotate(-720deg) translate(0, 0); }
-  
-  /* Float Cycle 2 */
   52.0% { transform: rotate(-720deg) translate(-1px, -2px); }
   58.8% { transform: rotate(-720deg) translate(0, 0); }
   65.6% { transform: rotate(-720deg) translate(1px, 2px); }
   72.4% { transform: rotate(-720deg) translate(0, 0); }
-  
-  /* Float Cycle 3 */
   79.2% { transform: rotate(-720deg) translate(-1px, -2px); }
   86.0% { transform: rotate(-720deg) translate(0, 0); }
   92.8% { transform: rotate(-720deg) translate(1px, 2px); }
-  100%  { transform: rotate(-720deg) translate(0, 0); } /* Loop restarts */
+  100%  { transform: rotate(-720deg) translate(0, 0); } 
 }
-
-/*
- * == Animation Applications (Legacy) ==
- */
 
 #logo-arrow {
   animation: bounce 1.4s infinite;
 }
-
-/* Basic setup for all letters */
-#logo-t,
-#logo-r,
-#logo-u,
-#logo-n,
-#logo-k {
+#logo-t, #logo-r, #logo-u, #logo-n, #logo-k {
   transform-box: fill-box;
   transform-origin: center;
 }
+#logo-t { animation: master-spin-float-loop 10s 0.4s infinite ease-in-out; }
+#logo-u { animation: master-spin-float-loop 10s 0.1s infinite ease-in-out; }
+#logo-k { animation: master-spin-float-loop 10s 0.5s infinite ease-in-out; }
+#logo-r { animation: master-spin-reverse-float-loop 10s 0.2s infinite ease-in-out; }
+#logo-n { animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out; }
 
-/* Apply CLOCKWISE loop */
-#logo-t {
-  animation: master-spin-float-loop 10s 0.4s infinite ease-in-out;
-}
-#logo-u {
-  animation: master-spin-float-loop 10s 0.1s infinite ease-in-out;
-}
-#logo-k {
-  animation: master-spin-float-loop 10s 0.5s infinite ease-in-out;
-}
-
-/* Apply COUNTER-CLOCKWISE loop */
-#logo-r {
-  animation: master-spin-reverse-float-loop 10s 0.2s infinite ease-in-out;
-}
-#logo-n {
-  animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out;
-}
-
-/* ===== END LOGO ANIMATION (Legacy) ===== */
-/* =====================================================
-   LOGO ANIMATION FALLBACK (Mobile Fix) (Legacy)
-   ===================================================== */
-/*
-  This provides manual coordinates for mobile browsers that
-  do not support 'transform-box: fill-box'. This overrides
-  the 'transform-origin: center' from the block above.
-  These values are pixel estimates (x, y) for each letter's center.
-*/
 #logo-t { transform-origin: 12px 22px; }
 #logo-r { transform-origin: 33px 22px; }
 #logo-u { transform-origin: 59px 22px; }
@@ -970,66 +749,42 @@ td .btn-delete {
 
 
 /* =====================================================
-   NEW ANIMATED TITLE STYLES
+   ANIMATED TITLE STYLES
    ===================================================== */
 .animated-title {
-  font-family: 'Fredoka', sans-serif; /* Use the logo font */
+  font-family: 'Fredoka', sans-serif;
   font-weight: 700;
-  font-size: 1.75rem; /* Larger font */
-  color: var(--color-text); /* Default color */
-  
-  /* Positioning */
-  /* flex: 1; */ /* Removed flex */
-  text-align: center; /* Center it */
-  
-  /* This is the key to aligning with the back button */
-  /* The header is 1rem + 36px + 1rem = 68px tall. This centers the text. */
+  font-size: 1.75rem;
+  color: var(--color-text);
+  text-align: center;
   line-height: 36px;
-  /* padding: 0 4rem; */ /* <-- REMOVED this padding */
-  
-  /* For animations */
   position: relative;
-  /* Prevent text selection during animation */
   user-select: none;
-  
-  /* Ensure it's a block to center */
   display: block;
-  margin: 0; /* Override default h2 margin */
-  /* width: 100%; */ /* Removed width */
-
-  /* NEW: Place in 2nd grid column */
+  margin: 0;
   grid-column: 2;
-  /* Prevent title from being too long and overlapping */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Individual spans for letters */
 .animated-title .char {
-  display: inline-block; /* Allows transforms */
-  transition: color 0.3s ease; /* Color change transition */
-  /* Remove old animations */
-  animation: none !important;
+  display: inline-block;
+  transition: color 0.3s ease;
+  /* Removed "animation: none !important;" which was killing the animations */
 }
 
-/* This is for the title on the Sets page */
 #exerciseSetsTitleSpan .char {
-  /* This ensures the inner span's chars also get animated */
   display: inline-block;
   transition: color 0.3s ease;
 }
 
 
 /* -----------------------------------------------------
-   NEW 9-TIER ANIMATION DEFINITIONS
+   9-TIER ANIMATION DEFINITIONS
    ----------------------------------------------------- */
 
-/*
- * HAPPY (Green) - Crashing Through Obstacles, High Energy
- */
-
-/* Happy-1: The Crash (Vertical/Rotation Stagger) */
+/* HAPPY */
 @keyframes happy-crash {
     0% { transform: translate(0, 0) rotate(0deg); }
     15% { transform: translate(0, -6px) rotate(3deg); }
@@ -1043,11 +798,9 @@ td .btn-delete {
     animation-duration: 0.6s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    /* Stagger delay */
     animation-delay: calc(var(--char-index) * 0.04s);
 }
 
-/* Happy-2: The Boost (Fast, forward motion) */
 @keyframes happy-boost {
     0%, 100% { transform: translateX(0) scaleY(1); }
     20% { transform: translateX(-2px) scaleY(0.95); }
@@ -1059,12 +812,10 @@ td .btn-delete {
     animation-name: happy-boost;
     animation-duration: 0.8s;
     animation-iteration-count: infinite;
-    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Quick, punchy ease */
-    /* Stagger delay for wave effect */
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     animation-delay: calc(var(--char-index) * 0.05s);
 }
 
-/* Happy-3: The Jolt (Big, random movement - maximum character movement) */
 @keyframes happy-jolt {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     25% { transform: translate(3px, -5px) rotate(5deg); }
@@ -1076,29 +827,22 @@ td .btn-delete {
     animation-duration: 0.5s;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
-    /* No stagger, all jolt together */
 }
 
-/*
- * SAD (Red) - Running into Roadblocks, Slowing Down
- */
-
-/* Sad-1: The Slow Drag (Leftward translation with reluctance) */
+/* SAD */
 @keyframes sad-drag {
     0%, 100% { transform: translateX(0); }
     50% { transform: translateX(-2px) translateY(1px); }
 }
 .animated-title .char.sad-1 {
     animation-name: sad-drag;
-    animation-duration: 4s; /* Very slow pace */
+    animation-duration: 4s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-direction: alternate;
-    /* Reverse stagger: letters at the end drag the beginning */
     animation-delay: calc((12 - var(--char-index)) * 0.1s);
 }
 
-/* Sad-2: The Tilt (Heavy, sloping downwards) */
 @keyframes sad-tilt {
     0%, 100% { transform: rotate(0deg) translateY(0); }
     50% { transform: rotate(-4deg) translateY(2px); }
@@ -1108,32 +852,24 @@ td .btn-delete {
     animation-duration: 3s;
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
-    transform-origin: bottom center; /* Pivot from the bottom */
-    /* Stagger delay for a heavy, domino effect */
+    transform-origin: bottom center;
     animation-delay: calc(var(--char-index) * 0.08s);
 }
 
-/* Sad-3: The Glitch (Subtle vertical jitter and blur/opacity) */
 @keyframes sad-glitch {
     0%, 100% { transform: translateY(0); opacity: 1; }
     50% { transform: translateY(1px); opacity: 0.95; }
 }
 .animated-title .char.sad-3 {
     animation-name: sad-glitch;
-    animation-duration: 0.2s; /* Fast, but subtle movement */
+    animation-duration: 0.2s;
     animation-iteration-count: infinite;
-    animation-timing-function: steps(1, end); /* Jittery movement */
-    /* Randomize start time for a messy jitter */
-    animation-delay: calc(random() * 0.2s); 
+    animation-timing-function: steps(1, end);
+    animation-delay: calc(var(--char-index) * 0.02s); 
 }
-/* Helper function for random in CSS is defined below */
 
 
-/*
- * CALM (Yellow) - Chill and Relaxed, Gentle Flow
- */
-
-/* Calm-1: The Float (Gentle vertical drift) */
+/* CALM */
 @keyframes calm-float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-1px); }
@@ -1144,11 +880,9 @@ td .btn-delete {
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-direction: alternate;
-    /* Gentle, slow wave */
     animation-delay: calc(var(--char-index) * 0.15s);
 }
 
-/* Calm-2: The Breath (Subtle scale and position change) */
 @keyframes calm-breath {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-0.5px) scale(1.005); }
@@ -1159,11 +893,9 @@ td .btn-delete {
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-direction: alternate;
-    /* Staggered breath */
     animation-delay: calc(var(--char-index) * 0.2s);
 }
 
-/* Calm-3: The Ripple (Wave-like horizontal stagger) */
 @keyframes calm-ripple {
     0%, 100% { transform: translateY(0) translateX(0); }
     50% { transform: translateY(-1px) translateX(0.5px); }
@@ -1174,24 +906,9 @@ td .btn-delete {
     animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-direction: alternate;
-    /* Fast ripple wave */
     animation-delay: calc(var(--char-index) * 0.1s);
 }
 
-/*
- * --- CSS Helper for Sad-3 (Required for random delay) ---
- * Note: Sass/Less functions like random() are not directly supported in pure CSS.
- * Since this is an in-browser environment, we'll rely on the index or simply
- * keep the stagger and comment out the random, as the JS already controls randomness
- * via the changing class on page load.
- */
-.animated-title .char.sad-3 {
-    animation-delay: calc(var(--char-index) * 0.02s); /* Reverting to index stagger */
-}
-
-
-/* --- Assigning character index for stagger/delay --- */
-/* This is a crucial step to enable the variable delay using CSS custom properties */
 .animated-title .char:nth-child(1) { --char-index: 1; }
 .animated-title .char:nth-child(2) { --char-index: 2; }
 .animated-title .char:nth-child(3) { --char-index: 3; }
@@ -1204,6 +921,3 @@ td .btn-delete {
 .animated-title .char:nth-child(10) { --char-index: 10; }
 .animated-title .char:nth-child(11) { --char-index: 11; }
 .animated-title .char:nth-child(12) { --char-index: 12; }
-
-/* The rest of the CSS (unchanged but kept for completeness) */
-/* ... (remaining original CSS content follows) ... */
