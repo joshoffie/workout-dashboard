@@ -18,7 +18,7 @@ let selectedSession = null;
 let selectedExercise = null;
 
 // =====================================================
-// ANIMATION CONFIGURATION & COOLDOWN
+// ANIMATION CONFIGURATION
 // =====================================================
 
 const ANIMATION_CLASSES = {
@@ -27,10 +27,9 @@ const ANIMATION_CLASSES = {
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
 
-// Global state to store the current animation for consistency
-let currentAnimationClass = 'calm-1'; 
+// Header cooldown tracking
 const animationCooldowns = {}; 
-const COOLDOWN_DURATION = 20000; // 20 seconds in ms
+const COOLDOWN_DURATION = 20000; // 20 seconds
 
 function getRandomAnimationClass(mood) {
   const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
@@ -188,7 +187,7 @@ async function saveUserJson() {
   await db.collection("clients").doc(uid).set(clientsData);
 }
 
-// ------------------ ANIMATED TITLE HELPERS ------------------
+// ------------------ TEXT HELPERS ------------------
 
 function setTextAsChars(element, text) {
   element.innerHTML = '';
@@ -211,7 +210,8 @@ function setTextAsChars(element, text) {
 }
 
 /**
- * ORIGINAL TITLE ANIMATION (For Headers - Happy/Sad/Calm logic)
+ * HEADER ANIMATION LOGIC (Happy/Sad/Calm with Cooldown)
+ * Used for the big titles at the top of pages.
  */
 function applyTitleStyling(element, text, colorData, cooldownKey = null) {
   if (!element) return;
@@ -221,6 +221,7 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
   
+  // Clean up
   const allClasses = [
     ...ANIMATION_CLASSES.happy, 
     ...ANIMATION_CLASSES.sad, 
@@ -229,6 +230,7 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
   ];
   targetElement.classList.remove(...allClasses);
 
+  // Determine Mood
   let mood = 'calm'; 
   if (colorData && colorData.total > 0) {
     const { red, green, yellow } = colorData;
@@ -239,6 +241,7 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
 
   const animClass = getRandomAnimationClass(mood);
   
+  // Cooldown Check
   let shouldAnimate = true;
   if (cooldownKey) {
     const lastRun = animationCooldowns[cooldownKey] || 0;
@@ -260,17 +263,17 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
     return;
   }
 
-  // Basic Color distribution logic for Headers
+  // Distribute Colors
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
-  if (numChars === 0) return;
-
+  
   const colors = [];
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
 
+  // Adjustment Logic to ensure counts match numChars
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -292,20 +295,21 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
+  // Shuffle
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
+  // Apply
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    
     if (shouldAnimate) {
         char.classList.add(animClass);
-        // Add specific Diverge logic for Calm-3 in headers too
+        // Legacy diverge logic for headers
         if (animClass === 'calm-3') {
-            if (colors[i] === 'var(--color-green)') char.classList.add('anim-up');
-            if (colors[i] === 'var(--color-red)') char.classList.add('anim-down');
+            if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
+            if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
         }
     }
   });
@@ -313,20 +317,17 @@ function applyTitleStyling(element, text, colorData, cooldownKey = null) {
 
 /**
  * =====================================================================
- * NEW: FOOLPROOF LIST ANIMATOR (For Items)
- * Directly applies colors and specific animation triggers.
+ * NEW: ROBUST LIST ANIMATOR (For Items like Ned, Josh, Bench Press)
+ * Directly applies colors and schedules simple class toggling.
  * =====================================================================
  */
-function applyRandomIntervalAnimation(element, text, colorData) {
+function setupListTextAnimation(element, text, colorData) {
   if (!element) return;
 
-  // 1. Prepare Text
+  // 1. Set Text
   setTextAsChars(element, text);
-  
-  // 2. Important: Mark container so CSS knows how to treat .char children
-  element.classList.add('list-anim-container');
 
-  // Handle No Data case
+  // Handle No Data
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -334,7 +335,7 @@ function applyRandomIntervalAnimation(element, text, colorData) {
     return; 
   }
 
-  // 3. Calculate Colors (Standard Logic)
+  // 2. Calculate Colors
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -370,56 +371,51 @@ function applyRandomIntervalAnimation(element, text, colorData) {
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
-  // 4. Apply Colors & Assign Animation Role
+  // 3. Apply Colors & Setup Direction Attributes
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
     
-    // Store intention in dataset, doesn't animate yet
+    // We mark the INTENTION on the element dataset
     if (colors[i] === 'var(--color-green)') {
-        char.dataset.animType = 'up'; 
+        char.dataset.moveDirection = 'up'; 
     } else if (colors[i] === 'var(--color-red)') {
-        char.dataset.animType = 'down';
+        char.dataset.moveDirection = 'down';
     }
   });
 
-  // 5. The Random Trigger Loop
-  // This uses a self-contained function that persists as long as the element exists
-  const triggerLoop = () => {
-      // STOP if element is gone (user navigated away)
-      if (!document.body.contains(element)) return;
+  // 4. Start the Random Loop for this specific list item
+  runAnimationLoop(element);
+}
 
-      // A. Trigger Animations
-      chars.forEach(char => {
-          // Clear old trigger class to reset
-          char.classList.remove('trigger-anim');
-          
-          // Force Reflow (Magic to restart CSS animation)
-          void char.offsetWidth; 
+function runAnimationLoop(element) {
+    // Generate random delay between 1s (1000ms) and 40s (40000ms)
+    const randomDelay = Math.floor(Math.random() * 39000) + 1000;
 
-          // Re-apply if it has a type
-          if (char.dataset.animType) {
-              char.classList.add('trigger-anim');
-              // Add specific directional class based on data set earlier
-              if (char.dataset.animType === 'up') char.classList.add('anim-up');
-              if (char.dataset.animType === 'down') char.classList.add('anim-down');
-          }
-      });
+    setTimeout(() => {
+        // Safety Check: If user left screen, stop loop
+        if (!document.body.contains(element)) return;
 
-      // B. Cleanup classes after animation finishes (2s)
-      setTimeout(() => {
-          if (!document.body.contains(element)) return;
-          chars.forEach(char => {
-             char.classList.remove('trigger-anim', 'anim-up', 'anim-down');
-          });
-      }, 2000); // Animation duration is 2s
+        const chars = element.querySelectorAll('.char');
+        
+        // A. Add the class to trigger CSS animation
+        chars.forEach(char => {
+            const dir = char.dataset.moveDirection;
+            if (dir === 'up') char.classList.add('animate-up');
+            if (dir === 'down') char.classList.add('animate-down');
+        });
 
-      // C. Schedule Next (Random 1s - 40s)
-      const nextDelay = Math.floor(Math.random() * 39000) + 1000; 
-      setTimeout(triggerLoop, nextDelay);
-  };
+        // B. Remove the class after animation finishes (2s)
+        setTimeout(() => {
+            if (!document.body.contains(element)) return;
+            chars.forEach(char => {
+                char.classList.remove('animate-up', 'animate-down');
+            });
 
-  // Start the first loop immediately
-  triggerLoop();
+            // C. Schedule next run
+            runAnimationLoop(element);
+        }, 2000); // Match CSS animation duration
+
+    }, randomDelay);
 }
 
 
@@ -473,7 +469,7 @@ function renderClients() {
     li.style.cursor = "pointer";
 
     const nameSpan = document.createElement("span");
-    // Text is set inside applyRandomIntervalAnimation
+    // setupListTextAnimation handles textContent via setTextAsChars
     
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
@@ -493,8 +489,8 @@ function renderClients() {
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
-    // APPLY ANIMATION TO ITEM
-    applyRandomIntervalAnimation(nameSpan, name, clientColorData);
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
@@ -519,7 +515,7 @@ function renderClients() {
     clientList.appendChild(li);
   }
   
-  // Main Title (Still uses mood logic + cooldown)
+  // Main Title still uses standard Logic
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData, 'page-title-clients');
   
@@ -599,8 +595,8 @@ function renderSessions() {
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
 
-    // APPLY ANIMATION TO ITEM
-    applyRandomIntervalAnimation(nameSpan, sess.session_name, sessionColorData);
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
 
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
@@ -628,7 +624,6 @@ function renderSessions() {
     sessionList.appendChild(li);
   });
   
-  // Main Title (Standard animation)
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
   applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData, 'page-title-sessions');
 
@@ -700,15 +695,14 @@ function renderExercises() {
       });
     };
     
-    // APPLY ANIMATION TO ITEM
-    applyRandomIntervalAnimation(nameSpan, ex.exercise, colorData);
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, ex.exercise, colorData);
 
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
     exerciseList.appendChild(li);
   });
   
-  // Main Title (Standard animation)
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData, 'page-title-exercises');
   hookEditables();
 }
@@ -926,7 +920,6 @@ function runComparisonLogic() {
     return;
   }
   
-  // Apply initial styling (sets random animation)
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
   const colorData = getExerciseColorData(selectedExercise);
