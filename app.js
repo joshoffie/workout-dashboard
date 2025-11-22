@@ -946,7 +946,7 @@ class SwirlWidget {
     initSVG() {
         this.pathPoints = [];
         let basePathD = "";
-        const resolution = 2000; 
+        const resolution = 400; // REDUCED FROM 2000 TO 400 FOR MOBILE OPTIMIZATION
         let cumulativeLen = 0;
         let prevPt = null;
 
@@ -982,10 +982,13 @@ class SwirlWidget {
                 const lenStart = timePctStart * this.totalLength;
                 const lenEnd = timePctEnd * this.totalLength;
                 
+                // Overlap slightly to prevent hairline gaps on mobile
+                const drawStart = lenStart - 0.5 > 0 ? lenStart - 0.5 : 0;
+                
                 let segD = "";
                 let started = false;
                 for (let p of this.pathPoints) {
-                    if (p.len >= lenStart && p.len <= lenEnd) {
+                    if (p.len >= drawStart && p.len <= lenEnd) {
                         if (!started) {
                             segD += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
                             started = true;
@@ -1131,7 +1134,8 @@ class SwirlWidget {
 
     setVisualProgress(pct) {
         const drawLen = pct * this.totalLength;
-        this.maskPath.style.strokeDasharray = `${drawLen} 10000`;
+        // Ensure mask is long enough to cover everything
+        this.maskPath.style.strokeDasharray = `${drawLen} 20000`;
         
         let targetPt = this.pathPoints[this.pathPoints.length-1];
         for(let p of this.pathPoints) {
@@ -1151,6 +1155,7 @@ class SwirlWidget {
             }
         }
         
+        // Fuzzy match for end of line (within 1% of total length)
         if (!activeSegment && this.dataSegments.length > 0) {
              if (drawLen >= this.totalLength * 0.99) {
                  activeSegment = this.dataSegments[this.dataSegments.length-1];
