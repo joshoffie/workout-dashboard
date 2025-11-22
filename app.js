@@ -810,7 +810,7 @@ function aggregateStats(setsArray) {
 }
 
 // =============================================================
-// NEW: SWIRL WIDGET INTEGRATION (V7 MOBILE OPTIMIZED)
+// NEW: SWIRL WIDGET INTEGRATION (V8 - NO MASKS / ROBUST MOBILE)
 // =============================================================
 
 let widgets = [];
@@ -950,17 +950,12 @@ class SwirlWidget {
         this.pathPoints = [];
         let basePathD = "";
         
-        // MOBILE FIX: Reduce resolution from 2000 to ~60 using Bezier approximation
-        // A lower point count with "L" (Line) commands might look jagged.
-        // A better approach for simple spiral is reasonably high point count (100) 
-        // but not 2000. 100 is perfectly fine for mobile GPUs.
+        // 1. Generate Path Data (Low Poly for Speed)
         const resolution = 120; 
         let cumulativeLen = 0;
         let prevPt = null;
 
         for(let i=0; i<=resolution; i++) {
-            // Map linear step to spiral growth
-            // 0.15 offset keeps center hole open
             const t = 0.15 + (i/resolution) * 0.85; 
             const pt = getSpiralPoint(t);
             
@@ -972,17 +967,15 @@ class SwirlWidget {
             this.pathPoints.push({ x: pt.x, y: pt.y, len: cumulativeLen });
             prevPt = pt;
             
-            // Build Path String
-            // "L" is fast and reliable. With 120 points, it looks smooth on 200px wide screens.
             if(i===0) basePathD += `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
             else basePathD += ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
         }
         this.totalLength = cumulativeLen;
 
-        this.dataSegments = [];
+        this.segmentElements = []; // Store references to colored paths
         let colorSegmentsHTML = '';
 
-        // If single data point (Day 1), we can't draw segments really, just a dot or neutral
+        // 2. Generate Colored Segments (Initially Hidden)
         if (this.data.length > 1) {
             for (let i = 1; i < this.data.length; i++) {
                 const prevDataPt = this.data[i-1];
@@ -994,12 +987,14 @@ class SwirlWidget {
                 const lenStart = timePctStart * this.totalLength;
                 const lenEnd = timePctEnd * this.totalLength;
                 
-                // MOBILE FIX: Overlap segments by 1 unit to prevent sub-pixel rendering gaps
-                // If this segment starts at 50, draw from 49.
-                const overlapStart = (lenStart - 1.5) > 0 ? (lenStart - 1.5) : 0;
+                // Slightly overlap segments for visual continuity
+                const overlapStart = (lenStart - 1.0) > 0 ? (lenStart - 1.0) : 0;
                 
                 let segD = "";
                 let started = false;
+                let segLen = 0;
+                
+                // Build sub-path
                 for (let p of this.pathPoints) {
                     if (p.len >= overlapStart && p.len <= lenEnd) {
                         if (!started) {
@@ -1010,54 +1005,49 @@ class SwirlWidget {
                         }
                     }
                 }
+                
+                // Store segment metadata
+                const segObj = {
+                    id: `seg-${this.elementId}-${i}`,
+                    startLen: overlapStart,
+                    endLen: lenEnd,
+                    totalLen: lenEnd - overlapStart,
+                    dataPoint: currDataPt,
+                    prevPoint: prevDataPt
+                };
+                this.segmentElements.push(segObj);
 
                 const status = this.calcStatus(currDataPt, prevDataPt);
                 
-                // IMPORTANT: Use butt cap for internal segments to avoid rounded blobs, 
-                // but relies on overlap to hide seams.
-                colorSegmentsHTML += `<path d="${segD}" class="spiral-segment ${status}" stroke-linecap="butt" stroke-linejoin="round" />`;
-                
-                this.dataSegments.push({
-                    startLen: lenStart,
-                    endLen: lenEnd,
-                    dataPoint: currDataPt,
-                    prevPoint: prevDataPt
-                });
+                // Create Path Element string with ID
+                // Initially, we can set stroke-dasharray to match its length to be ready
+                // We will control visibility via opacity or display
+                colorSegmentsHTML += `<path id="${segObj.id}" d="${segD}" 
+                                      class="spiral-segment ${status}" 
+                                      stroke-linecap="butt" stroke-linejoin="round"
+                                      style="display:none;" />`; // Hidden by default
             }
         } else if (this.data.length === 1) {
              const pt = getSpiralPoint(1.0); 
              colorSegmentsHTML = `<circle cx="${pt.x}" cy="${pt.y}" r="3" class="neutral" />`;
         }
 
-        const maskId = `mask-${this.elementId}`;
-        
-        // Simplified SVG structure
+        // 3. Build SVG (No Masks!)
         this.container.innerHTML = `
             <svg viewBox="0 0 100 100" style="width:100%; height:100%; overflow:visible;">
-                <defs>
-                    <mask id="${maskId}">
-                        <!-- Mask reveals the colored segments -->
-                        <path id="mask-path-${this.elementId}" d="${basePathD}" 
-                              stroke="white" stroke-width="6" fill="none" stroke-linecap="round"
-                              stroke-dasharray="0 10000" />
-                    </mask>
-                </defs>
-                
-                <!-- Background Track (Dark Grey) -->
+                <!-- Background Track -->
                 <path id="base-track-${this.elementId}" d="${basePathD}" class="spiral-base-track" stroke-width="3" />
                 
-                <!-- Colored History (Revealed by Mask) -->
-                <!-- Stroke width increased for mobile visibility -->
-                <g mask="url(#${maskId})" stroke-width="4">
+                <!-- Colored Segments Layer (No Mask) -->
+                <g stroke-width="4">
                     ${colorSegmentsHTML}
                 </g>
                 
-                <!-- Interactive Ball -->
+                <!-- Ball -->
                 <circle id="ball-${this.elementId}" r="5" class="spiral-ball" cx="0" cy="0" />
             </svg>
         `;
         
-        this.maskPath = this.container.querySelector(`#mask-path-${this.elementId}`);
         this.baseTrack = this.container.querySelector(`#base-track-${this.elementId}`);
         this.ball = this.container.querySelector(`#ball-${this.elementId}`);
     }
@@ -1126,10 +1116,8 @@ class SwirlWidget {
                 point.y = e.clientY;
             }
             
-            // Convert screen coordinates to SVG space
             let cursor = point.matrixTransform(svgElement.getScreenCTM().inverse());
             
-            // Find closest point on the path
             let closestPt = this.pathPoints[0];
             let minDst = Infinity;
             
@@ -1159,10 +1147,9 @@ class SwirlWidget {
 
     setVisualProgress(pct) {
         const drawLen = pct * this.totalLength;
-        this.maskPath.style.strokeDasharray = `${drawLen} 20000`;
         
+        // 1. Move Ball
         let targetPt = this.pathPoints[this.pathPoints.length-1];
-        // Simple linear search is fast enough for 120 points
         for(let p of this.pathPoints) {
             if (p.len >= drawLen) {
                 targetPt = p;
@@ -1172,167 +1159,51 @@ class SwirlWidget {
         this.ball.setAttribute("cx", targetPt.x);
         this.ball.setAttribute("cy", targetPt.y);
         
-        let activeSegment = null;
-        for(let seg of this.dataSegments) {
-            // Strict overlap check
-            if (drawLen >= seg.startLen && drawLen < seg.endLen) {
-                activeSegment = seg;
-                break;
+        // 2. Manage Segment Visibility (The "No Mask" Trick)
+        let activeDataSegment = null;
+
+        this.segmentElements.forEach(seg => {
+            const el = document.getElementById(seg.id);
+            if (!el) return;
+
+            if (drawLen >= seg.endLen) {
+                // Ball has passed this segment -> Show Fully
+                el.style.display = 'block';
+                el.style.strokeDasharray = 'none';
+            } 
+            else if (drawLen < seg.startLen) {
+                // Ball has not reached this segment -> Hide
+                el.style.display = 'none';
+            } 
+            else {
+                // Ball is currently traversing this segment -> Show Partial
+                el.style.display = 'block';
+                // Calculate how much of this specific segment to show
+                // We need the path's total length to do this accurately via dasharray
+                // A simplified approx: length visible = drawLen - startLen
+                const visiblePart = drawLen - seg.startLen;
+                // dasharray: [visible, gap]
+                // gap should be huge to hide the rest
+                el.style.strokeDasharray = `${visiblePart} 1000`;
+                
+                activeDataSegment = seg;
             }
-        }
+        });
         
-        // Edge case handling for end of path
-        if (!activeSegment && this.dataSegments.length > 0) {
+        // Edge case for end of history
+        if (!activeDataSegment && this.segmentElements.length > 0) {
              if (drawLen >= this.totalLength * 0.95) {
-                 activeSegment = this.dataSegments[this.dataSegments.length-1];
+                 activeDataSegment = this.segmentElements[this.segmentElements.length-1];
              } else {
-                 activeSegment = this.dataSegments[0]; 
+                 activeDataSegment = this.segmentElements[0]; 
              }
         } else if (this.data.length === 1) {
             this.updateTextDisplay(this.data[0], null);
             return;
         }
 
-        if (activeSegment) {
-            this.updateTextDisplay(activeSegment.dataPoint, activeSegment.prevPoint);
+        if (activeDataSegment) {
+            this.updateTextDisplay(activeDataSegment.dataPoint, activeDataSegment.prevPoint);
         }
     }
 }
-
-
-// ------------------ EDIT MODE ------------------
-let editMode = false;
-const editToggleBtn = document.getElementById("editToggleBtn");
-
-editToggleBtn.onclick = () => {
-  editMode = !editMode;
-  editToggleBtn.textContent = editMode ? "Done" : "Edit";
-  document.body.classList.toggle('edit-mode-active');
-  if (!editMode) saveUserJson();
-};
-
-// ------------------ MAKE ELEMENTS EDITABLE ------------------
-function makeEditable(element, type, parentIdx, sortedSets) {
-  element.classList.add("editable");
-  element.style.cursor = "pointer";
-
-  element.addEventListener("click", (e) => {
-    if (!editMode) return;
-    e.stopPropagation();
-
-    const currentVal = element.textContent;
-    const newVal = prompt(`Edit ${type}:`, currentVal);
-    if (!newVal || newVal === currentVal) return;
-
-    let originalIndex = -1;
-    if (type.startsWith("Set")) {
-        const sortedSetObject = sortedSets[parentIdx];
-        if (!sortedSetObject) return;
-        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
-        if (originalIndex === -1) return;
-    }
-
-    switch(type) {
-      case "Client":
-        const data = clientsData[currentVal];
-        delete clientsData[currentVal];
-        data.client_name = newVal;
-        clientsData[newVal] = data;
-        if (selectedClient === currentVal) selectedClient = newVal;
-        renderClients();
-        break;
-
-      case "Session":
-        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
-        if (sessionToEdit) sessionToEdit.session_name = newVal;
-        renderSessions();
-        break;
-
-      case "Exercise":
-        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
-        if(exerciseToEdit) exerciseToEdit.exercise = newVal;
-        renderExercises();
-        break;
-
-      case "SetReps":
-        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets();
-        break;
-
-      case "SetWeight":
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-        renderSets();
-        break;
-
-      case "SetNotes":
-        selectedExercise.sets[originalIndex].notes = newVal;
-        renderSets();
-        break;
-    }
-
-    saveUserJson();
-  });
-}
-
-function hookEditables(sortedSets = []) {
-  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
-  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
-  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
-  
-  let setRowIdx = 0;
-  setsTable.querySelectorAll("tr").forEach((tr) => {
-    const tds = tr.querySelectorAll("td");
-    if (tds.length < 5) return;
-    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
-    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
-    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
-    setRowIdx++;
-  });
-}
-
-// ------------------ SWIPE NAVIGATION ------------------
-let touchStartX = 0;
-let touchStartY = 0;
-let touchMoveX = 0;
-let touchMoveY = 0;
-const MIN_SWIPE_DISTANCE = 85;
-const MAX_START_EDGE = 150;
-
-document.body.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchMoveX = 0;
-    touchMoveY = 0;
-}, { passive: true });
-
-document.body.addEventListener('touchmove', (e) => {
-    touchMoveX = e.touches[0].clientX;
-    touchMoveY = e.touches[0].clientY;
-}, { passive: true });
-
-document.body.addEventListener('touchend', () => {
-    if (touchMoveX === 0 && touchMoveY === 0) return;
-    const deltaX = touchMoveX - touchStartX;
-    const deltaY = touchMoveY - touchStartY;
-    if (touchStartX > MAX_START_EDGE) return;
-    if (deltaX < MIN_SWIPE_DISTANCE) return;
-    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
-    
-    switch (currentScreen) {
-        case SCREENS.SESSIONS:
-            document.getElementById('backToClientsBtn').click();
-            break;
-        case SCREENS.EXERCISES:
-            document.getElementById('backToSessionsBtn').click();
-            break;
-        case SCREENS.SETS:
-            document.getElementById('backToExercisesBtn').click();
-            break;
-        case SCREENS.GRAPH:
-            document.getElementById('backToSetsFromGraphBtn').click();
-            break;
-    }
-    touchStartX = 0; touchStartY = 0;
-});
