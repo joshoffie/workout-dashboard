@@ -8,9 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
   
   <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -27,7 +25,6 @@
 
   <!-- Login Modal -->
   <div id="loginModal" class="overlay hidden">
-    <!-- ... (rest of your login modal is unchanged) ... -->
     <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
@@ -56,7 +53,6 @@
 
   <!-- Main App Header -->
   <header class="app-header">
-    <!-- ... (unchanged) ... -->
     <div class="header-content">
       <h1>
         <svg id="animated-logo" aria-label="Trunk Logo" viewBox="0 0 145 50" xmlns="http://www.w3.org/2000/svg">
@@ -93,7 +89,6 @@
     <!-- Clients Screen -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
-        <!-- NEW: Added ID clientsScreenTitle -->
         <h2 id="clientsScreenTitle" class="animated-title" aria-label="Clients">Clients</h2>
         <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
       </div>
@@ -106,9 +101,7 @@
         <button id="backToClientsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Added ID sessionsScreenTitle -->
         <h2 id="sessionsScreenTitle" class="animated-title" aria-label="Sessions">Sessions</h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedClientLabel" class="hidden"></span>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
       </div>
@@ -121,9 +114,7 @@
         <button id="backToSessionsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Replaced H3 -->
         <h2 id="sessionExercisesTitle" class="animated-title" aria-label="Exercises">Exercises</h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
@@ -136,16 +127,13 @@
         <button id="backToExercisesBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Replaced H3 -->
         <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise">
-          <!-- This span will be updated by JS -->
           <span id="exerciseSetsTitleSpan">Exercise</span>
         </h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedExerciseLabel" class="hidden"></span>
       </div>
 
-      <!-- NEW: Action Header for buttons -->
+      <!-- Action Header for buttons -->
       <div class="action-header">
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
@@ -153,58 +141,83 @@
         </div>
       </div>
 
-      <!-- Comparison Banner & Content -->
+      <!-- SWIRL CONTROLS -->
+      <div class="controls-sub-row">
+        <!-- LINK TOGGLE -->
+        <button id="linkToggle" class="btn-toggle active">
+            <span>🔗 Link</span>
+        </button>
+
+        <!-- HISTORY SELECTOR -->
+        <select id="historySelect" class="history-select">
+            <option value="4" selected>Last 4</option>
+            <option value="8">Last 8</option>
+            <option value="12">Last 12</option>
+            <option value="30">All</option>
+        </select>
+      </div>
+
       <div class="sets-content-wrapper">
         
-        <div id="comparisonBanner" class="comparison-banner hidden">
-          <!-- SETS -->
-          <div class="stat-comparison">
-            <span class="stat-label">SETS</span>
-            <span id="setsArrow" class="stat-arrow"></span>
-            <div class="stat-svg-container">
-              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <path id="setsSpiral" class="comparison-spiral"
-                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
-              </svg>
+        <!-- NEW 2x2 GRID FOR SWIRLS (Replaces old comparisonBanner) -->
+        <div class="comparison-grid">
+            
+            <!-- SETS WIDGET -->
+            <div class="swirl-card" id="card-sets">
+                <div class="swirl-header">SETS</div>
+                <div class="swirl-visual-area" id="swirl-sets"></div>
+                <div class="data-footer">
+                    <div class="data-date" id="date-sets">Today</div>
+                    <div class="data-row">
+                        <span id="val-sets">--</span>
+                        <span id="arrow-sets" style="font-size:1.2rem;"></span>
+                        <span id="diff-sets" class="data-diff"></span>
+                    </div>
+                </div>
             </div>
-            <span id="setsData" class="stat-data"></span>
-          </div>
-          <!-- REPS -->
-          <div class="stat-comparison">
-            <span class="stat-label">REPS</span>
-            <span id="repsArrow" class="stat-arrow"></span>
-            <div class="stat-svg-container">
-              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <path id="repsSpiral" class="comparison-spiral"
-                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
-              </svg>
+
+            <!-- REPS WIDGET -->
+            <div class="swirl-card" id="card-reps">
+                <div class="swirl-header">REPS</div>
+                <div class="swirl-visual-area" id="swirl-reps"></div>
+                <div class="data-footer">
+                    <div class="data-date" id="date-reps">Today</div>
+                    <div class="data-row">
+                        <span id="val-reps">--</span>
+                        <span id="arrow-reps" style="font-size:1.2rem;"></span>
+                        <span id="diff-reps" class="data-diff"></span>
+                    </div>
+                </div>
             </div>
-            <span id="repsData" class="stat-data"></span>
-          </div>
-          <!-- VOLUME -->
-          <div class="stat-comparison">
-            <span class="stat-label">VOLUME</span>
-            <span id="volumeArrow" class="stat-arrow"></span>
-            <div class="stat-svg-container">
-              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <path id="volumeSpiral" class="comparison-spiral"
-                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
-              </svg>
+
+            <!-- VOLUME WIDGET -->
+            <div class="swirl-card" id="card-volume">
+                <div class="swirl-header">VOLUME</div>
+                <div class="swirl-visual-area" id="swirl-volume"></div>
+                <div class="data-footer">
+                    <div class="data-date" id="date-volume">Today</div>
+                    <div class="data-row">
+                        <span id="val-volume">--</span>
+                        <span id="arrow-volume" style="font-size:1.2rem;"></span>
+                        <span id="diff-volume" class="data-diff"></span>
+                    </div>
+                </div>
             </div>
-            <span id="volumeData" class="stat-data"></span>
-          </div>
-          <!-- AVG W/R -->
-          <div class="stat-comparison">
-            <span class="stat-label">AVG W/R</span>
-            <span id="wprArrow" class="stat-arrow"></span>
-            <div class="stat-svg-container">
-              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <path id="wprSpiral" class="comparison-spiral"
-                        d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
-              </svg>
+
+            <!-- W/R WIDGET -->
+            <div class="swirl-card" id="card-wpr">
+                <div class="swirl-header">AVG W/R</div>
+                <div class="swirl-visual-area" id="swirl-wpr"></div>
+                <div class="data-footer">
+                    <div class="data-date" id="date-wpr">Today</div>
+                    <div class="data-row">
+                        <span id="val-wpr">--</span>
+                        <span id="arrow-wpr" style="font-size:1.2rem;"></span>
+                        <span id="diff-wpr" class="data-diff"></span>
+                    </div>
+                </div>
             </div>
-            <span id="wprData" class="stat-data"></span>
-          </div>
+
         </div>
         
         <div class="table-container">
@@ -224,7 +237,6 @@
 
     <!-- Graph -->
     <section class="screen hidden" id="graphContainer">
-       <!-- ... (unchanged) ... -->
        <div class="card-header">
          <button id="backToSetsFromGraphBtn" class="btn-back">
            <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
