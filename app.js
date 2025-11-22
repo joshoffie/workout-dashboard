@@ -1,248 +1,3 @@
-/* =========================================
-   MOBILE-SAFE SWIRL ENGINE (2025)
-   Rewritten for Mobile Safari compatibility
-   ========================================= */
-
-function getSpiralPoint(t, center={x:50, y:50}, maxRadius=42, coils=3) {
-    const totalAngle = Math.PI * 2 * coils;
-    const angle = t * totalAngle - Math.PI/2;
-    const r = t * maxRadius;
-    return {
-        x: center.x + r * Math.cos(angle),
-        y: center.y + r * Math.sin(angle)
-    };
-}
-
-class SwirlWidget {
-    constructor(elementId, metricKey, fullHistory, limit) {
-        this.elementId = elementId;
-        this.metricKey = metricKey;
-        // Safety check if history is empty
-        if (!fullHistory || fullHistory.length === 0) {
-             return; 
-        }
-
-        const start = Math.max(0, fullHistory.length - limit);
-        this.data = fullHistory.slice(start);
-
-        // If not enough data, just don't crash, but maybe don't render a meaningful spiral
-        if (this.data.length < 2) {
-             // We can render a static dot or handle gracefully
-        }
-
-        this.startTime = this.data[0].timestamp;
-        this.endTime = this.data[this.data.length - 1].timestamp;
-        this.totalTime = Math.max(1, this.endTime - this.startTime);
-
-        this.container = document.getElementById(elementId);
-        if(!this.container) return; // Guard clause
-
-        this.card = this.container.parentElement;
-
-        this.buildSpiral();
-        
-        // Only attach input if we aren't in a scrolling list item to avoid conflicts
-        // For now, we disable interactive scrubbing in list view for performance/UX
-        // this.attachInput(); 
-        
-        this.setProgress(1);
-    }
-
-    buildSpiral() {
-        const RES = 200; // Lower resolution for list items (Performance optimization)
-        // Was 2000 (Mobile Safari safe)
-        let pts = [];
-        let d = "";
-        let totalLen = 0;
-
-        let prev = null;
-        for (let i=0; i<=RES; i++) {
-            const t = 0.15 + 0.85 * (i/RES);
-            const p = getSpiralPoint(t);
-
-            if (prev) {
-                totalLen += Math.hypot(p.x - prev.x, p.y - prev.y);
-            }
-            pts.push({ x:p.x, y:p.y, len:totalLen });
-            d += (i===0) ?
-                `M${p.x},${p.y}` :
-                `L${p.x},${p.y}`;
-            prev = p;
-        }
-
-        this.totalLength = totalLen;
-        this.points = pts;
-        // Data  arc-range mapping
-        this.segments = [];
-        for (let i=1; i<this.data.length; i++) {
-            const a = this.data[i-1];
-            const b = this.data[i];
-
-            const startPct = (a.timestamp - this.startTime) / this.totalTime;
-            const endPct = (b.timestamp - this.startTime) / this.totalTime;
-            this.segments.push({
-                start: startPct * totalLen,
-                end: endPct * totalLen,
-                a, b
-            });
-        }
-
-        // Minimal DOM (Safari safe)
-        this.container.innerHTML = `
-            <svg class="swirl-visual-area" viewBox="0 0 100 100" width="100%" height="100%">
-                <path id="base-${this.elementId}" d="${d}"
-                      stroke="#333" stroke-width="3" fill="none"
-                      stroke-linecap="round"></path>
-
-                <path id="mask-${this.elementId}" d="${d}"
-                      stroke="white" stroke-width="5" fill="none"
-                      stroke-linecap="round"
-                      stroke-dasharray="0 ${totalLen}"></path>
-
-                <g id="segments-${this.elementId}" mask="url(#m-${this.elementId})"></g>
-
-                <defs>
-                    <mask id="m-${this.elementId}">
-                        <path d="${d}"
-                            stroke="white"
-                            stroke-width="5"
-                            fill="none"
-                            stroke-linecap="round"
-                            id="reveal-${this.elementId}"
-                            stroke-dasharray="0 ${totalLen}"/>
-                    </mask>
-                </defs>
-
-                <circle id="ball-${this.elementId}" r="4" fill="white"></circle>
-            </svg>
-        `;
-        // Render colored segments WITHOUT thousands of path segments
-        const segGroup = this.container.querySelector(`#segments-${this.elementId}`);
-        segGroup.innerHTML = this.segments.map(seg => {
-            const status =
-                (seg.b.stats[this.metricKey] > seg.a.stats[this.metricKey]) ? "increase" :
-                (seg.b.stats[this.metricKey] < seg.a.stats[this.metricKey]) ? "decrease" :
-                "neutral";
-
-            return `
-                <path d="M0,0"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      class="${status}"
-                      data-start="${seg.start}"
-                      data-end="${seg.end}">
-                </path>`;
-        }).join("");
-        // Precompute simplified segments for stroke-dasharray
-        this.segmentPaths = segGroup.querySelectorAll("path");
-        this.reveal = this.container.querySelector(`#reveal-${this.elementId}`);
-        this.ball = this.container.querySelector(`#ball-${this.elementId}`);
-    }
-
-    attachInput() {
-        // Disabled for list view integration
-        /*
-        const area = this.container.querySelector(".swirl-visual-area");
-        const handle = (x,y) => {
-            const rect = area.getBoundingClientRect();
-            const svgX = ((x - rect.left) / rect.width) * 100;
-            const svgY = ((y - rect.top) / rect.height) * 100;
-            this.updateFromPoint(svgX, svgY);
-        };
-
-        area.addEventListener("mousemove", e => handle(e.clientX, e.clientY));
-        area.addEventListener("touchmove", e => {
-            const t = e.touches[0];
-            handle(t.clientX, t.clientY);
-        }, { passive:true });
-        area.addEventListener("touchstart", e => {
-            const t = e.touches[0];
-            handle(t.clientX, t.clientY);
-        }, { passive:true });
-        */
-    }
-
-    updateFromPoint(x,y) {
-        // Closest point search (Safari fast at 500pts)
-        let best = this.points[0];
-        let bestDist = Infinity;
-        for (let p of this.points) {
-            const d = (p.x-x)*(p.x-x) + (p.y-y)*(p.y-y);
-            if (d < bestDist) {
-                bestDist = d;
-                best = p;
-            }
-        }
-        this.setProgress(best.len / this.totalLength);
-    }
-
-    setProgress(pct) {
-        if(!this.reveal) return;
-        const draw = pct * this.totalLength;
-        this.reveal.setAttribute("stroke-dasharray", `${draw} ${this.totalLength}`);
-
-        // Move ball
-        let target = this.points[this.points.length-1];
-        for (let p of this.points) {
-            if (p.len >= draw) { target = p;
-            break; }
-        }
-        this.ball.setAttribute("cx", target.x);
-        this.ball.setAttribute("cy", target.y);
-
-        // Find active segment
-        let seg = this.segments[0];
-        for (let s of this.segments) {
-            if (draw >= s.start && draw < s.end) {
-                seg = s;
-                break;
-            }
-        }
-
-        // We only update text if the elements exist (List View mode safely ignores this)
-        this.updateText(seg.b, seg.a);
-    }
-
-    updateText(curr, prev) {
-        const dateEl = document.getElementById(`date-${this.metricKey}`);
-        const valEl = document.getElementById(`val-${this.metricKey}`);
-        const arrowEl = document.getElementById(`arrow-${this.metricKey}`);
-        const diffEl = document.getElementById(`diff-${this.metricKey}`);
-        
-        if(!dateEl || !valEl || !arrowEl || !diffEl) return;
-
-        dateEl.textContent = (curr.timestamp === this.endTime)
-            ?
-            "Today"
-            : new Date(curr.timestamp).toLocaleDateString();
-
-        const v = curr.stats[this.metricKey];
-        valEl.textContent = v;
-
-        if (!prev || curr === prev) {
-            arrowEl.textContent = "";
-            diffEl.textContent = "";
-            return;
-        }
-
-        const pv = prev.stats[this.metricKey];
-        const diff = v - pv;
-
-        const status =
-            (v > pv) ?
-            "increase" :
-            (v < pv) ?
-            "decrease" :
-            "neutral";
-
-        arrowEl.textContent = (status === "increase") ?
-            "" :
-                              (status === "decrease") ?
-            "" : "—";
-        diffEl.textContent = `(${diff>0?'+':''}${diff})`;
-    }
-}
-
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
@@ -252,6 +7,7 @@ const firebaseConfig = {
   messagingSenderId: "797968203224",
   appId: "1:797968203224:web:0409faf864741f9e5c86ad",
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -270,6 +26,7 @@ const ANIMATION_CLASSES = {
   sad: ['sad-1', 'sad-2', 'sad-3'],
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
+
 // Global state
 let currentAnimationClass = 'calm-1'; 
 
@@ -287,25 +44,25 @@ const SCREENS = {
   SETS: 'setsDiv',
   GRAPH: 'graphContainer'
 };
+
 let currentScreen = SCREENS.CLIENTS;
 
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
+  
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
   // Re-render to trigger animations
   switch (targetScreenId) {
-    case SCREENS.CLIENTS: renderClients();
-    break;
+    case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
   }
 
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
-  const exitClass = (direction === 'forward') ?
-  'slide-out-left' : 'slide-out-right';
+  const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   targetScreen.classList.add(enterClass);
@@ -314,10 +71,12 @@ function navigateTo(targetScreenId, direction = 'forward') {
   currentScreenEl.classList.add(exitClass);
 
   currentScreen = targetScreenId;
+
   currentScreenEl.addEventListener('animationend', () => {
     currentScreenEl.classList.add('hidden');
     currentScreenEl.classList.remove(exitClass);
   }, { once: true });
+
   targetScreen.addEventListener('animationend', () => {
     targetScreen.classList.remove(enterClass);
   }, { once: true });
@@ -377,6 +136,7 @@ auth.onAuthStateChanged(async (user) => {
     hideAllDetails();
   }
 });
+
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -385,6 +145,7 @@ modalLoginBtn.onclick = async () => {
     alert("Login failed: " + err.message);
   }
 };
+
 logoutBtn.onclick = async () => {
   await auth.signOut();
 };
@@ -454,10 +215,12 @@ function setTextAsChars(element, text) {
  */
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
+
   setTextAsChars(element, text);
 
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
+  
   const allClasses = [
     ...ANIMATION_CLASSES.happy, 
     ...ANIMATION_CLASSES.sad, 
@@ -476,6 +239,7 @@ function applyTitleStyling(element, text, colorData) {
 
   const animClass = getRandomAnimationClass(mood);
   targetElement.classList.add(mood);
+  
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -493,6 +257,7 @@ function applyTitleStyling(element, text, colorData) {
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
+
   // Distribution Logic
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
@@ -514,6 +279,7 @@ function applyTitleStyling(element, text, colorData) {
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
@@ -538,6 +304,7 @@ function applyTitleStyling(element, text, colorData) {
  */
 function setupListTextAnimation(element, text, colorData) {
   if (!element) return;
+
   // 1. Render Text Chars
   setTextAsChars(element, text);
 
@@ -558,6 +325,7 @@ function setupListTextAnimation(element, text, colorData) {
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
+
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -578,6 +346,7 @@ function setupListTextAnimation(element, text, colorData) {
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
@@ -594,13 +363,14 @@ function setupListTextAnimation(element, text, colorData) {
         char.dataset.moveDirection = 'down';
     }
   });
+
   // 4. Start the Timer for this list item
   runAnimationLoop(element);
 }
 
 function runAnimationLoop(element) {
     // === TIMER SETTING: 3 Seconds ===
-    // 3000ms = 3 seconds.
+    // 3000ms = 3 seconds. 
     const delay = 3000; 
 
     setTimeout(() => {
@@ -620,7 +390,7 @@ function runAnimationLoop(element) {
         setTimeout(() => {
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
-              char.classList.remove('animate-up', 'animate-down');
+                char.classList.remove('animate-up', 'animate-down');
             });
 
             // C. Recursion: Run loop again
@@ -639,6 +409,7 @@ function getExerciseColorData(exercise) {
   const mostRecentDate = new Date(allSets[0].timestamp);
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
   const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+
   if (!previousWorkoutSet) {
       return { red: 0, green: 0, yellow: 0, total: 0 };
   }
@@ -654,6 +425,7 @@ function getExerciseColorData(exercise) {
   statuses.push(calculateStatStatus(currentStats.reps, prevStats.reps));
   statuses.push(calculateStatStatus(currentStats.volume, prevStats.volume));
   statuses.push(calculateStatStatus(currentStats.wpr, prevStats.wpr));
+
   const red = statuses.filter(s => s === 'decrease').length;
   const green = statuses.filter(s => s === 'increase').length;
   const yellow = statuses.filter(s => s === 'neutral').length;
@@ -673,6 +445,7 @@ function renderClients() {
   clientList.innerHTML = "";
   
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+  
   for (const name in clientsData) {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
@@ -689,7 +462,6 @@ function renderClients() {
             clientColorData.red += cData.red;
             clientColorData.green += cData.green;
             clientColorData.yellow += cData.yellow;
-            
             clientColorData.total += cData.total;
         });
     });
@@ -701,9 +473,9 @@ function renderClients() {
     
     // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, name, clientColorData);
+
     li.onclick = (e) => {
-      if (editMode) { e.stopPropagation(); return;
-    }
+      if (editMode) { e.stopPropagation(); return; }
       selectClient(name);
     };
 
@@ -765,8 +537,7 @@ function getSortedSessions(sessionsArray) {
 }
 
 document.getElementById("addSessionBtn").onclick = () => {
-  if (!selectedClient) { alert("Select a client first"); return;
-  }
+  if (!selectedClient) { alert("Select a client first"); return; }
   const name = prompt("Enter session name:");
   if (!name) return;
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
@@ -774,10 +545,12 @@ document.getElementById("addSessionBtn").onclick = () => {
   saveUserJson();
   renderSessions();
 };
+
 function renderSessions() {
   sessionList.innerHTML = "";
   if (!selectedClient) return;
   selectedSession = null;
+
   let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
 
   const sessions = clientsData[selectedClient]?.sessions || [];
@@ -795,7 +568,6 @@ function renderSessions() {
         const cData = getExerciseColorData(ex);
         sessionColorData.red += cData.red;
         sessionColorData.green += cData.green;
-       
         sessionColorData.yellow += cData.yellow;
         sessionColorData.total += cData.total;
     });
@@ -847,11 +619,10 @@ function selectSession(sessionObject) {
   navigateTo(SCREENS.EXERCISES, 'forward');
 }
 
-// ------------------ EXERCISES & SWIRL HELPER ------------------
+// ------------------ EXERCISES ------------------
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
-  if (!selectedSession) { alert("Select a session first"); return;
-  }
+  if (!selectedSession) { alert("Select a session first"); return; }
   const name = prompt("Enter exercise name:");
   if (!name) return;
   const ex = { exercise: name, sets: [] };
@@ -860,35 +631,10 @@ document.getElementById("addExerciseBtn").onclick = () => {
   renderExercises();
 };
 
-// Helper: Gather all sets for a specific exercise name across all sessions for the client
-function getAllSetsForExercise(clientName, exerciseName) {
-    if(!clientsData[clientName] || !clientsData[clientName].sessions) return [];
-    
-    let allSets = [];
-    clientsData[clientName].sessions.forEach(sess => {
-        const sessDate = new Date(sess.date || 0).getTime();
-        if(sess.exercises) {
-            sess.exercises.forEach(ex => {
-                // Fuzzy match or exact match depending on your needs. Exact for now.
-                if(ex.exercise === exerciseName && ex.sets && ex.sets.length > 0) {
-                     // We must aggregate volume per session to create a timeline of progress
-                     const stats = aggregateStats(ex.sets);
-                     // We use the session date or the most recent set date as the timestamp
-                     allSets.push({
-                         timestamp: sessDate,
-                         stats: stats
-                     });
-                }
-            });
-        }
-    });
-    // Sort by time
-    return allSets.sort((a,b) => a.timestamp - b.timestamp);
-}
-
 function renderExercises() {
   exerciseList.innerHTML = "";
   const sessionTitleElement = document.getElementById('sessionExercisesTitle');
+  
   if (!selectedSession) {
     applyTitleStyling(sessionTitleElement, 'Exercises', null);
     return;
@@ -896,6 +642,7 @@ function renderExercises() {
   
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
   selectedSession.exercises.forEach((ex, idx) => {
     const colorData = getExerciseColorData(ex);
     ex.colorData = colorData; 
@@ -935,27 +682,8 @@ function renderExercises() {
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
 
     li.appendChild(nameSpan);
-
-    // --- ADD SWIRL VISUALIZER TO LIST ITEM ---
-    // 1. Create wrapper
-    const swirlWrapper = document.createElement('div');
-    swirlWrapper.className = 'swirl-wrapper';
-    swirlWrapper.id = `swirl-container-${idx}`; // Unique ID
-    
-    li.appendChild(swirlWrapper);
     li.appendChild(deleteBtn);
     exerciseList.appendChild(li);
-
-    // 2. Generate History & Instantiate Widget
-    // We visualize 'volume' history for this exercise across all time
-    const history = getAllSetsForExercise(selectedClient, ex.exercise);
-    
-    // We instantiate after appending to DOM so getElementById works
-    // We use a small timeout to ensure the DOM update is painted (optional but safe)
-    if(history.length > 1) {
-        new SwirlWidget(`swirl-container-${idx}`, 'volume', history, 50);
-    }
-
   });
   
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
@@ -999,9 +727,11 @@ document.getElementById("addSetBtn").onclick = () => {
   saveUserJson();
   renderSets();
 };
+
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
+
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const setsByDay = new Map();
   sortedSets.forEach(set => {
@@ -1010,8 +740,10 @@ function renderSets() {
     if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
     setsByDay.get(dayString).push(set);
   });
+
   const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
   const renderedSetsInOrder = [];
+
   sortedDays.forEach((dayString, dayIndex) => {
     const daySets = setsByDay.get(dayString);
     daySets.forEach((s, setIdx) => {
@@ -1023,7 +755,6 @@ function renderSets() {
       tr.innerHTML = `
         <td>${setIdx + 1}</td>
         <td>${s.reps}</td>
-       
         <td>${s.weight}</td>
         <td>${s.volume}</td>
         <td>${s.notes}</td>
@@ -1035,8 +766,7 @@ function renderSets() {
       deleteBtn.innerHTML = '&times;';
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        showDeleteConfirm(`Are you sure you want to delete set 
-${setIdx + 1} from this day?`, () => {
+        showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
           selectedExercise.sets.splice(originalIndex, 1);
           saveUserJson();
           renderSets();
@@ -1056,11 +786,9 @@ ${setIdx + 1} from this day?`, () => {
 
 // ------------------ PLOTLY GRAPH ------------------
 document.getElementById("showGraphBtn").onclick = () => {
-  if (!selectedExercise) { alert("Select an exercise first"); return;
-  }
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
   const sets = selectedExercise.sets;
-  if (!sets || sets.length === 0) { alert("No sets to graph"); return;
-  }
+  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
 
   navigateTo(SCREENS.GRAPH, 'forward');;
 
@@ -1069,15 +797,18 @@ document.getElementById("showGraphBtn").onclick = () => {
   const weight = sets.map(s => s.weight);
   const volume = sets.map(s => s.volume);
   const wpr = sets.map(s => s.volume / s.reps);
+  
   const traces = [
     { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
     { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
     { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
     { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
   ];
+  
   Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
   Plotly.Plots.resize('graphDiv');
 };
+
 // ------------------ HELPER ------------------
 function hideAllDetails() {
   Object.values(SCREENS).forEach(screenId => {
@@ -1103,8 +834,7 @@ function aggregateStats(setsArray) {
   const totalSets = setsArray.length;
   const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
   const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
-  const avgWpr = totalReps > 0 ?
-  (totalVolume / totalReps) : 0;
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 
@@ -1121,9 +851,11 @@ function updateStatUI(statName, currentValue, previousValue) {
   if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
 
   const status = calculateStatStatus(currentValue, previousValue);
+  
   let arrow = '—';
   if (status === 'increase') arrow = '&uarr;';
   else if (status === 'decrease') arrow = '&darr;';
+  
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) {
@@ -1134,6 +866,7 @@ function updateStatUI(statName, currentValue, previousValue) {
 
   let currentString = '';
   const changeSign = change > 0 ? '+' : '';
+  
   switch(statName) {
     case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
     case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
@@ -1143,6 +876,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
   if (status === 'neutral') changeString = `(0 / 0%)`;
+  
   const classesToRemove = ['increase', 'decrease', 'neutral'];
   arrowEl.innerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove);
@@ -1154,6 +888,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.textContent = `${currentString} ${changeString}`;
   dataEl.classList.remove(...classesToRemove);
   dataEl.classList.add(status);
+
   return status;
 }
 
@@ -1161,6 +896,7 @@ function updateStatUI(statName, currentValue, previousValue) {
 function runComparisonLogic() {
   const banner = document.getElementById('comparisonBanner');
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
+
   if (!selectedExercise) {
     banner.classList.add('hidden');
     if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
@@ -1168,6 +904,7 @@ function runComparisonLogic() {
   }
   
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
+
   const colorData = getExerciseColorData(selectedExercise);
   selectedExercise.colorData = colorData;
 
@@ -1199,6 +936,7 @@ function runComparisonLogic() {
 // ------------------ EDIT MODE ------------------
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
+
 editToggleBtn.onclick = () => {
   editMode = !editMode;
   editToggleBtn.textContent = editMode ? "Done" : "Edit";
@@ -1210,6 +948,7 @@ editToggleBtn.onclick = () => {
 function makeEditable(element, type, parentIdx, sortedSets) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
+
   element.addEventListener("click", (e) => {
     if (!editMode) return;
     e.stopPropagation();
@@ -1237,11 +976,11 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
 
       case "Session":
-        const sessionToEdit = clientsData[selectedClient].sessions.find(s 
-          => s.session_name === currentVal);
+        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
         if (sessionToEdit) sessionToEdit.session_name = newVal;
         renderSessions();
         break;
+
       case "Exercise":
         const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
         if(exerciseToEdit) exerciseToEdit.exercise = newVal;
@@ -1255,8 +994,7 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
 
       case "SetWeight":
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) ||
-        selectedExercise.sets[originalIndex].weight;
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
         renderSets();
         break;
@@ -1301,10 +1039,12 @@ document.body.addEventListener('touchstart', (e) => {
     touchMoveX = 0;
     touchMoveY = 0;
 }, { passive: true });
+
 document.body.addEventListener('touchmove', (e) => {
     touchMoveX = e.touches[0].clientX;
     touchMoveY = e.touches[0].clientY;
 }, { passive: true });
+
 document.body.addEventListener('touchend', () => {
     if (touchMoveX === 0 && touchMoveY === 0) return;
     const deltaX = touchMoveX - touchStartX;
@@ -1316,7 +1056,6 @@ document.body.addEventListener('touchend', () => {
     switch (currentScreen) {
         case SCREENS.SESSIONS:
             document.getElementById('backToClientsBtn').click();
-            
             break;
         case SCREENS.EXERCISES:
             document.getElementById('backToSessionsBtn').click();
@@ -1327,7 +1066,6 @@ document.body.addEventListener('touchend', () => {
         case SCREENS.GRAPH:
             document.getElementById('backToSetsFromGraphBtn').click();
             break;
- 
     }
     touchStartX = 0; touchStartY = 0;
 });
