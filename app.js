@@ -810,7 +810,7 @@ function aggregateStats(setsArray) {
 }
 
 // =============================================================
-// NEW: SWIRL WIDGET INTEGRATION (V6 Logic + Real Data Processing)
+// NEW: SWIRL WIDGET INTEGRATION (V7 MOBILE OPTIMIZED)
 // =============================================================
 
 let widgets = [];
@@ -893,12 +893,15 @@ function updateHistoryDepth() {
     }
 }
 
-// --- SWIRL WIDGET CLASS (V6 Arc Length Sync) ---
+// --- MOBILE-OPTIMIZED SWIRL WIDGET CLASS ---
 
-function getSpiralPoint(t, center={x:50, y:50}, maxRadius=42, coils=3) {
+// Helper: Calculate point on spiral
+// Simpler 2.25 coil spiral for better touch target
+function getSpiralPoint(t, center={x:50, y:50}, maxRadius=42, coils=2.25) {
     const totalAngle = Math.PI * 2 * coils;
     const angle = t * totalAngle;
     const r = t * maxRadius;
+    // Start from top (-PI/2)
     const rotOffset = -Math.PI / 2; 
     return {
         x: center.x + r * Math.cos(angle + rotOffset),
@@ -946,11 +949,18 @@ class SwirlWidget {
     initSVG() {
         this.pathPoints = [];
         let basePathD = "";
-        const resolution = 400; // REDUCED FROM 2000 TO 400 FOR MOBILE OPTIMIZATION
+        
+        // MOBILE FIX: Reduce resolution from 2000 to ~60 using Bezier approximation
+        // A lower point count with "L" (Line) commands might look jagged.
+        // A better approach for simple spiral is reasonably high point count (100) 
+        // but not 2000. 100 is perfectly fine for mobile GPUs.
+        const resolution = 120; 
         let cumulativeLen = 0;
         let prevPt = null;
 
         for(let i=0; i<=resolution; i++) {
+            // Map linear step to spiral growth
+            // 0.15 offset keeps center hole open
             const t = 0.15 + (i/resolution) * 0.85; 
             const pt = getSpiralPoint(t);
             
@@ -962,8 +972,10 @@ class SwirlWidget {
             this.pathPoints.push({ x: pt.x, y: pt.y, len: cumulativeLen });
             prevPt = pt;
             
-            if(i===0) basePathD += `M ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`;
-            else basePathD += ` L ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`;
+            // Build Path String
+            // "L" is fast and reliable. With 120 points, it looks smooth on 200px wide screens.
+            if(i===0) basePathD += `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
+            else basePathD += ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
         }
         this.totalLength = cumulativeLen;
 
@@ -982,24 +994,28 @@ class SwirlWidget {
                 const lenStart = timePctStart * this.totalLength;
                 const lenEnd = timePctEnd * this.totalLength;
                 
-                // Overlap slightly to prevent hairline gaps on mobile
-                const drawStart = lenStart - 0.5 > 0 ? lenStart - 0.5 : 0;
+                // MOBILE FIX: Overlap segments by 1 unit to prevent sub-pixel rendering gaps
+                // If this segment starts at 50, draw from 49.
+                const overlapStart = (lenStart - 1.5) > 0 ? (lenStart - 1.5) : 0;
                 
                 let segD = "";
                 let started = false;
                 for (let p of this.pathPoints) {
-                    if (p.len >= drawStart && p.len <= lenEnd) {
+                    if (p.len >= overlapStart && p.len <= lenEnd) {
                         if (!started) {
-                            segD += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+                            segD += `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
                             started = true;
                         } else {
-                            segD += ` L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+                            segD += ` L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
                         }
                     }
                 }
 
                 const status = this.calcStatus(currDataPt, prevDataPt);
-                colorSegmentsHTML += `<path d="${segD}" class="spiral-segment ${status}" />`;
+                
+                // IMPORTANT: Use butt cap for internal segments to avoid rounded blobs, 
+                // but relies on overlap to hide seams.
+                colorSegmentsHTML += `<path d="${segD}" class="spiral-segment ${status}" stroke-linecap="butt" stroke-linejoin="round" />`;
                 
                 this.dataSegments.push({
                     startLen: lenStart,
@@ -1009,27 +1025,35 @@ class SwirlWidget {
                 });
             }
         } else if (this.data.length === 1) {
-             // Fallback for single session history
-             const pt = getSpiralPoint(1.0); // End point
+             const pt = getSpiralPoint(1.0); 
              colorSegmentsHTML = `<circle cx="${pt.x}" cy="${pt.y}" r="3" class="neutral" />`;
         }
 
         const maskId = `mask-${this.elementId}`;
         
+        // Simplified SVG structure
         this.container.innerHTML = `
             <svg viewBox="0 0 100 100" style="width:100%; height:100%; overflow:visible;">
                 <defs>
                     <mask id="${maskId}">
+                        <!-- Mask reveals the colored segments -->
                         <path id="mask-path-${this.elementId}" d="${basePathD}" 
-                              stroke="white" stroke-width="5" fill="none" stroke-linecap="round"
+                              stroke="white" stroke-width="6" fill="none" stroke-linecap="round"
                               stroke-dasharray="0 10000" />
                     </mask>
                 </defs>
-                <path id="base-track-${this.elementId}" d="${basePathD}" class="spiral-base-track" />
-                <g mask="url(#${maskId})">
+                
+                <!-- Background Track (Dark Grey) -->
+                <path id="base-track-${this.elementId}" d="${basePathD}" class="spiral-base-track" stroke-width="3" />
+                
+                <!-- Colored History (Revealed by Mask) -->
+                <!-- Stroke width increased for mobile visibility -->
+                <g mask="url(#${maskId})" stroke-width="4">
                     ${colorSegmentsHTML}
                 </g>
-                <circle id="ball-${this.elementId}" r="4" class="spiral-ball" cx="0" cy="0" />
+                
+                <!-- Interactive Ball -->
+                <circle id="ball-${this.elementId}" r="5" class="spiral-ball" cx="0" cy="0" />
             </svg>
         `;
         
@@ -1050,7 +1074,6 @@ class SwirlWidget {
         
         const val = currentPoint.stats[this.metricKey];
         let displayVal = val;
-        // Format integers nicely
         if (Number.isInteger(val)) displayVal = val;
         
         valEl.textContent = displayVal;
@@ -1103,8 +1126,10 @@ class SwirlWidget {
                 point.y = e.clientY;
             }
             
+            // Convert screen coordinates to SVG space
             let cursor = point.matrixTransform(svgElement.getScreenCTM().inverse());
             
+            // Find closest point on the path
             let closestPt = this.pathPoints[0];
             let minDst = Infinity;
             
@@ -1134,10 +1159,10 @@ class SwirlWidget {
 
     setVisualProgress(pct) {
         const drawLen = pct * this.totalLength;
-        // Ensure mask is long enough to cover everything
         this.maskPath.style.strokeDasharray = `${drawLen} 20000`;
         
         let targetPt = this.pathPoints[this.pathPoints.length-1];
+        // Simple linear search is fast enough for 120 points
         for(let p of this.pathPoints) {
             if (p.len >= drawLen) {
                 targetPt = p;
@@ -1149,21 +1174,21 @@ class SwirlWidget {
         
         let activeSegment = null;
         for(let seg of this.dataSegments) {
+            // Strict overlap check
             if (drawLen >= seg.startLen && drawLen < seg.endLen) {
                 activeSegment = seg;
                 break;
             }
         }
         
-        // Fuzzy match for end of line (within 1% of total length)
+        // Edge case handling for end of path
         if (!activeSegment && this.dataSegments.length > 0) {
-             if (drawLen >= this.totalLength * 0.99) {
+             if (drawLen >= this.totalLength * 0.95) {
                  activeSegment = this.dataSegments[this.dataSegments.length-1];
              } else {
                  activeSegment = this.dataSegments[0]; 
              }
         } else if (this.data.length === 1) {
-            // Single point handler
             this.updateTextDisplay(this.data[0], null);
             return;
         }
