@@ -12,16 +12,31 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ------------------ State ------------------
 let clientsData = {};
 let selectedClient = null;
 let selectedSession = null;
 let selectedExercise = null;
-let swirlWidgets = [];
-let isLinkedMode = true;
-let editMode = false;
 
-// ------------------ Navigation ------------------
+// =====================================================
+// ANIMATION CONFIGURATION
+// =====================================================
+
+const ANIMATION_CLASSES = {
+  happy: ['happy-1', 'happy-2', 'happy-3'],
+  sad: ['sad-1', 'sad-2', 'sad-3'],
+  calm: ['calm-1', 'calm-2', 'calm-3'],
+};
+
+// Global state
+let currentAnimationClass = 'calm-1'; 
+
+function getRandomAnimationClass(mood) {
+  const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
+  return classes[Math.floor(Math.random() * classes.length)];
+}
+
+// ------------------ NAVIGATION ------------------
+
 const SCREENS = {
   CLIENTS: 'clientsDiv',
   SESSIONS: 'sessionsDiv',
@@ -29,494 +44,1028 @@ const SCREENS = {
   SETS: 'setsDiv',
   GRAPH: 'graphContainer'
 };
+
 let currentScreen = SCREENS.CLIENTS;
 
-function navigateTo(targetId) {
-    document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-    document.getElementById(targetId).classList.remove('hidden');
-    currentScreen = targetId;
-    
-    // Trigger render based on destination
-    if(targetId === SCREENS.CLIENTS) renderClients();
-    else if(targetId === SCREENS.SESSIONS) renderSessions();
-    else if(targetId === SCREENS.EXERCISES) renderExercises();
-    else if(targetId === SCREENS.SETS) renderSets();
+function navigateTo(targetScreenId, direction = 'forward') {
+  const targetScreen = document.getElementById(targetScreenId);
+  const currentScreenEl = document.getElementById(currentScreen);
+  
+  if (!targetScreen || targetScreen === currentScreenEl) return;
+
+  // Re-render to trigger animations
+  switch (targetScreenId) {
+    case SCREENS.CLIENTS: renderClients(); break;
+    case SCREENS.SESSIONS: renderSessions(); break;
+    case SCREENS.EXERCISES: renderExercises(); break;
+    case SCREENS.SETS: renderSets(); break;
+  }
+
+  const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
+  const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
+
+  targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
+  targetScreen.classList.add(enterClass);
+
+  currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
+  currentScreenEl.classList.add(exitClass);
+
+  currentScreen = targetScreenId;
+
+  currentScreenEl.addEventListener('animationend', () => {
+    currentScreenEl.classList.add('hidden');
+    currentScreenEl.classList.remove(exitClass);
+  }, { once: true });
+
+  targetScreen.addEventListener('animationend', () => {
+    targetScreen.classList.remove(enterClass);
+  }, { once: true });
 }
 
-// Back buttons
-document.getElementById('backToClientsBtn').onclick = () => { selectedClient=null; navigateTo(SCREENS.CLIENTS); };
-document.getElementById('backToSessionsBtn').onclick = () => { selectedSession=null; navigateTo(SCREENS.SESSIONS); };
-document.getElementById('backToExercisesBtn').onclick = () => { selectedExercise=null; navigateTo(SCREENS.EXERCISES); };
-document.getElementById('backToSetsFromGraphBtn').onclick = () => navigateTo(SCREENS.SETS);
+// --- Wire up Back Buttons ---
+document.getElementById('backToClientsBtn').onclick = () => {
+  selectedClient = null;
+  selectedSession = null;
+  selectedExercise = null;
+  renderClients();
+  navigateTo(SCREENS.CLIENTS, 'back');
+};
+document.getElementById('backToSessionsBtn').onclick = () => {
+  selectedSession = null;
+  selectedExercise = null;
+  renderSessions();
+  navigateTo(SCREENS.SESSIONS, 'back');
+};
+document.getElementById('backToExercisesBtn').onclick = () => {
+  selectedExercise = null;
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'back');
+};
+document.getElementById('backToSetsFromGraphBtn').onclick = () => {
+  navigateTo(SCREENS.SETS, 'back');
+};
 
-// ------------------ Auth ------------------
+// ------------------ AUTH ------------------
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const userLabel = document.getElementById("userLabel");
+const modal = document.getElementById("loginModal");
+const modalLoginBtn = document.getElementById("modalLoginBtn");
+
+const deleteModal = document.getElementById('deleteModal');
+const deleteModalMessage = document.getElementById('deleteModalMessage');
+const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+const deleteCancelBtn = document.getElementById('deleteCancelBtn');
+
 auth.onAuthStateChanged(async (user) => {
-    const modal = document.getElementById('loginModal');
-    if (user) {
-        modal.classList.add('hidden');
-        document.getElementById('logoutBtn').classList.remove('hidden');
-        document.getElementById('userLabel').textContent = user.displayName ? user.displayName.split(' ')[0] : 'User';
-        await loadData();
-        renderClients();
-    } else {
-        modal.classList.remove('hidden');
-        document.getElementById('logoutBtn').classList.add('hidden');
-        clientsData = {};
-        renderClients();
-    }
+  if (user) {
+    modal.classList.add("hidden");
+    loginBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
+    userLabel.textContent = `Logged in as ${user.displayName}`;
+    await loadUserJson();
+    renderClients();
+  } else {
+    modal.classList.remove("hidden");
+    loginBtn.classList.remove("hidden");
+    logoutBtn.classList.add("hidden");
+    userLabel.textContent = "";
+    clientsData = {};
+    selectedClient = null;
+    renderClients();
+    hideAllDetails();
+  }
 });
 
-document.getElementById('modalLoginBtn').onclick = async () => {
-    try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    catch(e) { alert(e.message); }
+modalLoginBtn.onclick = async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
 };
-document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
-// ------------------ Firestore ------------------
-async function loadData() {
-    if(!auth.currentUser) return;
-    const doc = await db.collection('clients').doc(auth.currentUser.uid).get();
-    if(doc.exists) clientsData = doc.data();
-    else { clientsData = {}; await saveData(); }
-}
-async function saveData() {
-    if(!auth.currentUser) return;
-    await db.collection('clients').doc(auth.currentUser.uid).set(clientsData);
-}
+logoutBtn.onclick = async () => {
+  await auth.signOut();
+};
 
-// ------------------ Swirl Visualizer Logic ------------------
-function getSpiralPoint(t, center={x:50, y:50}, maxRadius=42, coils=3) {
-    const totalAngle = Math.PI * 2 * coils;
-    const angle = t * totalAngle;
-    const r = t * maxRadius;
-    // -PI/2 rotates it so it starts at the top
-    return { x: center.x + r * Math.cos(angle - Math.PI/2), y: center.y + r * Math.sin(angle - Math.PI/2) };
+function showDeleteConfirm(message, onConfirm) {
+  deleteModalMessage.textContent = message;
+  deleteModal.classList.remove('hidden');
+  deleteConfirmBtn.addEventListener('click', () => {
+    onConfirm();
+    hideDeleteConfirm();
+  }, { once: true });
+  deleteCancelBtn.addEventListener('click', () => {
+    hideDeleteConfirm();
+  }, { once: true });
 }
 
-class SwirlWidget {
-    constructor(containerId, metricKey, history, limit) {
-        this.container = document.getElementById(containerId);
-        this.metricKey = metricKey;
-        
-        // Slice data based on limit
-        const startIdx = Math.max(0, history.length - limit);
-        this.data = history.slice(startIdx);
-        
-        if(this.data.length === 0) {
-            this.container.innerHTML = '<div style="text-align:center; color:#555; padding-top:40%;">No Data</div>';
-            return;
-        }
+function hideDeleteConfirm() {
+  deleteModal.classList.add('hidden');
+}
+deleteCancelBtn.onclick = hideDeleteConfirm;
 
-        this.startTime = this.data[0].timestamp;
-        this.endTime = this.data[this.data.length - 1].timestamp;
-        this.totalTime = this.endTime - this.startTime || 1;
-        
-        this.initSVG();
-        this.setupInteraction();
-        this.setVisualProgress(1.0); // Start at "Today"
-    }
+// ------------------ FIRESTORE DATA ------------------
+async function loadUserJson() {
+  const uid = auth.currentUser.uid;
+  const docRef = db.collection("clients").doc(uid);
+  const docSnap = await docRef.get();
 
-    calcStatus(curr, prev) {
-        const c = curr.stats[this.metricKey], p = prev.stats[this.metricKey];
-        return c > p ? 'increase' : (c < p ? 'decrease' : 'neutral');
-    }
-
-    initSVG() {
-        this.pathPoints = [];
-        let pathD = "";
-        const resolution = 1200; // Reduced from 2000 for Mobile Performance
-        let len = 0, prev = null;
-
-        // 1. Generate Spiral Path
-        for(let i=0; i<=resolution; i++) {
-            const t = 0.15 + (i/resolution) * 0.85; // Don't start at exact center (too cluttered)
-            const pt = getSpiralPoint(t);
-            if(prev) len += Math.hypot(pt.x - prev.x, pt.y - prev.y);
-            this.pathPoints.push({ x: pt.x, y: pt.y, len });
-            prev = pt;
-            pathD += (i===0 ? `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}` : ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`);
-        }
-        this.totalLength = len;
-
-        // 2. Generate Color Segments
-        let segmentsHTML = '';
-        this.dataSegments = [];
-        
-        if(this.data.length > 1) {
-            for(let i=1; i<this.data.length; i++) {
-                const pData = this.data[i-1], cData = this.data[i];
-                
-                const tStart = (pData.timestamp - this.startTime) / this.totalTime;
-                const tEnd = (cData.timestamp - this.startTime) / this.totalTime;
-                const lStart = tStart * this.totalLength;
-                const lEnd = tEnd * this.totalLength;
-
-                // Extract sub-path for color
-                let segD = "";
-                let started = false;
-                // Optimization: Simple linear scan is fine for 1200 pts on modern mobile
-                for(let pt of this.pathPoints) {
-                    if(pt.len >= lStart && pt.len <= lEnd) {
-                        segD += (started ? ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}` : `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`);
-                        started = true;
-                    }
-                }
-                
-                const status = this.calcStatus(cData, pData);
-                segmentsHTML += `<path d="${segD}" class="spiral-segment ${status}" />`;
-                
-                this.dataSegments.push({ start: lStart, end: lEnd, current: cData, prev: pData });
-            }
-        }
-
-        const maskId = `mask-${this.metricKey}`;
-        this.container.innerHTML = `
-            <svg viewBox="0 0 100 100" style="width:100%; height:100%; overflow:visible;">
-                <defs>
-                    <mask id="${maskId}">
-                        <path id="mask-path-${this.metricKey}" d="${pathD}" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="0 10000" />
-                    </mask>
-                </defs>
-                <path d="${pathD}" class="spiral-base-track" />
-                <g mask="url(#${maskId})">${segmentsHTML}</g>
-                <circle id="ball-${this.metricKey}" r="4" class="spiral-ball" />
-            </svg>
-        `;
-        
-        this.maskPath = this.container.querySelector(`#mask-path-${this.metricKey}`);
-        this.ball = this.container.querySelector(`#ball-${this.metricKey}`);
-    }
-
-    setupInteraction() {
-        const handler = (e) => {
-            // STOP PROPAGATION to prevent page swipe/scroll while scrubbing graph
-            e.stopPropagation();
-            if(e.cancelable && e.type === 'touchmove') e.preventDefault();
-
-            const svg = this.container.querySelector('svg');
-            let pt = svg.createSVGPoint();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            pt.x = clientX; pt.y = clientY;
-            const cursor = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-            // Find closest point on spiral
-            let closest = this.pathPoints[0], minDist = Infinity;
-            for(let p of this.pathPoints) {
-                const d = (cursor.x - p.x)**2 + (cursor.y - p.y)**2;
-                if(d < minDist) { minDist = d; closest = p; }
-            }
-
-            const pct = closest.len / this.totalLength;
-            
-            if(isLinkedMode) swirlWidgets.forEach(w => w.setVisualProgress(pct));
-            else this.setVisualProgress(pct);
-        };
-
-        const area = this.container.parentElement.querySelector('.swirl-visual-area');
-        area.addEventListener('touchstart', handler, { passive: false });
-        area.addEventListener('touchmove', handler, { passive: false });
-        area.addEventListener('mousemove', handler);
-        area.addEventListener('click', handler);
-    }
-
-    setVisualProgress(pct) {
-        const len = pct * this.totalLength;
-        this.maskPath.style.strokeDasharray = `${len} 10000`;
-        
-        let target = this.pathPoints.find(p => p.len >= len) || this.pathPoints[this.pathPoints.length-1];
-        this.ball.setAttribute('transform', `translate(${target.x}, ${target.y})`);
-        
-        // Update Text
-        const seg = this.dataSegments.find(s => len >= s.start && len < s.end) || 
-                   (len >= this.totalLength*0.99 ? this.dataSegments[this.dataSegments.length-1] : this.dataSegments[0]);
-        
-        if(seg) this.updateText(seg.current, seg.prev);
-        else if(this.data.length===1) this.updateText(this.data[0], null);
-    }
-
-    updateText(curr, prev) {
-        const valEl = document.getElementById(`val-${this.metricKey}`);
-        const dateEl = document.getElementById(`date-${this.metricKey}`);
-        const diffEl = document.getElementById(`diff-${this.metricKey}`);
-        const arrowEl = document.getElementById(`arrow-${this.metricKey}`);
-        const card = document.getElementById(`card-${this.metricKey}`);
-        
-        dateEl.textContent = new Date(curr.timestamp).toLocaleDateString(undefined, {month:'short', day:'numeric'});
-        
-        let val = curr.stats[this.metricKey];
-        if(this.metricKey === 'volume') val = Math.round(val);
-        if(this.metricKey === 'wpr') val = val.toFixed(1);
-        valEl.textContent = val;
-
-        // Reset colors
-        card.querySelectorAll('.data-footer span').forEach(s => s.className = '');
-        diffEl.className = 'data-diff'; arrowEl.className = 'arrow-icon';
-
-        if(!prev || curr === prev) {
-            diffEl.textContent = ''; arrowEl.innerHTML = '';
-            return;
-        }
-
-        const status = this.calcStatus(curr, prev);
-        const pVal = prev.stats[this.metricKey];
-        const diff = val - pVal;
-        const sign = diff > 0 ? '+' : '';
-        
-        arrowEl.innerHTML = status === 'increase' ? '&#8593;' : (status === 'decrease' ? '&#8595;' : '');
-        diffEl.textContent = `(${sign}${this.metricKey==='wpr'?diff.toFixed(1):Math.round(diff)})`;
-        
-        const colorClass = status; // increase/decrease/neutral
-        valEl.classList.add(colorClass);
-        diffEl.classList.add(colorClass);
-        arrowEl.classList.add(colorClass);
-    }
+  if (docSnap.exists) {
+    clientsData = docSnap.data();
+  } else {
+    clientsData = {};
+    await docRef.set(clientsData);
+  }
 }
 
-// ------------------ Data Processing & Rendering ------------------
+async function saveUserJson() {
+  if (!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
+  await db.collection("clients").doc(uid).set(clientsData);
+}
 
-// Helper: Text Animation
-function animateText(element, text, colorData) {
-    element.innerHTML = '';
-    if(!text) return;
-    
-    let colors = [];
-    if(colorData && colorData.total > 0) {
-        let {green, red, yellow} = colorData;
-        for(let i=0; i<text.length; i++) {
-            if(green>0) { colors.push('var(--color-green)'); green--; }
-            else if(red>0) { colors.push('var(--color-red)'); red--; }
-            else { colors.push('var(--color-yellow)'); }
-        }
-        // Shuffle colors
-        for(let i=colors.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [colors[i], colors[j]] = [colors[j], colors[i]]; }
+// ------------------ ANIMATED TITLE HELPERS ------------------
+
+function setTextAsChars(element, text) {
+  element.innerHTML = '';
+  if (!text || text.trim() === '') {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.innerHTML = '&nbsp;';
+      element.appendChild(span);
+      return;
+  }
+  for (let char of text) {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.textContent = char;
+    if (char === ' ') {
+        span.innerHTML = '&nbsp;';
     }
+    element.appendChild(span);
+  }
+}
 
-    [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.className = 'char';
-        if(colors[i]) {
-            span.style.color = colors[i];
-            // Add animation class based on color
-            if(colors[i].includes('green')) span.classList.add('animate-up');
-            if(colors[i].includes('red')) span.classList.add('animate-down');
-        }
-        // Apply global mood animation
-        let mood = 'calm';
-        if(colorData && colorData.green > colorData.red) mood = 'happy';
-        if(colorData && colorData.red > colorData.green) mood = 'sad';
-        span.classList.add(`${mood}-${(i%3)+1}`);
-        
-        element.appendChild(span);
+/**
+ * HEADER ANIMATION (Standard Happy/Sad/Calm)
+ * Used only for the top titles (Clients, Sessions, Exercises)
+ */
+function applyTitleStyling(element, text, colorData) {
+  if (!element) return;
+
+  setTextAsChars(element, text);
+
+  const parentTitle = element.closest('.animated-title');
+  const targetElement = parentTitle || element;
+  
+  const allClasses = [
+    ...ANIMATION_CLASSES.happy, 
+    ...ANIMATION_CLASSES.sad, 
+    ...ANIMATION_CLASSES.calm, 
+    'happy', 'sad', 'calm'
+  ];
+  targetElement.classList.remove(...allClasses);
+
+  let mood = 'calm'; 
+  if (colorData && colorData.total > 0) {
+    const { red, green, yellow } = colorData;
+    if (green > red && green > yellow) mood = 'happy';
+    else if (red > green && red > yellow) mood = 'sad';
+    else if (yellow > green && yellow > red) mood = 'calm';
+  }
+
+  const animClass = getRandomAnimationClass(mood);
+  targetElement.classList.add(mood);
+  
+  if (!colorData || colorData.total === 0) {
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+      char.classList.remove(...allClasses);
     });
+    return;
+  }
+
+  const { red, green, yellow, total } = colorData;
+  const chars = element.querySelectorAll('.char');
+  const numChars = chars.length;
+  if (numChars === 0) return;
+
+  const colors = [];
+  let greenCount = Math.round((green / total) * numChars);
+  let redCount = Math.round((red / total) * numChars);
+  let yellowCount = Math.round((yellow / total) * numChars);
+
+  // Distribution Logic
+  while (greenCount + redCount + yellowCount < numChars) {
+      if (green >= red && green >= yellow) greenCount++;
+      else if (red >= green && red >= yellow) redCount++;
+      else yellowCount++;
+  }
+  while (greenCount + redCount + yellowCount > numChars) {
+      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
+      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0 && yellow <= red) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+  }
+
+  for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
+  for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
+  for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+
+  chars.forEach((char, i) => {
+    char.style.color = colors[i] || 'var(--color-text)';
+    char.classList.add(animClass);
+    
+    // Specific Diverge Logic for Headers
+    if (animClass === 'calm-3') {
+        if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
+        if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
+    }
+  });
 }
 
-function getColorData(item, type) {
-    // Recursively count stats for sessions/clients
-    let res = { red:0, green:0, yellow:0, total:0 };
+/**
+ * =====================================================================
+ * NEW: LIST ANIMATION LOGIC (3 Second Interval)
+ * =====================================================================
+ */
+function setupListTextAnimation(element, text, colorData) {
+  if (!element) return;
+
+  // 1. Render Text Chars
+  setTextAsChars(element, text);
+
+  // Handle No Data
+  if (!colorData || colorData.total === 0) {
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+    });
+    return; 
+  }
+
+  // 2. Calculate Colors
+  const { red, green, yellow, total } = colorData;
+  const chars = element.querySelectorAll('.char');
+  const numChars = chars.length;
+  
+  const colors = [];
+  let greenCount = Math.round((green / total) * numChars);
+  let redCount = Math.round((red / total) * numChars);
+  let yellowCount = Math.round((yellow / total) * numChars);
+
+  while (greenCount + redCount + yellowCount < numChars) {
+      if (green >= red && green >= yellow) greenCount++;
+      else if (red >= green && red >= yellow) redCount++;
+      else yellowCount++;
+  }
+  while (greenCount + redCount + yellowCount > numChars) {
+      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
+      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0 && yellow <= red) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+  }
+
+  for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
+  for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
+  for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+
+  // 3. Apply Colors & Store Direction
+  chars.forEach((char, i) => {
+    char.style.color = colors[i] || 'var(--color-text)';
     
-    if(type === 'exercise') {
-        const sets = item.sets || [];
-        if(sets.length < 2) return res;
-        // Simple check: Compare last set vs second to last
-        // Note: Real implementation should group by day, but this is a visual approximation
-        const s1 = sets[sets.length-1], s2 = sets[sets.length-2];
-        if(s1.volume > s2.volume) res.green++; else if(s1.volume < s2.volume) res.red++; else res.yellow++;
-        res.total = 1;
+    // Determine which way this specific letter should move
+    if (colors[i] === 'var(--color-green)') {
+        char.dataset.moveDirection = 'up'; 
+    } else if (colors[i] === 'var(--color-red)') {
+        char.dataset.moveDirection = 'down';
     }
-    // Aggregation logic could be expanded here for Client/Session levels
-    return res; 
+  });
+
+  // 4. Start the Timer for this list item
+  runAnimationLoop(element);
 }
 
-// Render Sets (Specific Logic)
-function renderSets() {
-    const tbody = document.querySelector('#setsTable tbody');
-    tbody.innerHTML = '';
-    const titleSpan = document.getElementById('exerciseSetsTitleSpan');
-    
-    if(!selectedExercise) { titleSpan.textContent = 'Exercise'; return; }
-    animateText(titleSpan, selectedExercise.exercise, getColorData(selectedExercise, 'exercise'));
+function runAnimationLoop(element) {
+    // === TIMER SETTING: 3 Seconds ===
+    // 3000ms = 3 seconds. 
+    const delay = 3000; 
 
-    // 1. Prepare Data for Visualizer
-    const rawSets = selectedExercise.sets || [];
-    const sorted = rawSets.slice().sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-    
-    // Group by day
-    const days = {};
-    sorted.forEach(s => {
-        const d = new Date(s.timestamp).toDateString();
-        if(!days[d]) days[d] = { date: s.timestamp, sets: [] };
-        days[d].sets.push(s);
-    });
-    
-    const history = Object.values(days).map(d => {
-        const sets = d.sets.length;
-        const reps = d.sets.reduce((a,b) => a + (parseInt(b.reps)||0), 0);
-        const vol = d.sets.reduce((a,b) => a + (parseFloat(b.volume)||0), 0);
-        return {
-            timestamp: new Date(d.date).getTime(),
-            stats: { sets, reps, volume: vol, wpr: reps?vol/reps:0 }
-        };
-    });
+    setTimeout(() => {
+        // If user left the screen, element is gone, so stop loop
+        if (!document.body.contains(element)) return;
 
-    // 2. Init Visualizer
-    const limit = parseInt(document.getElementById('historySelect').value);
-    swirlWidgets = [];
-    if(history.length) {
-        swirlWidgets.push(new SwirlWidget('swirl-sets', 'sets', history, limit));
-        swirlWidgets.push(new SwirlWidget('swirl-reps', 'reps', history, limit));
-        swirlWidgets.push(new SwirlWidget('swirl-volume', 'volume', history, limit));
-        swirlWidgets.push(new SwirlWidget('swirl-wpr', 'wpr', history, limit));
-    }
-
-    // 3. Render Table (Newest first)
-    rawSets.slice().reverse().forEach((s, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${rawSets.length - i}</td>
-            <td class="editable" data-key="reps">${s.reps}</td>
-            <td class="editable" data-key="weight">${s.weight}</td>
-            <td>${(s.reps*s.weight).toFixed(0)}</td>
-            <td class="editable" data-key="notes">${s.notes || ''}</td>
-            <td style="color:#666; font-size:0.75rem">${new Date(s.timestamp).toLocaleDateString()}</td>
-            <td><button class="btn-delete">&times;</button></td>
-        `;
+        const chars = element.querySelectorAll('.char');
         
-        // Edit Handlers
-        tr.querySelectorAll('.editable').forEach(td => {
-            td.onclick = (e) => {
-                if(!editMode) return;
-                e.stopPropagation();
-                const k = td.dataset.key;
-                const val = prompt(`Edit ${k}`, s[k]);
-                if(val !== null) {
-                    if(k === 'notes') s[k] = val;
-                    else s[k] = parseFloat(val) || 0;
-                    s.volume = s.reps * s.weight;
-                    saveData(); renderSets();
-                }
-            };
+        // A. Add Class (Triggers CSS Animation)
+        chars.forEach(char => {
+            const dir = char.dataset.moveDirection;
+            if (dir === 'up') char.classList.add('animate-up');
+            if (dir === 'down') char.classList.add('animate-down');
         });
-        
-        // Delete Handler
-        tr.querySelector('.btn-delete').onclick = (e) => {
-            e.stopPropagation();
-            confirmDelete('Delete Set?', () => {
-                const idx = selectedExercise.sets.indexOf(s);
-                if(idx > -1) selectedExercise.sets.splice(idx, 1);
-                saveData(); renderSets();
+
+        // B. Remove Class after 2s (CSS animation duration) to reset
+        setTimeout(() => {
+            if (!document.body.contains(element)) return;
+            chars.forEach(char => {
+                char.classList.remove('animate-up', 'animate-down');
             });
-        };
-        tbody.appendChild(tr);
-    });
+
+            // C. Recursion: Run loop again
+            runAnimationLoop(element);
+        }, 2000);
+
+    }, delay);
 }
 
-// Render Clients/Sessions/Exercises (Simplified for brevity, logic follows same pattern)
-function renderClients() {
-    const list = document.getElementById('clientList');
-    list.innerHTML = '';
-    for(let k in clientsData) {
-        const li = document.createElement('li');
-        const span = document.createElement('span');
-        animateText(span, k, {green:1, red:0, yellow:0, total:1}); // Dummy colors
-        li.appendChild(span);
-        li.onclick = () => { if(!editMode) { selectedClient=k; navigateTo(SCREENS.SESSIONS); } };
-        const btn = document.createElement('button'); btn.className='btn-delete'; btn.innerHTML='&times;';
-        btn.onclick = (e) => { e.stopPropagation(); confirmDelete('Delete Client?', ()=>{ delete clientsData[k]; saveData(); renderClients(); }); };
-        li.appendChild(btn);
-        list.appendChild(li);
-    }
+
+function getExerciseColorData(exercise) {
+  if (!exercise.sets || exercise.sets.length < 2) {
+      return { red: 0, green: 0, yellow: 0, total: 0 };
+  }
+  const allSets = exercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+
+  if (!previousWorkoutSet) {
+      return { red: 0, green: 0, yellow: 0, total: 0 };
+  }
+
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  const statuses = [];
+  statuses.push(calculateStatStatus(currentStats.sets, prevStats.sets));
+  statuses.push(calculateStatStatus(currentStats.reps, prevStats.reps));
+  statuses.push(calculateStatStatus(currentStats.volume, prevStats.volume));
+  statuses.push(calculateStatStatus(currentStats.wpr, prevStats.wpr));
+
+  const red = statuses.filter(s => s === 'decrease').length;
+  const green = statuses.filter(s => s === 'increase').length;
+  const yellow = statuses.filter(s => s === 'neutral').length;
+  return { red, green, yellow, total: statuses.length };
 }
+
+function calculateStatStatus(currentValue, previousValue) {
+  const epsilon = 0.01;
+  if (currentValue > previousValue + epsilon) return 'increase';
+  if (currentValue < previousValue - epsilon) return 'decrease';
+  return 'neutral';
+}
+
+// ------------------ RENDER CLIENTS ------------------
+const clientList = document.getElementById("clientList");
+function renderClients() {
+  clientList.innerHTML = "";
+  
+  let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+  
+  for (const name in clientsData) {
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    // setupListTextAnimation handles textContent via setTextAsChars
+    
+    let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const sessions = clientsData[name].sessions || [];
+    sessions.forEach(session => {
+        const exercises = session.exercises || [];
+        exercises.forEach(ex => {
+            const cData = getExerciseColorData(ex);
+            clientColorData.red += cData.red;
+            clientColorData.green += cData.green;
+            clientColorData.yellow += cData.yellow;
+            clientColorData.total += cData.total;
+        });
+    });
+    
+    totalAppColorData.red += clientColorData.red;
+    totalAppColorData.green += clientColorData.green;
+    totalAppColorData.yellow += clientColorData.yellow;
+    totalAppColorData.total += clientColorData.total;
+    
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, name, clientColorData);
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectClient(name);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, () => {
+        delete clientsData[name];
+        saveUserJson();
+        renderClients();
+        if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
+      });
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    clientList.appendChild(li);
+  }
+  
+  // Main Title still uses standard Logic
+  const clientsTitle = document.getElementById('clientsScreenTitle');
+  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  
+  hookEditables();
+}
+
+// ------------------ CLIENT ACTIONS ------------------
+document.getElementById("addClientBtn").onclick = () => {
+  const name = prompt("Enter client name:");
+  if (!name) return;
+  if (clientsData[name]) { alert("Client already exists."); return; }
+  clientsData[name] = { client_name: name, sessions: [] };
+  saveUserJson();
+  renderClients();
+};
+
+function selectClient(name) {
+  selectedClient = name;
+  selectedSession = null;
+  selectedExercise = null;
+  renderSessions();
+  navigateTo(SCREENS.SESSIONS, 'forward');
+}
+
+// ------------------ SESSIONS ------------------
+const sessionList = document.getElementById("sessionList");
+
+function getSortedSessions(sessionsArray) {
+  if (!sessionsArray) return [];
+  return sessionsArray.slice().sort((a, b) => {
+    let dateB = b.date ? new Date(b.date) : new Date(0);
+    if (isNaN(dateB.getTime())) dateB = new Date(0);
+    let dateA = a.date ? new Date(a.date) : new Date(0);
+    if (isNaN(dateA.getTime())) dateA = new Date(0);
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
+document.getElementById("addSessionBtn").onclick = () => {
+  if (!selectedClient) { alert("Select a client first"); return; }
+  const name = prompt("Enter session name:");
+  if (!name) return;
+  const session = { session_name: name, exercises: [], date: new Date().toISOString() };
+  clientsData[selectedClient].sessions.push(session);
+  saveUserJson();
+  renderSessions();
+};
 
 function renderSessions() {
-    const list = document.getElementById('sessionList');
-    list.innerHTML = '';
-    if(!selectedClient) return;
-    (clientsData[selectedClient].sessions||[]).forEach((sess, i) => {
-        const li = document.createElement('li');
-        const span = document.createElement('span');
-        animateText(span, sess.session_name, null);
-        li.appendChild(span);
-        li.onclick = () => { if(!editMode) { selectedSession=sess; navigateTo(SCREENS.EXERCISES); } };
-        const btn = document.createElement('button'); btn.className='btn-delete'; btn.innerHTML='&times;';
-        btn.onclick = (e) => { e.stopPropagation(); confirmDelete('Delete Session?', ()=>{ clientsData[selectedClient].sessions.splice(i,1); saveData(); renderSessions(); }); };
-        li.appendChild(btn);
-        list.appendChild(li);
+  sessionList.innerHTML = "";
+  if (!selectedClient) return;
+  selectedSession = null;
+
+  let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
+  const sessions = clientsData[selectedClient]?.sessions || [];
+  const sortedSessions = getSortedSessions(sessions);
+
+  sortedSessions.forEach((sess, idx) => {
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    
+    let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const exercises = sess.exercises || [];
+    exercises.forEach(ex => {
+        const cData = getExerciseColorData(ex);
+        sessionColorData.red += cData.red;
+        sessionColorData.green += cData.green;
+        sessionColorData.yellow += cData.yellow;
+        sessionColorData.total += cData.total;
     });
+    
+    clientTotalColorData.red += sessionColorData.red;
+    clientTotalColorData.green += sessionColorData.green;
+    clientTotalColorData.yellow += sessionColorData.yellow;
+    clientTotalColorData.total += sessionColorData.total;
+
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectSession(sess);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
+        const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
+        if (sessionIndex > -1) {
+          clientsData[selectedClient].sessions.splice(sessionIndex, 1);
+          saveUserJson();
+          renderSessions();
+        }
+        if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
+      });
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    sessionList.appendChild(li);
+  });
+  
+  const sessionsTitle = document.getElementById('sessionsScreenTitle');
+  applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
+
+  hookEditables();
 }
+
+function selectSession(sessionObject) {
+  selectedSession = sessionObject;
+  selectedExercise = null;
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'forward');
+}
+
+// ------------------ EXERCISES ------------------
+const exerciseList = document.getElementById("exerciseList");
+document.getElementById("addExerciseBtn").onclick = () => {
+  if (!selectedSession) { alert("Select a session first"); return; }
+  const name = prompt("Enter exercise name:");
+  if (!name) return;
+  const ex = { exercise: name, sets: [] };
+  selectedSession.exercises.push(ex);
+  saveUserJson();
+  renderExercises();
+};
 
 function renderExercises() {
-    const list = document.getElementById('exerciseList');
-    list.innerHTML = '';
-    if(!selectedSession) return;
-    (selectedSession.exercises||[]).forEach((ex, i) => {
-        const li = document.createElement('li');
-        const span = document.createElement('span');
-        animateText(span, ex.exercise, getColorData(ex, 'exercise'));
-        li.appendChild(span);
-        li.onclick = () => { if(!editMode) { selectedExercise=ex; navigateTo(SCREENS.SETS); } };
-        const btn = document.createElement('button'); btn.className='btn-delete'; btn.innerHTML='&times;';
-        btn.onclick = (e) => { e.stopPropagation(); confirmDelete('Delete Exercise?', ()=>{ selectedSession.exercises.splice(i,1); saveData(); renderExercises(); }); };
-        li.appendChild(btn);
-        list.appendChild(li);
+  exerciseList.innerHTML = "";
+  const sessionTitleElement = document.getElementById('sessionExercisesTitle');
+  
+  if (!selectedSession) {
+    applyTitleStyling(sessionTitleElement, 'Exercises', null);
+    return;
+  }
+  
+  selectedExercise = null;
+  let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
+  selectedSession.exercises.forEach((ex, idx) => {
+    const colorData = getExerciseColorData(ex);
+    ex.colorData = colorData; 
+
+    if (colorData) {
+      sessionColorData.red += colorData.red;
+      sessionColorData.green += colorData.green;
+      sessionColorData.yellow += colorData.yellow;
+      sessionColorData.total += colorData.total;
+    }
+
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = ex.exercise;
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectExercise(idx);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete exercise "${ex.exercise}"?`, () => {
+        selectedSession.exercises.splice(idx, 1);
+        saveUserJson();
+        renderExercises();
+        if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
+      });
+    };
+    
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, ex.exercise, colorData);
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    exerciseList.appendChild(li);
+  });
+  
+  applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
+  hookEditables();
+}
+
+function selectExercise(idx) {
+  selectedExercise = selectedSession.exercises[idx];
+  renderSets();
+  navigateTo(SCREENS.SETS, 'forward');
+  document.getElementById("graphContainer").classList.add("hidden");
+}
+
+// ------------------ SETS ------------------
+const setsTable = document.querySelector("#setsTable tbody");
+
+function getLastSet() {
+    if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+        return null;
+    }
+    const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return sortedSets[0];
+}
+
+document.getElementById("addSetBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  const lastSet = getLastSet();
+  const repsPrompt = lastSet ? lastSet.reps : "";
+  const weightPrompt = lastSet ? lastSet.weight : "";
+  let reps = prompt(`Reps (last: ${repsPrompt}):`);
+  if (!reps || isNaN(reps)) return;
+  reps = parseInt(reps);
+  let weight = prompt(`Weight (last: ${weightPrompt}):`);
+  if (!weight || isNaN(weight)) return;
+  weight = parseFloat(weight);
+  let notes = prompt("Notes:") || "";
+  const timestamp = new Date().toISOString();
+  const volume = reps * weight;
+
+  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
+  saveUserJson();
+  renderSets();
+};
+
+function renderSets() {
+  setsTable.innerHTML = "";
+  if (!selectedExercise) return;
+
+  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const setsByDay = new Map();
+  sortedSets.forEach(set => {
+    const setDate = new Date(set.timestamp);
+    const dayString = setDate.toDateString();
+    if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
+    setsByDay.get(dayString).push(set);
+  });
+
+  const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
+  const renderedSetsInOrder = [];
+
+  sortedDays.forEach((dayString, dayIndex) => {
+    const daySets = setsByDay.get(dayString);
+    daySets.forEach((s, setIdx) => {
+      const tr = document.createElement("tr");
+      if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
+        tr.classList.add("day-end-row");
+      }
+      const originalIndex = selectedExercise.sets.indexOf(s);
+      tr.innerHTML = `
+        <td>${setIdx + 1}</td>
+        <td>${s.reps}</td>
+        <td>${s.weight}</td>
+        <td>${s.volume}</td>
+        <td>${s.notes}</td>
+        <td>${new Date(s.timestamp).toLocaleString()}</td>
+      `;
+      const deleteTd = document.createElement('td');
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
+          selectedExercise.sets.splice(originalIndex, 1);
+          saveUserJson();
+          renderSets();
+        });
+      };
+      deleteTd.appendChild(deleteBtn);
+      tr.appendChild(deleteTd);
+      setsTable.appendChild(tr);
+      renderedSetsInOrder.push(s);
     });
+  });
+
+  hookEditables(renderedSetsInOrder);
+  runComparisonLogic();
 }
 
-// ------------------ UI Actions ------------------
-document.getElementById('editToggleBtn').onclick = function() {
-    editMode = !editMode;
-    document.body.classList.toggle('edit-mode-active', editMode);
-    this.textContent = editMode ? 'Done' : 'Edit';
-    this.classList.toggle('active');
-    // Refresh current screen
-    if(currentScreen === SCREENS.CLIENTS) renderClients();
-    if(currentScreen === SCREENS.SESSIONS) renderSessions();
-    if(currentScreen === SCREENS.EXERCISES) renderExercises();
-    if(currentScreen === SCREENS.SETS) renderSets();
+
+// ------------------ PLOTLY GRAPH ------------------
+document.getElementById("showGraphBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  const sets = selectedExercise.sets;
+  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+
+  navigateTo(SCREENS.GRAPH, 'forward');;
+
+  const dates = sets.map(s => s.timestamp);
+  const reps = sets.map(s => s.reps);
+  const weight = sets.map(s => s.weight);
+  const volume = sets.map(s => s.volume);
+  const wpr = sets.map(s => s.volume / s.reps);
+  
+  const traces = [
+    { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
+    { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
+    { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
+    { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
+  ];
+  
+  Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
+  Plotly.Plots.resize('graphDiv');
 };
 
-document.getElementById('addClientBtn').onclick = () => { const n = prompt('Name:'); if(n) { clientsData[n] = {sessions:[]}; saveData(); renderClients(); }};
-document.getElementById('addSessionBtn').onclick = () => { const n = prompt('Name:'); if(n) { clientsData[selectedClient].sessions.push({session_name:n, exercises:[], date:new Date().toISOString()}); saveData(); renderSessions(); }};
-document.getElementById('addExerciseBtn').onclick = () => { const n = prompt('Name:'); if(n) { selectedSession.exercises.push({exercise:n, sets:[]}); saveData(); renderExercises(); }};
-document.getElementById('addSetBtn').onclick = () => {
-    if(!selectedExercise) return;
-    const last = selectedExercise.sets[selectedExercise.sets.length-1] || {reps:10, weight:135};
-    const r = prompt('Reps', last.reps);
-    const w = prompt('Weight', last.weight);
-    if(r&&w) {
-        selectedExercise.sets.push({reps:parseInt(r), weight:parseFloat(w), volume: r*w, notes:'', timestamp:new Date().toISOString()});
-        saveData(); renderSets();
-    }
-};
-
-// Modal Logic
-const delModal = document.getElementById('deleteModal');
-let confirmCallback = null;
-function confirmDelete(msg, cb) {
-    document.getElementById('deleteModalMessage').textContent = msg;
-    confirmCallback = cb;
-    delModal.classList.remove('hidden');
+// ------------------ HELPER ------------------
+function hideAllDetails() {
+  Object.values(SCREENS).forEach(screenId => {
+    document.getElementById(screenId).classList.add('hidden');
+  });
+  document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
+  currentScreen = SCREENS.CLIENTS;
+  document.getElementById("graphDiv").innerHTML = "";
 }
-document.getElementById('deleteCancelBtn').onclick = () => delModal.classList.add('hidden');
-document.getElementById('deleteConfirmBtn').onclick = () => { if(confirmCallback) confirmCallback(); delModal.classList.add('hidden'); };
 
-// Visualizer Controls
-document.getElementById('linkToggle').onclick = function() { isLinkedMode=!isLinkedMode; this.classList.toggle('active'); };
-document.getElementById('historySelect').onchange = () => renderSets();
+// ------------------ COMPARISON LOGIC ------------------
 
-// Global Swipe Back (Mobile)
-let tsX = 0, tsY = 0;
-document.body.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; }, {passive:true});
-document.body.addEventListener('touchend', e => {
-    const dX = e.changedTouches[0].clientX - tsX;
-    const dY = e.changedTouches[0].clientY - tsY;
-    if(tsX < 50 && dX > 80 && Math.abs(dY) < 50) {
-        // Simple back logic
-        if(currentScreen === SCREENS.SESSIONS) navigateTo(SCREENS.CLIENTS);
-        if(currentScreen === SCREENS.EXERCISES) navigateTo(SCREENS.SESSIONS);
-        if(currentScreen === SCREENS.SETS) navigateTo(SCREENS.EXERCISES);
-        if(currentScreen === SCREENS.GRAPH) navigateTo(SCREENS.SETS);
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+function aggregateStats(setsArray) {
+  if (!setsArray || setsArray.length === 0) {
+    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
+  }
+  const totalSets = setsArray.length;
+  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
+  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
+  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+}
+
+function formatNum(num) {
+  if (num % 1 === 0) return num.toString();
+  return num.toFixed(1);
+}
+
+function updateStatUI(statName, currentValue, previousValue) {
+  const arrowEl = document.getElementById(statName + 'Arrow');
+  const spiralEl = document.getElementById(statName + 'Spiral');
+  const dataEl = document.getElementById(statName + 'Data');
+  
+  if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
+
+  const status = calculateStatStatus(currentValue, previousValue);
+  
+  let arrow = '—';
+  if (status === 'increase') arrow = '&uarr;';
+  else if (status === 'decrease') arrow = '&darr;';
+  
+  const change = currentValue - previousValue;
+  let percentageChange = 0;
+  if (previousValue !== 0) {
+    percentageChange = (change / previousValue) * 100;
+  } else if (currentValue > 0) {
+    percentageChange = 100;
+  }
+
+  let currentString = '';
+  const changeSign = change > 0 ? '+' : '';
+  
+  switch(statName) {
+    case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
+    case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
+  }
+  
+  let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  if (status === 'neutral') changeString = `(0 / 0%)`;
+  
+  const classesToRemove = ['increase', 'decrease', 'neutral'];
+  arrowEl.innerHTML = arrow;
+  arrowEl.classList.remove(...classesToRemove);
+  arrowEl.classList.add(status);
+
+  spiralEl.classList.remove(...classesToRemove);
+  spiralEl.classList.add(status);
+  
+  dataEl.textContent = `${currentString} ${changeString}`;
+  dataEl.classList.remove(...classesToRemove);
+  dataEl.classList.add(status);
+
+  return status;
+}
+
+
+function runComparisonLogic() {
+  const banner = document.getElementById('comparisonBanner');
+  const titleElement = document.getElementById('exerciseSetsTitleSpan');
+
+  if (!selectedExercise) {
+    banner.classList.add('hidden');
+    if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
+    return;
+  }
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, null);
+
+  const colorData = getExerciseColorData(selectedExercise);
+  selectedExercise.colorData = colorData;
+
+  if (colorData.total === 0) {
+      banner.classList.add('hidden');
+      applyTitleStyling(titleElement, selectedExercise.exercise, null);
+      return;
+  }
+
+  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  updateStatUI('sets', currentStats.sets, prevStats.sets);
+  updateStatUI('reps', currentStats.reps, prevStats.reps);
+  updateStatUI('volume', currentStats.volume, prevStats.volume);
+  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
+  banner.classList.remove('hidden');
+}
+
+
+// ------------------ EDIT MODE ------------------
+let editMode = false;
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+  document.body.classList.toggle('edit-mode-active');
+  if (!editMode) saveUserJson();
+};
+
+// ------------------ MAKE ELEMENTS EDITABLE ------------------
+function makeEditable(element, type, parentIdx, sortedSets) {
+  element.classList.add("editable");
+  element.style.cursor = "pointer";
+
+  element.addEventListener("click", (e) => {
+    if (!editMode) return;
+    e.stopPropagation();
+
+    const currentVal = element.textContent;
+    const newVal = prompt(`Edit ${type}:`, currentVal);
+    if (!newVal || newVal === currentVal) return;
+
+    let originalIndex = -1;
+    if (type.startsWith("Set")) {
+        const sortedSetObject = sortedSets[parentIdx];
+        if (!sortedSetObject) return;
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        if (originalIndex === -1) return;
     }
+
+    switch(type) {
+      case "Client":
+        const data = clientsData[currentVal];
+        delete clientsData[currentVal];
+        data.client_name = newVal;
+        clientsData[newVal] = data;
+        if (selectedClient === currentVal) selectedClient = newVal;
+        renderClients();
+        break;
+
+      case "Session":
+        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
+        if (sessionToEdit) sessionToEdit.session_name = newVal;
+        renderSessions();
+        break;
+
+      case "Exercise":
+        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+        if(exerciseToEdit) exerciseToEdit.exercise = newVal;
+        renderExercises();
+        break;
+
+      case "SetReps":
+        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetWeight":
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetNotes":
+        selectedExercise.sets[originalIndex].notes = newVal;
+        renderSets();
+        break;
+    }
+
+    saveUserJson();
+  });
+}
+
+function hookEditables(sortedSets = []) {
+  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
+  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
+  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
+  
+  let setRowIdx = 0;
+  setsTable.querySelectorAll("tr").forEach((tr) => {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length < 5) return;
+    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
+    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
+    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
+    setRowIdx++;
+  });
+}
+
+// ------------------ SWIPE NAVIGATION ------------------
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoveX = 0;
+let touchMoveY = 0;
+const MIN_SWIPE_DISTANCE = 85;
+const MAX_START_EDGE = 150;
+
+document.body.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoveX = 0;
+    touchMoveY = 0;
+}, { passive: true });
+
+document.body.addEventListener('touchmove', (e) => {
+    touchMoveX = e.touches[0].clientX;
+    touchMoveY = e.touches[0].clientY;
+}, { passive: true });
+
+document.body.addEventListener('touchend', () => {
+    if (touchMoveX === 0 && touchMoveY === 0) return;
+    const deltaX = touchMoveX - touchStartX;
+    const deltaY = touchMoveY - touchStartY;
+    if (touchStartX > MAX_START_EDGE) return;
+    if (deltaX < MIN_SWIPE_DISTANCE) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+    
+    switch (currentScreen) {
+        case SCREENS.SESSIONS:
+            document.getElementById('backToClientsBtn').click();
+            break;
+        case SCREENS.EXERCISES:
+            document.getElementById('backToSessionsBtn').click();
+            break;
+        case SCREENS.SETS:
+            document.getElementById('backToExercisesBtn').click();
+            break;
+        case SCREENS.GRAPH:
+            document.getElementById('backToSetsFromGraphBtn').click();
+            break;
+    }
+    touchStartX = 0; touchStartY = 0;
 });
