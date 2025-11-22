@@ -252,29 +252,19 @@ function applyTitleStyling(element, text, colorData) {
   const colors = [];
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
-  let yellowCount = Math.round((yellow / total) * numChars);
-
-  while (greenCount + redCount + yellowCount < numChars) {
-      if (green >= red && green >= yellow) greenCount++;
-      else if (red >= green && red >= yellow) redCount++;
-      else yellowCount++;
+  
+  // Safe math to ensure we don't exceed numChars
+  if (greenCount + redCount > numChars) {
+      if (greenCount > redCount) greenCount = numChars - redCount;
+      else redCount = numChars - greenCount;
   }
-  while (greenCount + redCount + yellowCount > numChars) {
-      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
-      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
-      else if (greenCount > 0) greenCount--;
-      else if (yellowCount > 0 && yellow <= red) yellowCount--;
-      else if (redCount > 0) redCount--;
-      else if (greenCount > 0) greenCount--;
-      else if (yellowCount > 0) yellowCount--;
-      else if (redCount > 0) redCount--;
-      else if (greenCount > 0) greenCount--;
-  }
+  let yellowCount = numChars - (greenCount + redCount);
 
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
 
+  // Shuffle colors
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
@@ -310,24 +300,13 @@ function setupListTextAnimation(element, text, colorData) {
   const colors = [];
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
-  let yellowCount = Math.round((yellow / total) * numChars);
-
-  while (greenCount + redCount + yellowCount < numChars) {
-      if (green >= red && green >= yellow) greenCount++;
-      else if (red >= green && red >= yellow) redCount++;
-      else yellowCount++;
+  
+  // Simplified distribution logic to avoid infinite loops
+  if (greenCount + redCount > numChars) {
+      if (greenCount > redCount) greenCount = numChars - redCount;
+      else redCount = numChars - greenCount;
   }
-  while (greenCount + redCount + yellowCount > numChars) {
-      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
-      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
-      else if (greenCount > 0) greenCount--;
-      else if (yellowCount > 0 && yellow <= red) yellowCount--;
-      else if (redCount > 0) redCount--;
-      else if (greenCount > 0) greenCount--;
-      else if (yellowCount > 0) yellowCount--;
-      else if (redCount > 0) redCount--;
-      else if (greenCount > 0) greenCount--;
-  }
+  let yellowCount = numChars - (greenCount + redCount);
 
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
@@ -370,11 +349,37 @@ function runAnimationLoop(element) {
     }, delay);
 }
 
+function isSameDay(d1, d2) {
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+function aggregateStats(setsArray) {
+  if (!setsArray || setsArray.length === 0) {
+    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
+  }
+  const totalSets = setsArray.length;
+  const totalReps = setsArray.reduce((sum, set) => sum + (Number(set.reps) || 0), 0);
+  const totalVolume = setsArray.reduce((sum, set) => sum + (Number(set.volume) || 0), 0);
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
+  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+}
+
 function getExerciseColorData(exercise) {
   if (!exercise.sets || exercise.sets.length < 2) {
       return { red: 0, green: 0, yellow: 0, total: 0 };
   }
-  const allSets = exercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Safe handling for sorting timestamps
+  const allSets = exercise.sets.slice().sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+  });
+  
+  if (allSets.length === 0) return { red: 0, green: 0, yellow: 0, total: 0 };
+
   const mostRecentDate = new Date(allSets[0].timestamp);
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
   const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
@@ -790,25 +795,6 @@ function hideAllDetails() {
   document.getElementById("graphDiv").innerHTML = "";
 }
 
-// ------------------ COMPARISON LOGIC (Standard Stats) ------------------
-
-function isSameDay(d1, d2) {
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
-}
-
-function aggregateStats(setsArray) {
-  if (!setsArray || setsArray.length === 0) {
-    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
-  }
-  const totalSets = setsArray.length;
-  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
-  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
-  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
-  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
-}
-
 // =============================================================
 // NEW: SWIRL WIDGET INTEGRATION (V8 - NO MASKS / ROBUST MOBILE)
 // =============================================================
@@ -848,6 +834,7 @@ function processExerciseHistory(exercise) {
     const sessionsMap = new Map();
     allSets.forEach(set => {
         const d = new Date(set.timestamp);
+        if (isNaN(d.getTime())) return; // Skip invalid dates
         const dateKey = d.toDateString(); 
         
         if (!sessionsMap.has(dateKey)) {
@@ -1207,3 +1194,140 @@ class SwirlWidget {
         }
     }
 }
+
+// ------------------ EDIT MODE ------------------
+let editMode = false;
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+  document.body.classList.toggle('edit-mode-active');
+  if (!editMode) saveUserJson();
+};
+
+// ------------------ MAKE ELEMENTS EDITABLE ------------------
+function makeEditable(element, type, parentIdx, sortedSets) {
+  element.classList.add("editable");
+  element.style.cursor = "pointer";
+
+  element.addEventListener("click", (e) => {
+    if (!editMode) return;
+    e.stopPropagation();
+
+    const currentVal = element.textContent;
+    const newVal = prompt(`Edit ${type}:`, currentVal);
+    if (!newVal || newVal === currentVal) return;
+
+    let originalIndex = -1;
+    if (type.startsWith("Set")) {
+        const sortedSetObject = sortedSets[parentIdx];
+        if (!sortedSetObject) return;
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        if (originalIndex === -1) return;
+    }
+
+    switch(type) {
+      case "Client":
+        const data = clientsData[currentVal];
+        delete clientsData[currentVal];
+        data.client_name = newVal;
+        clientsData[newVal] = data;
+        if (selectedClient === currentVal) selectedClient = newVal;
+        renderClients();
+        break;
+
+      case "Session":
+        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
+        if (sessionToEdit) sessionToEdit.session_name = newVal;
+        renderSessions();
+        break;
+
+      case "Exercise":
+        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+        if(exerciseToEdit) exerciseToEdit.exercise = newVal;
+        renderExercises();
+        break;
+
+      case "SetReps":
+        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetWeight":
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetNotes":
+        selectedExercise.sets[originalIndex].notes = newVal;
+        renderSets();
+        break;
+    }
+
+    saveUserJson();
+  });
+}
+
+function hookEditables(sortedSets = []) {
+  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
+  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
+  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
+  
+  let setRowIdx = 0;
+  setsTable.querySelectorAll("tr").forEach((tr) => {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length < 5) return;
+    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
+    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
+    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
+    setRowIdx++;
+  });
+}
+
+// ------------------ SWIPE NAVIGATION ------------------
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoveX = 0;
+let touchMoveY = 0;
+const MIN_SWIPE_DISTANCE = 85;
+const MAX_START_EDGE = 150;
+
+document.body.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoveX = 0;
+    touchMoveY = 0;
+}, { passive: true });
+
+document.body.addEventListener('touchmove', (e) => {
+    touchMoveX = e.touches[0].clientX;
+    touchMoveY = e.touches[0].clientY;
+}, { passive: true });
+
+document.body.addEventListener('touchend', () => {
+    if (touchMoveX === 0 && touchMoveY === 0) return;
+    const deltaX = touchMoveX - touchStartX;
+    const deltaY = touchMoveY - touchStartY;
+    if (touchStartX > MAX_START_EDGE) return;
+    if (deltaX < MIN_SWIPE_DISTANCE) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+    
+    switch (currentScreen) {
+        case SCREENS.SESSIONS:
+            document.getElementById('backToClientsBtn').click();
+            break;
+        case SCREENS.EXERCISES:
+            document.getElementById('backToSessionsBtn').click();
+            break;
+        case SCREENS.SETS:
+            document.getElementById('backToExercisesBtn').click();
+            break;
+        case SCREENS.GRAPH:
+            document.getElementById('backToSetsFromGraphBtn').click();
+            break;
+    }
+    touchStartX = 0; touchStartY = 0;
+});
