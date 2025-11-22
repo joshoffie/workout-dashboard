@@ -1,24 +1,20 @@
 /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
   /* Dark Mode Palette */
-  --color-bg: #101010;
-  /* Main background */
+  --color-bg: #101010; /* Main background */
   --color-card: #1c1c1c; /* Card/Header background */
-  --color-text: #f0f0f0;
-  /* Primary text */
+  --color-text: #f0f0f0; /* Primary text */
   --color-text-muted: #8a8a8e; /* Softer text */
-  --color-border: #333333;
-  /* Borders */
+  --color-border: #333333; /* Borders */
   
   /* Vibrant Accent (Inspired by Hevy/Setgraph) */
-  --color-primary: #007aff;
-  /* Kept your blue, it's clean */
-  --color-primary-light: rgba(0, 122, 255, 0.1);
-  /* Light blue for hover */
+  --color-primary: #007aff; /* Kept your blue, it's clean */
+  --color-primary-light: rgba(0, 122, 255, 0.1); /* Light blue for hover */
   --color-secondary: #333333; /* Darker secondary button */
 
   /* Gradient for "Add" buttons */
   --grad-primary: linear-gradient(90deg, #007aff, #00A3FF);
+
   /* Status Colors */
   --color-red: #ff3b30;
   --color-green: #34c759;
@@ -30,9 +26,11 @@
   --radius-md: 12px;
   --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   --transition: 0.2s ease;
+  
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  
   /* Smooth scrolling for native feel */
   scroll-behavior: smooth;
 }
@@ -87,7 +85,7 @@ body {
 .modal-logo {
   width: 100px; 
   height: 100px;
-  margin: 0 auto 1.5rem auto;
+  margin: 0 auto 1.5rem auto; 
   position: relative;
 }
 .tree-animation-svg {
@@ -215,7 +213,7 @@ body {
 #userLabel {
   font-size: 0.9rem;
   color: var(--color-text-muted);
-  display: none;
+  display: none; 
 }
 
 /* ===== MAIN APP CONTAINER ===== */
@@ -232,7 +230,7 @@ body {
   list-style: none;
   width: 100%;
   padding: 0 1rem; 
-  padding-top: 7rem;
+  padding-top: 7rem; 
 }
 .item-list li {
   font-size: 1.1rem;
@@ -241,6 +239,7 @@ body {
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: all var(--transition);
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -266,27 +265,12 @@ body {
 }
 .item-list li > span {
   flex: 1;
-  padding-right: 1rem;
+  padding-right: 1rem; 
   transition: color 0.3s ease;
 }
 .edit-mode-active .item-list li::after {
   transform: translateX(20px);
   opacity: 0;
-}
-
-/* ===== SWIRL VISUALIZER WRAPPER (NEW) ===== */
-.swirl-wrapper {
-  width: 50px;
-  height: 50px;
-  margin-right: 15px; /* Space between swirl and arrow/delete btn */
-  position: relative;
-  flex-shrink: 0;
-}
-.swirl-visual-area {
-  width: 100%;
-  height: 100%;
-  /* Absorb clicks so they don't trigger the row click immediately if user interacts */
-  pointer-events: none; 
 }
 
 
@@ -456,7 +440,7 @@ td .btn-delete {
 /* ===== RESPONSIVE ===== */
 @media(min-width: 768px) {
   body {
-    font-size: 18px;
+    font-size: 18px; 
   }
   .app-container {
     padding: 0;
@@ -494,7 +478,7 @@ td .btn-delete {
   font-family: inherit;
   color: var(--color-red);
   background-color: var(--color-secondary);
-  border: none;
+  border: none; 
   cursor: pointer;
   width: 36px; 
   height: 36px;
@@ -503,7 +487,7 @@ td .btn-delete {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 20;
+  z-index: 20; 
   animation: move-back-and-forth 1.3s ease-in-out infinite;
   border: 1px solid var(--color-border);
   transition: all var(--transition); 
@@ -550,40 +534,35 @@ td .btn-delete {
 }
 
 #setsDiv .sets-content-wrapper {
-  margin-top: 11rem;
+  margin-top: 11rem; 
 }
 
 @keyframes move-back-and-forth {
   0% { transform: translateX(0); }
   40% { transform: translateX(-4px); }
-  60% { transform: translateX(-4px);
-  }
+  60% { transform: translateX(-4px); }
   100% { transform: translateX(0); }
 }
 @keyframes slideInFromRight {
-  from { transform: translateX(100%); opacity: 0.5;
-  }
+  from { transform: translateX(100%); opacity: 0.5; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToLeft {
-  from { transform: translateX(0); opacity: 1;
-  }
+  from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(-25%); opacity: 0; }
 }
 @keyframes slideInFromLeft {
-  from { transform: translateX(-25%); opacity: 0;
-  }
+  from { transform: translateX(-25%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes slideOutToRight {
-  from { transform: translateX(0); opacity: 1;
-  }
+  from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(100%); opacity: 0.5; }
 }
 
 .slide-in-right {
   animation: slideInFromRight 0.3s forwards ease-out;
-  z-index: 2;
+  z-index: 2; 
 }
 .slide-out-left {
   animation: slideOutToLeft 0.3s forwards ease-out;
@@ -613,7 +592,7 @@ td .btn-delete {
   max-width: 500px; 
 }
 .action-header .btn {
-  flex: 1;
+  flex: 1; 
 }
 
 /* ===== COMPARISON BANNER ===== */
@@ -650,8 +629,7 @@ td .btn-delete {
 }
 .stat-arrow.increase { color: var(--color-green); }
 .stat-arrow.decrease { color: var(--color-red); }
-.stat-arrow.neutral { color: var(--color-yellow);
-}
+.stat-arrow.neutral { color: var(--color-yellow); }
 
 .stat-svg-container {
   width: 25px;
@@ -698,8 +676,7 @@ td .btn-delete {
 }
 .stat-data.increase { color: var(--color-green); }
 .stat-data.decrease { color: var(--color-red); }
-.stat-data.neutral { color: var(--color-yellow);
-}
+.stat-data.neutral { color: var(--color-yellow); }
 
 /* ===== LOGO ANIMATION ===== */
 #animated-logo {
@@ -715,54 +692,39 @@ td .btn-delete {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); animation-timing-function: ease-in;
-  }
+  0%, 100% { transform: translateY(0); animation-timing-function: ease-in; }
   50% { transform: translateY(-10px); animation-timing-function: ease-out; }
 }
 @keyframes master-spin-float-loop {
-  0%    { transform: rotate(0deg)   translate(0, 0);
-  }
+  0%    { transform: rotate(0deg)   translate(0, 0); }
   18%   { transform: rotate(720deg) translate(0, 0); } 
-  24.8% { transform: rotate(720deg) translate(-1px, -2px);
-  }
+  24.8% { transform: rotate(720deg) translate(-1px, -2px); }
   31.6% { transform: rotate(720deg) translate(0, 0); }
-  38.4% { transform: rotate(720deg) translate(1px, 2px);
-  }
+  38.4% { transform: rotate(720deg) translate(1px, 2px); }
   45.2% { transform: rotate(720deg) translate(0, 0); }
-  52.0% { transform: rotate(720deg) translate(-1px, -2px);
-  }
+  52.0% { transform: rotate(720deg) translate(-1px, -2px); }
   58.8% { transform: rotate(720deg) translate(0, 0); }
-  65.6% { transform: rotate(720deg) translate(1px, 2px);
-  }
+  65.6% { transform: rotate(720deg) translate(1px, 2px); }
   72.4% { transform: rotate(720deg) translate(0, 0); }
-  79.2% { transform: rotate(720deg) translate(-1px, -2px);
-  }
+  79.2% { transform: rotate(720deg) translate(-1px, -2px); }
   86.0% { transform: rotate(720deg) translate(0, 0); }
-  92.8% { transform: rotate(720deg) translate(1px, 2px);
-  }
+  92.8% { transform: rotate(720deg) translate(1px, 2px); }
   100%  { transform: rotate(720deg) translate(0, 0); } 
 }
 @keyframes master-spin-reverse-float-loop {
-  0%    { transform: rotate(0deg)   translate(0, 0);
-  }
+  0%    { transform: rotate(0deg)   translate(0, 0); }
   18%   { transform: rotate(-720deg) translate(0, 0); } 
-  24.8% { transform: rotate(-720deg) translate(-1px, -2px);
-  }
+  24.8% { transform: rotate(-720deg) translate(-1px, -2px); }
   31.6% { transform: rotate(-720deg) translate(0, 0); }
-  38.4% { transform: rotate(-720deg) translate(1px, 2px);
-  }
+  38.4% { transform: rotate(-720deg) translate(1px, 2px); }
   45.2% { transform: rotate(-720deg) translate(0, 0); }
-  52.0% { transform: rotate(-720deg) translate(-1px, -2px);
-  }
+  52.0% { transform: rotate(-720deg) translate(-1px, -2px); }
   58.8% { transform: rotate(-720deg) translate(0, 0); }
-  65.6% { transform: rotate(-720deg) translate(1px, 2px);
-  }
+  65.6% { transform: rotate(-720deg) translate(1px, 2px); }
   72.4% { transform: rotate(-720deg) translate(0, 0); }
-  79.2% { transform: rotate(-720deg) translate(-1px, -2px);
-  }
+  79.2% { transform: rotate(-720deg) translate(-1px, -2px); }
   86.0% { transform: rotate(-720deg) translate(0, 0); }
-  92.8% { transform: rotate(-720deg) translate(1px, 2px);
-  }
+  92.8% { transform: rotate(-720deg) translate(1px, 2px); }
   100%  { transform: rotate(-720deg) translate(0, 0); } 
 }
 
@@ -773,20 +735,16 @@ td .btn-delete {
   transform-box: fill-box;
   transform-origin: center;
 }
-#logo-t { animation: master-spin-float-loop 10s 0.4s infinite ease-in-out;
-}
+#logo-t { animation: master-spin-float-loop 10s 0.4s infinite ease-in-out; }
 #logo-u { animation: master-spin-float-loop 10s 0.1s infinite ease-in-out; }
-#logo-k { animation: master-spin-float-loop 10s 0.5s infinite ease-in-out;
-}
+#logo-k { animation: master-spin-float-loop 10s 0.5s infinite ease-in-out; }
 #logo-r { animation: master-spin-reverse-float-loop 10s 0.2s infinite ease-in-out; }
-#logo-n { animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out;
-}
+#logo-n { animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out; }
 
 #logo-t { transform-origin: 12px 22px; }
 #logo-r { transform-origin: 33px 22px; }
 #logo-u { transform-origin: 59px 22px; }
-#logo-n { transform-origin: 89px 22px;
-}
+#logo-n { transform-origin: 89px 22px; }
 #logo-k { transform-origin: 114px 22px; }
 
 
@@ -812,8 +770,7 @@ td .btn-delete {
 
 /* GLOBAL CHAR ANIMATION SUPPORT */
 .char {
-  display: inline-block;
-  /* MUST be inline-block for transforms to work */
+  display: inline-block; /* MUST be inline-block for transforms to work */
   transition: color 0.3s ease;
 }
 
@@ -830,33 +787,27 @@ td .btn-delete {
 
 /* * HAPPY (Green) - High Energy */
 @keyframes happy-crash {
-    0% { transform: translate(0, 0) rotate(0deg);
-  }
+    0% { transform: translate(0, 0) rotate(0deg); }
     15% { transform: translate(0, -6px) rotate(3deg); }
-    30% { transform: translate(0, 0) rotate(-3deg);
-  }
+    30% { transform: translate(0, 0) rotate(-3deg); }
     45% { transform: translate(0, -3px) rotate(1deg); }
-    60% { transform: translate(0, 0) rotate(-1deg);
-  }
+    60% { transform: translate(0, 0) rotate(-1deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
 }
 .char.happy-1 {
     animation-name: happy-crash;
     animation-duration: 0.6s;
-  animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-delay: calc(var(--char-index) * 0.04s);
 }
 
 @keyframes happy-boost {
-    0%, 100% { transform: translateX(0) scaleY(1);
-  }
+    0%, 100% { transform: translateX(0) scaleY(1); }
     20% { transform: translateX(-2px) scaleY(0.95); }
-    40% { transform: translateX(3px) scaleY(1.05);
-  }
+    40% { transform: translateX(3px) scaleY(1.05); }
     60% { transform: translateX(-1px) scaleY(0.98); }
-    80% { transform: translateX(2px) scaleY(1.02);
-  }
+    80% { transform: translateX(2px) scaleY(1.02); }
 }
 .char.happy-2 {
     animation-name: happy-boost;
@@ -867,77 +818,66 @@ td .btn-delete {
 }
 
 @keyframes happy-jolt {
-    0%, 100% { transform: translate(0, 0) rotate(0deg);
-  }
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
     25% { transform: translate(3px, -5px) rotate(5deg); }
-    50% { transform: translate(-3px, 5px) rotate(-5deg);
-  }
+    50% { transform: translate(-3px, 5px) rotate(-5deg); }
     75% { transform: translate(1px, -2px) rotate(2deg); }
 }
 .char.happy-3 {
     animation-name: happy-jolt;
     animation-duration: 0.5s;
-  animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
     animation-timing-function: linear;
 }
 
 /* * SAD (Red) - Stagnant, Hitting Wall, Heavy */
 @keyframes sad-wall {
-    0% { transform: translateX(0) scaleX(1);
-  }
+    0% { transform: translateX(0) scaleX(1); }
     60% { transform: translateX(6px) scaleX(1); } 
-    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg);
-  } 
+    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } 
     75% { transform: translateX(4px) scaleX(1.1); } 
-    100% { transform: translateX(0) scaleX(1);
-  } 
+    100% { transform: translateX(0) scaleX(1); } 
 }
 .char.sad-1 {
     animation-name: sad-wall;
     animation-duration: 1.5s;
     animation-iteration-count: infinite;
     animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-  animation-delay: calc(var(--char-index) * 0.08s);
+    animation-delay: calc(var(--char-index) * 0.08s);
 }
 
 @keyframes sad-fail {
-     0% { transform: translateY(0);
-  }
+     0% { transform: translateY(0); }
      40% { transform: translateY(-3px); } 
-     50% { transform: translateY(-3px) rotate(2deg);
-  } 
-     60% { transform: translateY(4px) rotate(-5deg);
-  } 
+     50% { transform: translateY(-3px) rotate(2deg); } 
+     60% { transform: translateY(4px) rotate(-5deg); } 
      100% { transform: translateY(0); }
 }
 .char.sad-2 {
     animation-name: sad-fail;
     animation-duration: 2s;
-  animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-delay: calc(var(--char-index) * 0.1s);
 }
 
 @keyframes sad-drag {
-    0%, 100% { transform: translateX(0) skewX(0deg);
-  }
+    0%, 100% { transform: translateX(0) skewX(0deg); }
     50% { transform: translateX(-4px) skewX(10deg); } 
 }
 .char.sad-3 {
     animation-name: sad-drag;
     animation-duration: 3s;
-  animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
     animation-timing-function: ease-in-out;
     animation-delay: calc(var(--char-index) * 0.2s); 
 }
 
 /* * CALM (Yellow) - Chill Gym Vibes */
 @keyframes calm-shrug {
-    0%, 100% { transform: translateY(0);
-  }
+    0%, 100% { transform: translateY(0); }
     30% { transform: translateY(-5px); } 
-    70% { transform: translateY(-5px);
-  } 
+    70% { transform: translateY(-5px); } 
 }
 .char.calm-1 {
     animation-name: calm-shrug;
@@ -949,15 +889,14 @@ td .btn-delete {
 
 @keyframes calm-shakeout {
     0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(3deg) translateX(1px);
-  }
+    25% { transform: rotate(3deg) translateX(1px); }
     75% { transform: rotate(-3deg) translateX(-1px); }
 }
 .char.calm-2 {
     animation-name: calm-shakeout;
     animation-duration: 3s;
     animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
+    animation-timing-function: ease-in-out;
     transform-origin: center;
     animation-delay: calc(var(--char-index) * 0.1s);
 }
@@ -967,18 +906,16 @@ td .btn-delete {
    ----------------------------------------------------- */
 
 @keyframes float-up {
-    0%, 100% { transform: translateY(0);
-  }
+    0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
 }
 @keyframes sink-down {
-    0%, 100% { transform: translateY(0);
-  }
+    0%, 100% { transform: translateY(0); }
     50% { transform: translateY(6px); }
 }
 
 /* Use !important to force override any other potential animation conflicts.
-   These classes are toggled by JS.
+  These classes are toggled by JS.
 */
 .char.animate-up {
     animation: float-up 2s ease-in-out !important;
@@ -989,18 +926,15 @@ td .btn-delete {
 }
 
 /* Stagger delay helpers */
-.char:nth-child(1) { --char-index: 1;
-}
+.char:nth-child(1) { --char-index: 1; }
 .char:nth-child(2) { --char-index: 2; }
 .char:nth-child(3) { --char-index: 3; }
 .char:nth-child(4) { --char-index: 4; }
 .char:nth-child(5) { --char-index: 5; }
-.char:nth-child(6) { --char-index: 6;
-}
+.char:nth-child(6) { --char-index: 6; }
 .char:nth-child(7) { --char-index: 7; }
 .char:nth-child(8) { --char-index: 8; }
 .char:nth-child(9) { --char-index: 9; }
 .char:nth-child(10) { --char-index: 10; }
-.char:nth-child(11) { --char-index: 11;
-}
+.char:nth-child(11) { --char-index: 11; }
 .char:nth-child(12) { --char-index: 12; }
