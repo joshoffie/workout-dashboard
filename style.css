@@ -81,7 +81,7 @@ body {
   border: 1px solid var(--color-border);
 }
 
-/* --- New Spiral Animation Styles --- */
+/* --- New Spiral Animation Styles (Login) --- */
 .modal-logo {
   width: 100px; 
   height: 100px;
@@ -534,7 +534,7 @@ td .btn-delete {
 }
 
 #setsDiv .sets-content-wrapper {
-  margin-top: 11rem; 
+  margin-top: 2rem; /* Adjusted */
 }
 
 @keyframes move-back-and-forth {
@@ -595,88 +595,141 @@ td .btn-delete {
   flex: 1; 
 }
 
-/* ===== COMPARISON BANNER ===== */
-.comparison-banner {
-  display: flex;
-  flex-direction: column; 
-  gap: 1rem;
-  background-color: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  margin: 0 1rem 1rem 1rem;
+/* =========================================
+   NEW SWIRL WIDGET STYLES
+   ========================================= */
+.controls-sub-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin: 1rem 1rem 0.5rem 1rem;
 }
-.stat-comparison {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; 
-  gap: 0.75rem;
-}
-.stat-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  min-width: 60px; 
-  flex-shrink: 0; 
-}
-.stat-arrow {
-  font-size: 1.25rem;
-  font-weight: bold;
-  min-width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-.stat-arrow.increase { color: var(--color-green); }
-.stat-arrow.decrease { color: var(--color-red); }
-.stat-arrow.neutral { color: var(--color-yellow); }
 
-.stat-svg-container {
-  width: 25px;
-  height: 25px;
-  position: relative;
-  flex-shrink: 0;
+.btn-toggle {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
 }
-.comparison-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  viewBox: 0 0 100 100;
-  overflow: visible;
+.btn-toggle.active {
+    background: rgba(0, 122, 255, 0.15);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
 }
-.comparison-spiral {
-  fill: none;
-  stroke-width: 5; 
-  stroke-linecap: round;
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  transform-origin: 50px 50px;
-  animation: drawSpiral 4s ease-in-out infinite;
+
+select.history-select {
+    background: var(--color-card);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    outline: none;
 }
-.comparison-spiral.increase {
-  stroke: var(--color-green);
-  animation-duration: 2s;
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+    margin-top: 10px;
+    padding: 0 1rem;
 }
-.comparison-spiral.decrease {
-  stroke: var(--color-red);
-  animation-duration: 6s; 
+
+.swirl-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 12px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none; 
 }
-.comparison-spiral.neutral {
-  stroke: var(--color-yellow);
-  animation-duration: 4s; 
+
+.swirl-header {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 1px;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
 }
-.stat-data {
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-left: auto; 
-  text-align: right;
-  white-space: nowrap; 
+
+.swirl-visual-area {
+    width: 100%;
+    aspect-ratio: 1 / 0.8; 
+    position: relative;
+    padding: 10px;
+    cursor: crosshair;
 }
-.stat-data.increase { color: var(--color-green); }
-.stat-data.decrease { color: var(--color-red); }
-.stat-data.neutral { color: var(--color-yellow); }
+
+.data-footer {
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 50px;
+}
+
+.data-date {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+}
+
+.data-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.data-diff {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Swirl Colors */
+.increase { color: var(--color-green); stroke: var(--color-green); }
+.decrease { color: var(--color-red); stroke: var(--color-red); }
+.neutral { color: var(--color-yellow); stroke: var(--color-yellow); }
+
+/* SVG Elements */
+.spiral-base-track {
+    fill: none;
+    stroke: #333333;
+    stroke-width: 3px;
+    stroke-linecap: round;
+}
+
+.spiral-segment {
+    fill: none;
+    stroke-width: 3px;
+    stroke-linecap: round;
+}
+
+.spiral-ball {
+    fill: white;
+    transition: cx 0.05s linear, cy 0.05s linear;
+}
 
 /* ===== LOGO ANIMATION ===== */
 #animated-logo {
