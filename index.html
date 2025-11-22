@@ -8,26 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
   
-  <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   
-  <!-- Plotly -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
 
-  <!-- Login Modal -->
   <div id="loginModal" class="overlay hidden">
-    <!-- ... (rest of your login modal is unchanged) ... -->
     <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
@@ -54,9 +47,7 @@
     </div>
   </div>
 
-  <!-- Main App Header -->
   <header class="app-header">
-    <!-- ... (unchanged) ... -->
     <div class="header-content">
       <h1>
         <svg id="animated-logo" aria-label="Trunk Logo" viewBox="0 0 145 50" xmlns="http://www.w3.org/2000/svg">
@@ -87,65 +78,51 @@
     </div>
   </header>
 
-  <!-- App Content -->
   <main class="app-container">
     
-    <!-- Clients Screen -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
-        <!-- NEW: Added ID clientsScreenTitle -->
         <h2 id="clientsScreenTitle" class="animated-title" aria-label="Clients">Clients</h2>
         <button id="addClientBtn" class="btn btn-primary">+ Add Client</button>
       </div>
       <ul id="clientList" class="item-list"></ul>
     </section>
 
-    <!-- Sessions Screen -->
     <section class="screen hidden" id="sessionsDiv">
       <div class="card-header">
         <button id="backToClientsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Added ID sessionsScreenTitle -->
         <h2 id="sessionsScreenTitle" class="animated-title" aria-label="Sessions">Sessions</h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedClientLabel" class="hidden"></span>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
       </div>
       <ul id="sessionList" class="item-list"></ul>
     </section>
 
-    <!-- Exercises Screen -->
     <section class="screen hidden" id="exercisesDiv">
       <div class="card-header">
         <button id="backToSessionsBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Replaced H3 -->
         <h2 id="sessionExercisesTitle" class="animated-title" aria-label="Exercises">Exercises</h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
       <ul id="exerciseList" class="item-list"></ul>
     </section>
 
-    <!-- Sets Screen -->
     <section class="screen hidden" id="setsDiv">
       <div class="card-header">
         <button id="backToExercisesBtn" class="btn-back">
           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
         </button>
-        <!-- NEW: Replaced H3 -->
         <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise">
-          <!-- This span will be updated by JS -->
           <span id="exerciseSetsTitleSpan">Exercise</span>
         </h2>
-        <!-- This span will be updated by JS, but it's hidden by default -->
         <span id="selectedExerciseLabel" class="hidden"></span>
       </div>
 
-      <!-- NEW: Action Header for buttons -->
       <div class="action-header">
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
@@ -153,11 +130,9 @@
         </div>
       </div>
 
-      <!-- Comparison Banner & Content -->
       <div class="sets-content-wrapper">
         
         <div id="comparisonBanner" class="comparison-banner hidden">
-          <!-- SETS -->
           <div class="stat-comparison">
             <span class="stat-label">SETS</span>
             <span id="setsArrow" class="stat-arrow"></span>
@@ -169,7 +144,6 @@
             </div>
             <span id="setsData" class="stat-data"></span>
           </div>
-          <!-- REPS -->
           <div class="stat-comparison">
             <span class="stat-label">REPS</span>
             <span id="repsArrow" class="stat-arrow"></span>
@@ -181,7 +155,6 @@
             </div>
             <span id="repsData" class="stat-data"></span>
           </div>
-          <!-- VOLUME -->
           <div class="stat-comparison">
             <span class="stat-label">VOLUME</span>
             <span id="volumeArrow" class="stat-arrow"></span>
@@ -193,7 +166,6 @@
             </div>
             <span id="volumeData" class="stat-data"></span>
           </div>
-          <!-- AVG W/R -->
           <div class="stat-comparison">
             <span class="stat-label">AVG W/R</span>
             <span id="wprArrow" class="stat-arrow"></span>
@@ -219,12 +191,9 @@
           </table>
         </div>
 
-      </div> <!-- END of sets-content-wrapper -->
-    </section>
+      </div> </section>
 
-    <!-- Graph -->
     <section class="screen hidden" id="graphContainer">
-       <!-- ... (unchanged) ... -->
        <div class="card-header">
          <button id="backToSetsFromGraphBtn" class="btn-back">
            <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
@@ -234,7 +203,6 @@
        <div id="graphDiv"></div>
     </section>
     
-    <!-- Delete Modal -->
     <div id="deleteModal" class="overlay hidden">
       <div class="delete-modal">
         <h2>Are you sure?</h2>
