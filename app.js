@@ -1089,104 +1089,104 @@ document.body.addEventListener('touchend', () => {
 let currentSpiralPathData = null;
 let spiralTotalLength = 0;
 let isDraggingSpiral = false;
+let spiralPoints = [];
+let spiralHistoryData = [];
+
 const spiralContainer = document.getElementById('spiralWidgetContainer');
 const timeframeSelect = document.getElementById('spiralTimeframeSelect');
 const svgWrapper = document.getElementById('spiralSvgWrapper');
+const dateLabel = document.getElementById('spiralDateLabel');
 
-// Helper: Convert degrees to radians
-const toRad = (deg) => deg * (Math.PI / 180);
+// Helper: Generate Archimedean Spiral Points (Ported from React snippet)
+function generateSpiralPoints(center, maxRadius, coils, resolution) {
+  const points = [];
+  let cumulativeLen = 0;
+  let prevPt = null;
+  let basePathD = "";
 
-// Helper: Generate Spiral Points
-function generateSpiralPath(centerX, centerY, startRadius, endRadius, rotations, pointsPerRotation) {
-    let pathData = [];
-    const totalAngle = rotations * 2 * Math.PI;
-    const growthRate = (endRadius - startRadius) / totalAngle;
-
-    for (let i = 0; i <= rotations * pointsPerRotation; i++) {
-        const angle = (i / pointsPerRotation) * 2 * Math.PI;
-        const radius = startRadius + growthRate * angle;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-        
-        // Rotate 90deg so it starts at the top
-        const rotatedX = centerX + (x - centerX) * Math.cos(-Math.PI/2) - (y - centerY) * Math.sin(-Math.PI/2);
-        const rotatedY = centerY + (x - centerX) * Math.sin(-Math.PI/2) + (y - centerY) * Math.cos(-Math.PI/2);
-
-        if (i === 0) {
-            pathData.push(`M ${rotatedX},${rotatedY}`);
-        } else {
-            pathData.push(`L ${rotatedX},${rotatedY}`);
-        }
+  for (let i = 0; i <= resolution; i++) {
+    const t = 0.15 + (i / resolution) * 0.85; // Start slightly out
+    const totalAngle = Math.PI * 2 * coils;
+    const angle = t * totalAngle;
+    const r = t * maxRadius;
+    
+    // Rotate -90deg to start at top
+    const rotOffset = -Math.PI / 2;
+    
+    const x = center.x + r * Math.cos(angle + rotOffset);
+    const y = center.y + r * Math.sin(angle + rotOffset);
+    
+    const pt = { x, y, len: 0 };
+    
+    if (prevPt) {
+      const d = Math.sqrt((x - prevPt.x) ** 2 + (y - prevPt.y) ** 2);
+      cumulativeLen += d;
+      pt.len = cumulativeLen;
+      basePathD += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+    } else {
+      basePathD += `M ${x.toFixed(2)} ${y.toFixed(2)}`;
     }
-    return pathData.join(" ");
+
+    points.push(pt);
+    prevPt = pt;
+  }
+  
+  return { points, totalLength: cumulativeLen, pathD: basePathD };
 }
 
 function processSpiralData(timeframeWeeks) {
     if (!selectedExercise || !selectedClient) return [];
 
-    // Target Exercise Name - Normalized for better matching
     const targetExerciseName = selectedExercise.exercise.trim().toLowerCase();
-    
-    // We must scan ALL sessions for this client to build the history
     const allSessions = clientsData[selectedClient].sessions || [];
     
-    // 1. Filter sessions that contain this specific exercise name
     let exerciseHistory = [];
-    
     allSessions.forEach(session => {
         const date = new Date(session.date || session.timestamp);
         if(isNaN(date.getTime())) return;
-        
-        // Find if this session has the exercise (case-insensitive match)
         const exMatch = session.exercises.find(e => e.exercise.trim().toLowerCase() === targetExerciseName);
         if(exMatch && exMatch.sets && exMatch.sets.length > 0) {
             exerciseHistory.push({
                 date: date,
-                sets: exMatch.sets
+                sets: exMatch.sets,
+                timestamp: date.getTime()
             });
         }
     });
 
-    // 2. Sort chronological
     exerciseHistory.sort((a, b) => a.date - b.date);
 
-    // 3. Filter Timeframe
     if (timeframeWeeks !== 'all') {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - (parseInt(timeframeWeeks) * 7));
         exerciseHistory = exerciseHistory.filter(h => h.date >= cutoff);
     }
 
-    // ZERO-BASELINE FALLBACK
-    // If we only have 1 history point, we can't compare it to a previous one.
-    // So we compare it to a "zero" baseline so the user sees at least 1 segment (Green).
+    // Fallback for single data point
     if (exerciseHistory.length === 1) {
         const curr = exerciseHistory[0];
-        const fakePrevDate = new Date(curr.date);
-        fakePrevDate.setDate(fakePrevDate.getDate() - 1); // Arbitrary previous day
-        
-        // Create a "segment" from start to current
-        // Since there's no real previous data, we treat it as 100% of the timeframe shown
-        // and color it Green (Increase) to show positive start.
-        return [{ percentage: 1.0, color: 'var(--color-green)', date: curr.date.toLocaleDateString() }];
+        return [{ 
+            percentage: 1.0, 
+            color: 'var(--color-green)', 
+            date: curr.date.toLocaleDateString(),
+            data: curr,
+            prevData: null // No previous data
+        }];
     }
 
     if (exerciseHistory.length < 1) return [];
 
-    // 4. Build Timeline Segments
     const segments = [];
-    let totalDuration = exerciseHistory[exerciseHistory.length - 1].date - exerciseHistory[0].date;
+    let totalDuration = exerciseHistory[exerciseHistory.length - 1].timestamp - exerciseHistory[0].timestamp;
     if(totalDuration === 0) totalDuration = 1;
 
-    // We go from the second workout onwards, comparing it to the previous one
     for(let i=1; i<exerciseHistory.length; i++) {
         const curr = exerciseHistory[i];
         const prev = exerciseHistory[i-1];
         
-        const duration = curr.date - prev.date;
+        const duration = curr.timestamp - prev.timestamp;
         const percentage = duration / totalDuration;
 
-        // Compare Stats using existing logic
         const currStats = aggregateStats(curr.sets);
         const prevStats = aggregateStats(prev.sets);
 
@@ -1204,13 +1204,17 @@ function processSpiralData(timeframeWeeks) {
             else yellow++;
         });
 
-        let color = 'var(--color-yellow)';
-        // If majority green
-        if(green > red && green >= yellow) color = 'var(--color-green)';
-        // If majority red
-        else if(red > green && red >= yellow) color = 'var(--color-red)';
+        let color = 'stroke-yellow-500'; 
+        if(green > red && green >= yellow) color = 'stroke-green-500';
+        else if(red > green && red >= yellow) color = 'stroke-red-500';
 
-        segments.push({ percentage, color, date: curr.date.toLocaleDateString() });
+        segments.push({ 
+            percentage, 
+            color, 
+            date: curr.date.toLocaleDateString(),
+            data: curr,
+            prevData: prev
+        });
     }
 
     return segments;
@@ -1219,68 +1223,107 @@ function processSpiralData(timeframeWeeks) {
 function renderSpiralWidget() {
     const timeframe = timeframeSelect.value;
     const segments = processSpiralData(timeframe);
+    spiralHistoryData = segments; // Store for interaction
 
     if (segments.length === 0) {
         svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;padding-top:2rem;">No history data found.</p>';
+        if(dateLabel) dateLabel.textContent = "";
         return;
     }
 
-    // SVG ViewBox dimensions
-    const width = 300;
-    const height = 300;
-    const centerX = width / 2;
-    const centerY = height / 2;
+    // Generate Geometry
+    const { points, totalLength, pathD } = generateSpiralPoints({x: 50, y: 50}, 42, 3, 400);
+    spiralPoints = points;
+    spiralTotalLength = totalLength;
 
-    // Generate the main spiral path string
-    const pathD = generateSpiralPath(centerX, centerY, 20, 130, 2.5, 60);
-
+    // Build SVG
     svgWrapper.innerHTML = `
-        <svg id="spiral-svg" viewBox="0 0 ${width} ${height}">
-             <!-- 1. Base dark gray track -->
-            <path id="spiralBase" d="${pathD}" class="spiral-track-base" />
-            
-            <!-- 2. Colored Segments Group -->
-            <g id="spiralSegments"></g>
-            
-            <!-- 3. The Reveal Mask (hides colors initially) -->
-            <path id="spiralReveal" d="${pathD}" class="spiral-reveal-mask" />
+        <svg id="spiral-svg" viewBox="0 0 100 100" class="overflow-visible">
+             <defs>
+                <mask id="spiralMask">
+                    <path d="${pathD}" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" 
+                          id="spiralMaskPath" stroke-dasharray="0 1000" />
+                </mask>
+             </defs>
 
-            <!-- 4. The Draggable Knob -->
-            <circle id="spiralKnob" r="10" class="spiral-knob" />
+             <!-- 1. Base dark gray track -->
+            <path d="${pathD}" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round" />
+            
+            <!-- 2. Colored Segments Group (Masked) -->
+            <g mask="url(#spiralMask)" id="spiralSegments"></g>
+
+            <!-- 3. The Draggable Knob -->
+            <circle id="spiralKnob" r="5" fill="white" class="shadow-lg drop-shadow-md" />
         </svg>
     `;
 
-    const basePathElement = document.getElementById('spiralBase');
-    spiralTotalLength = basePathElement.getTotalLength();
-    currentSpiralPathData = pathD;
-
-    // Render Colored Segments
     const segmentsGroup = document.getElementById('spiralSegments');
-    let currentOffset = 0;
-
+    
+    // Build colored path segments matching geometry logic
+    // Map time segments to length segments
+    let currentLen = 0;
+    
+    // We need to rebuild the pathD for segments. 
+    // Since points are linear, we can slice them.
+    // However, simpler approach: Render one multi-colored path? No, SVG gradients along path are hard.
+    // Solution: Render multiple paths, one for each segment.
+    
+    let pointIndex = 0;
+    
     segments.forEach(seg => {
-        const segmentLength = seg.percentage * spiralTotalLength;
-        const segPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        segPath.setAttribute('d', pathD);
-        segPath.classList.add('spiral-segment');
-        segPath.style.stroke = seg.color;
+        const segmentLen = seg.percentage * totalLength;
+        const endLen = currentLen + segmentLen;
         
-        // Use dasharray to show only this segment's portion
-        // Format: "0 [startOffset] [segmentLength] [rest of path]"
-        segPath.style.strokeDasharray = `0 ${currentOffset} ${segmentLength} ${spiralTotalLength}`;
+        // Collect points for this segment
+        let segPathD = "";
+        let firstPoint = true;
         
-        segmentsGroup.appendChild(segPath);
-        currentOffset += segmentLength;
+        // Find start index
+        while(pointIndex < points.length && points[pointIndex].len < currentLen) {
+            pointIndex++;
+        }
+        
+        // Add points until endLen
+        for(let i = pointIndex; i < points.length; i++) {
+            const p = points[i];
+            if(p.len > endLen) break;
+            
+            if(firstPoint) {
+                segPathD += `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+                firstPoint = false;
+            } else {
+                segPathD += ` L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+            }
+        }
+        
+        if(segPathD) {
+            const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            pathEl.setAttribute("d", segPathD);
+            pathEl.setAttribute("class", `${seg.color} fill-none stroke-[3px] stroke-linecap-round`);
+            // Apply actual colors via style since classes might not be in CSS yet if using tailwind names directly
+            if(seg.color.includes('green')) pathEl.style.stroke = 'var(--color-green)';
+            else if(seg.color.includes('red')) pathEl.style.stroke = 'var(--color-red)';
+            else pathEl.style.stroke = 'var(--color-yellow)';
+            
+            pathEl.style.strokeWidth = "3";
+            pathEl.style.fill = "none";
+            
+            segmentsGroup.appendChild(pathEl);
+        }
+        
+        currentLen = endLen;
     });
 
-    // Initialize Reveal Mask (fully covering)
-    const revealPath = document.getElementById('spiralReveal');
-    revealPath.style.strokeDasharray = spiralTotalLength;
-    revealPath.style.strokeDashoffset = 0; 
-
-    // Initialize Knob at Start
-    const startPoint = basePathElement.getPointAtLength(0);
-    updateKnobPosition(startPoint.x, startPoint.y);
+    // Initialize Knob at End (Most recent)
+    const endPt = points[points.length - 1];
+    updateKnobPosition(endPt.x, endPt.y);
+    
+    // Initialize Mask to full
+    const maskPath = document.getElementById('spiralMaskPath');
+    maskPath.style.strokeDasharray = `${totalLength} 1000`;
+    
+    // Set initial stats to latest
+    updateDashboard(segments.length - 1);
 
     setupSpiralInteraction();
 }
@@ -1293,12 +1336,35 @@ function updateKnobPosition(x, y) {
     }
 }
 
+function updateDashboard(segmentIndex) {
+    if(!spiralHistoryData || spiralHistoryData.length === 0) return;
+    if(segmentIndex < 0) segmentIndex = 0;
+    if(segmentIndex >= spiralHistoryData.length) segmentIndex = spiralHistoryData.length - 1;
+
+    const entry = spiralHistoryData[segmentIndex];
+    const curr = entry.data;
+    // Use the previous data stored in the segment, or if it's the first one, null
+    const prev = entry.prevData || { sets: [] }; // fallback
+
+    // Update Date Label
+    if(dateLabel) {
+        dateLabel.textContent = entry.date;
+    }
+
+    // Update the Main Stat Block
+    const currStats = aggregateStats(curr.sets);
+    const prevStats = aggregateStats(prev.sets); // aggregateStats handles empty array gracefully
+
+    updateStatUI('sets', currStats.sets, prevStats.sets);
+    updateStatUI('reps', currStats.reps, prevStats.reps);
+    updateStatUI('volume', currStats.volume, prevStats.volume);
+    updateStatUI('wpr', currStats.wpr, prevStats.wpr);
+}
+
 function setupSpiralInteraction() {
     const svg = document.getElementById('spiral-svg');
-    const revealPath = document.getElementById('spiralReveal');
-    const basePath = document.getElementById('spiralBase');
+    const maskPath = document.getElementById('spiralMaskPath');
 
-    // Helper to get raw SVG point relative to the element
     function getEventPoint(evt) {
         const pt = svg.createSVGPoint();
         pt.x = evt.clientX || evt.touches[0].clientX;
@@ -1306,38 +1372,44 @@ function setupSpiralInteraction() {
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }
 
-    // Optimization: sample points along the path.
-    const precision = 100; 
-    const pathPoints = [];
-    for (let i = 0; i <= precision; i++) {
-        const len = (i / precision) * spiralTotalLength;
-        pathPoints.push({ len: len, point: basePath.getPointAtLength(len) });
-    }
-
     function handleDrag(evt) {
-        evt.preventDefault(); // Prevent scrolling on mobile
+        evt.preventDefault();
         const loc = getEventPoint(evt);
         
-        // Find closest sampled point on path
-        let closestLen = 0;
-        let minDistanceSq = Infinity;
+        // Find closest point
+        let closestPt = spiralPoints[0];
+        let minDst = Infinity;
 
-        pathPoints.forEach(sample => {
-            const dx = loc.x - sample.point.x;
-            const dy = loc.y - sample.point.y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq < minDistanceSq) {
-                minDistanceSq = distSq;
-                closestLen = sample.len;
+        for (const p of spiralPoints) {
+            const dst = (loc.x - p.x) ** 2 + (loc.y - p.y) ** 2;
+            if (dst < minDst) {
+                minDst = dst;
+                closestPt = p;
             }
-        });
+        }
 
-        // Update Knob Pos
-        const closestPoint = basePath.getPointAtLength(closestLen);
-        updateKnobPosition(closestPoint.x, closestPoint.y);
+        // Update Visuals
+        updateKnobPosition(closestPt.x, closestPt.y);
+        maskPath.style.strokeDasharray = `${closestPt.len} 1000`;
 
-        // Update Reveal Mask based on progress length
-        revealPath.style.strokeDashoffset = closestLen;
+        // Calculate Index based on progress
+        const progress = closestPt.len / spiralTotalLength;
+        // Map progress to segment index
+        // Since segments are unequal time lengths, we need to find which segment contains this length
+        
+        let cumulativeLen = 0;
+        let foundIndex = spiralHistoryData.length - 1;
+        
+        for(let i=0; i<spiralHistoryData.length; i++) {
+            const segLen = spiralHistoryData[i].percentage * spiralTotalLength;
+            if (closestPt.len >= cumulativeLen && closestPt.len <= cumulativeLen + segLen) {
+                foundIndex = i;
+                break;
+            }
+            cumulativeLen += segLen;
+        }
+        
+        updateDashboard(foundIndex);
     }
 
     svgWrapper.addEventListener('mousedown', (e) => { isDraggingSpiral = true; handleDrag(e); });
@@ -1350,7 +1422,6 @@ function setupSpiralInteraction() {
     document.addEventListener('touchend', () => isDraggingSpiral = false);
 }
 
-// Hook up select change handler
 if(timeframeSelect) {
     timeframeSelect.onchange = renderSpiralWidget;
 }
