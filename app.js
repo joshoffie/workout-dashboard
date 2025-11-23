@@ -209,6 +209,10 @@ function setTextAsChars(element, text) {
   }
 }
 
+/**
+ * HEADER ANIMATION (Standard Happy/Sad/Calm)
+ * Used only for the top titles (Clients, Sessions, Exercises)
+ */
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
 
@@ -285,6 +289,7 @@ function applyTitleStyling(element, text, colorData) {
     char.style.color = colors[i] || 'var(--color-text)';
     char.classList.add(animClass);
     
+    // Specific Diverge Logic for Headers
     if (animClass === 'calm-3') {
         if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
         if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
@@ -292,10 +297,18 @@ function applyTitleStyling(element, text, colorData) {
   });
 }
 
+/**
+ * =====================================================================
+ * NEW: LIST ANIMATION LOGIC (3 Second Interval)
+ * =====================================================================
+ */
 function setupListTextAnimation(element, text, colorData) {
   if (!element) return;
+
+  // 1. Render Text Chars
   setTextAsChars(element, text);
 
+  // Handle No Data
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -303,6 +316,7 @@ function setupListTextAnimation(element, text, colorData) {
     return; 
   }
 
+  // 2. Calculate Colors
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -338,9 +352,11 @@ function setupListTextAnimation(element, text, colorData) {
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
+  // 3. Apply Colors & Store Direction
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
     
+    // Determine which way this specific letter should move
     if (colors[i] === 'var(--color-green)') {
         char.dataset.moveDirection = 'up'; 
     } else if (colors[i] === 'var(--color-red)') {
@@ -348,28 +364,42 @@ function setupListTextAnimation(element, text, colorData) {
     }
   });
 
+  // 4. Start the Timer for this list item
   runAnimationLoop(element);
 }
 
 function runAnimationLoop(element) {
+    // === TIMER SETTING: 3 Seconds ===
+    // 3000ms = 3 seconds. 
     const delay = 3000; 
+
     setTimeout(() => {
+        // If user left the screen, element is gone, so stop loop
         if (!document.body.contains(element)) return;
+
         const chars = element.querySelectorAll('.char');
+        
+        // A. Add Class (Triggers CSS Animation)
         chars.forEach(char => {
             const dir = char.dataset.moveDirection;
             if (dir === 'up') char.classList.add('animate-up');
             if (dir === 'down') char.classList.add('animate-down');
         });
+
+        // B. Remove Class after 2s (CSS animation duration) to reset
         setTimeout(() => {
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
                 char.classList.remove('animate-up', 'animate-down');
             });
+
+            // C. Recursion: Run loop again
             runAnimationLoop(element);
         }, 2000);
+
     }, delay);
 }
+
 
 function getExerciseColorData(exercise) {
   if (!exercise.sets || exercise.sets.length < 2) {
@@ -421,6 +451,7 @@ function renderClients() {
     li.style.cursor = "pointer";
 
     const nameSpan = document.createElement("span");
+    // setupListTextAnimation handles textContent via setTextAsChars
     
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
@@ -440,6 +471,7 @@ function renderClients() {
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
@@ -465,6 +497,7 @@ function renderClients() {
     clientList.appendChild(li);
   }
   
+  // Main Title still uses standard Logic
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
   
@@ -544,6 +577,7 @@ function renderSessions() {
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
 
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
 
     li.onclick = (e) => {
@@ -644,6 +678,7 @@ function renderExercises() {
       });
     };
     
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
 
     li.appendChild(nameSpan);
@@ -683,7 +718,9 @@ const spiralState = {
 };
 
 function initSpiralElements() {
+    // Grab elements only once
     if (spiralState.svg) return;
+    
     spiralState.svg = document.getElementById('spiralCanvas');
     spiralState.hitPath = document.getElementById('hitPath');
     spiralState.segmentsGroup = document.getElementById('spiralSegments');
@@ -691,6 +728,7 @@ function initSpiralElements() {
     spiralState.timeBall = document.getElementById('timeBall');
     spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
 
+    // Pointer Events
     if (spiralState.hitPath) {
         spiralState.hitPath.addEventListener('pointerdown', handleSpiralStart);
         spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
@@ -698,38 +736,48 @@ function initSpiralElements() {
         spiralState.hitPath.addEventListener('pointercancel', handleSpiralEnd);
     }
 
+    // Filter Buttons
     document.getElementById('range4w').onclick = () => setSpiralRange('4w');
     document.getElementById('range8w').onclick = () => setSpiralRange('8w');
     document.getElementById('range12w').onclick = () => setSpiralRange('12w');
     document.getElementById('rangeAll').onclick = () => setSpiralRange('all');
 }
 
+// Helper: Aggregate raw Sets into Workout Sessions
 function processSetsForSpiral(sets) {
     if (!sets || sets.length === 0) return [];
+    
+    // Sort by time ascending
     const sorted = sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     const sessions = [];
     let currentSession = null;
 
     sorted.forEach(set => {
         const d = new Date(set.timestamp);
-        const dayStr = d.toDateString();
+        const dayStr = d.toDateString(); // Group by Day
+        
         if (!currentSession || currentSession.dayStr !== dayStr) {
             if (currentSession) sessions.push(currentSession);
             currentSession = {
                 dayStr: dayStr,
                 timestamp: d.getTime(),
-                sets: 0, reps: 0, volume: 0, rawSets: []
+                sets: 0, reps: 0, volume: 0,
+                rawSets: []
             };
         }
+        
         currentSession.sets++;
         currentSession.reps += (parseInt(set.reps) || 0);
         currentSession.volume += (parseFloat(set.volume) || 0);
         currentSession.rawSets.push(set);
     });
     if (currentSession) sessions.push(currentSession);
+
+    // Calculate WPR for each session
     sessions.forEach(s => {
         s.wpr = s.reps > 0 ? (s.volume / s.reps) : 0;
     });
+
     return sessions;
 }
 
@@ -768,6 +816,7 @@ function getFullSpiralD(offset) {
 
 function setSpiralRange(range) {
     spiralState.currentRange = range;
+    
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('range' + range.charAt(0).toUpperCase() + range.slice(1));
     if(activeBtn) activeBtn.classList.add('active');
@@ -791,16 +840,13 @@ function setSpiralRange(range) {
         else if (range === '8w') spiralState.TURNS = 1.8;
         else if (range === '12w') spiralState.TURNS = 2.2;
     }
+
     redrawSpiral();
 }
 
 function redrawSpiral() {
     if (!spiralState.svg) return;
 
-// ... (Keep everything above redrawSpiral unchanged) ...
-
-function redrawSpiral() {
-    if (!spiralState.svg) return;
     spiralState.segmentsGroup.innerHTML = '';
     spiralState.markersGroup.innerHTML = '';
 
@@ -813,7 +859,7 @@ function redrawSpiral() {
     spiralState.hitPath.setAttribute('d', hitD);
     spiralState.totalLen = spiralState.hitPath.getTotalLength();
     
-    // Populate lookup table for path coordinates
+    // Hit lookup
     spiralState.hitPathLookup = [];
     const res = 300; 
     for(let i=0; i<=res; i++) {
@@ -857,8 +903,10 @@ function redrawSpiral() {
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
-        circle.setAttribute("class", "workout-marker"); 
-        // No animations, no fade-in. Just add it.
+        circle.setAttribute("class", "workout-marker");
+        
+        // FIXED: Removed animation lines here. They are now static and visible by default.
+        
         spiralState.markersGroup.appendChild(circle);
 
         if(i === spiralState.visibleHistory.length - 1) return;
@@ -889,14 +937,10 @@ function redrawSpiral() {
     updateBallToLen(spiralState.totalLen);
 }
 
-// ... (Keep the rest of the file unchanged) ...
-
-// ... (Keep the rest of the file unchanged) ...
-
 function updateSpiralData(sets) {
     initSpiralElements();
     spiralState.fullHistory = processSetsForSpiral(sets);
-    setSpiralRange(spiralState.currentRange); 
+    setSpiralRange(spiralState.currentRange); // This triggers redraw
     document.getElementById('comparisonBanner').classList.remove('hidden');
 }
 
@@ -1023,6 +1067,7 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
   
+  // 1. Trigger Spiral Update
   updateSpiralData(selectedExercise.sets);
 
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -1170,19 +1215,28 @@ function updateStatUI(statName, currentValue, previousValue) {
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
   if (status === 'neutral') changeString = `(0 / 0%)`;
   
+  // Ensure we strip ALL possible status classes first
+  const classesToRemove = ['increase', 'decrease', 'neutral'];
+  
   arrowEl.innerHTML = arrow;
-  arrowEl.className = `stat-arrow ${status}`;
+  arrowEl.classList.remove(...classesToRemove);
+  arrowEl.classList.add(status);
 
   if(spiralEl) {
-    spiralEl.setAttribute('class', `comparison-spiral ${status}`);
+    spiralEl.classList.remove(...classesToRemove);
+    // Force a reflow hack if necessary (usually not needed, but good for sticky SVG classes)
+    void spiralEl.offsetWidth; 
+    spiralEl.classList.add(status);
   }
   
   dataEl.textContent = `${currentString} ${changeString}`;
-  dataEl.className = `stat-data ${status}`;
+  dataEl.classList.remove(...classesToRemove);
+  dataEl.classList.add(status);
 
   return status;
 }
 
+// NEW: Replaces runComparisonLogic (since Spiral handles Banner)
 function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
   if (!selectedExercise) return;
