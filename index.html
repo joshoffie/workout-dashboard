@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Workout Tracker</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   
   <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -44,7 +45,8 @@
         <h2>Welcome</h2>
         <p class="modal-subtitle">Sign in to track your workouts.</p>
         <button id="modalLoginBtn" class="btn btn-primary">
-          Login with Google
+          <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.20455C17.64 8.56682 17.5818 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.9705 13.0009 12.9232 12.0477 13.5618V15.8195H14.9564C16.6582 14.2527 17.64 11.9459 17.64 9.20455Z" fill="white"/><path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5618C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.96273 14.4205 5.23773 13.0395 4.65955 11.16H1.64045V13.4836C3.12 16.2736 5.80909 18 9 18Z" fill="white"/><path d="M4.65955 11.16C4.47818 10.6432 4.36364 10.0918 4.36364 9.51955C4.36364 8.94727 4.47818 8.39591 4.65955 7.87909V5.55545H1.64045C0.602727 7.54591 0 9.77182 0 12.2305C0 14.6891 0.602727 16.915 1.64045 18.9055L4.65955 16.5818C4.47818 16.065 4.36364 15.5136 4.36364 14.9414C4.36364 14.3691 4.47818 13.8177 4.65955 13.2036V11.16Z" fill="white"/><path d="M9 3.57955C10.3214 3.57955 11.5077 4.02409 12.4405 4.92545L15.0218 2.34409C13.4673 0.891818 11.43 0 9 0C5.80909 0 3.12 1.72636 1.64045 4.51636L4.65955 6.84C5.23773 4.96636 6.96273 3.57955 9 3.57955Z" fill="white"/></svg>
+          <span>Login with Google</span>
         </button>
       </div>
     </div>
@@ -117,6 +119,24 @@
         <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
+
+      <!-- SPIRAL PROGRESS WIDGET -->
+      <div id="spiralWidgetContainer" class="widget-container hidden">
+          <div class="widget-header">
+              <span>Session History</span>
+              <select id="spiralTimeframeSelect" class="widget-select">
+                  <option value="4">4 Weeks</option>
+                  <option value="8">8 Weeks</option>
+                  <option value="12">12 Weeks</option>
+                  <option value="all" selected>All Time</option>
+              </select>
+          </div>
+          <div id="spiralSvgWrapper" class="svg-wrapper">
+              <!-- SVG injected by JS -->
+          </div>
+      </div>
+      <!-- END WIDGET -->
+
       <ul id="exerciseList" class="item-list"></ul>
     </section>
 
@@ -140,25 +160,51 @@
       </div>
 
       <div class="sets-content-wrapper">
-        
-        <!-- NEW SWIRL VISUALIZER CONTAINER -->
-        <div id="swirlContainer" class="swirl-container hidden">
-            <div class="swirl-controls">
-                <button id="swirlLinkBtn" class="swirl-toggle active">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    Linked
-                </button>
-                <select id="swirlHistorySelect" class="swirl-select">
-                    <option value="4">Last 4</option>
-                    <option value="8">Last 8</option>
-                    <option value="12">Last 12</option>
-                    <option value="30">All Time</option>
-                </select>
+        <div id="comparisonBanner" class="comparison-banner hidden">
+          <!-- SETS -->
+          <div class="stat-comparison">
+            <span class="stat-label">SETS</span>
+            <span id="setsArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="setsSpiral" class="comparison-spiral" d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
+              </svg>
             </div>
-            
-            <div id="swirlGrid" class="swirl-grid">
-                <!-- Widgets injected here by app.js -->
+            <span id="setsData" class="stat-data"></span>
+          </div>
+          <!-- REPS -->
+          <div class="stat-comparison">
+            <span class="stat-label">REPS</span>
+            <span id="repsArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="repsSpiral" class="comparison-spiral" d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
+              </svg>
             </div>
+            <span id="repsData" class="stat-data"></span>
+          </div>
+          <!-- VOLUME -->
+          <div class="stat-comparison">
+            <span class="stat-label">VOLUME</span>
+            <span id="volumeArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="volumeSpiral" class="comparison-spiral" d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+            <span id="volumeData" class="stat-data"></span>
+          </div>
+          <!-- AVG W/R -->
+          <div class="stat-comparison">
+            <span class="stat-label">AVG W/R</span>
+            <span id="wprArrow" class="stat-arrow"></span>
+            <div class="stat-svg-container">
+              <svg class="comparison-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <path id="wprSpiral" class="comparison-spiral" d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
+              </svg>
+            </div>
+            <span id="wprData" class="stat-data"></span>
+          </div>
         </div>
         
         <div class="table-container">
