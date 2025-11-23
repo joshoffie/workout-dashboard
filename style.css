@@ -1011,16 +1011,32 @@ svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
 
 .track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
 
-/* Hit Path is invisible but clickable */
-#hitPath { fill: none; stroke: transparent; stroke-width: 60px; cursor: grab; }
-#hitPath:active { cursor: grabbing; }
+#hitPath {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 120px; /* Increased from 60px to 120px for better touch area */
+  cursor: grab;
+  pointer-events: auto; /* Explicitly enable pointer events */
+}
+#hitPath:active {
+  cursor: grabbing;
+}
 
+/* Time Ball: Uses class-based opacity for reliability */
 #timeBall {
-  fill: #fff; stroke: var(--color-bg); stroke-width: 2; r: 8;
+  fill: #fff;
+  stroke: var(--color-bg);
+  stroke-width: 2;
+  r: 8;
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
-  pointer-events: none;
-  transition: cx 0.08s ease-out, cy 0.08s ease-out;
-  opacity: 0; /* Hidden until loaded */
+  pointer-events: none; /* Interaction goes through to hitPath */
+  opacity: 0; /* Hidden by default */
+  transition: cx 0.08s ease-out, cy 0.08s ease-out, opacity 0.5s ease-out;
+}
+
+/* New class to trigger visibility safely */
+#timeBall.visible {
+  opacity: 1;
 }
 
 .workout-marker {
