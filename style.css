@@ -935,13 +935,13 @@ td .btn-delete {
 .char:nth-child(10) { --char-index: 10; }
 
 /* ===== SPIRAL WIDGET STYLES ===== */
+/* Changed to transparent/clean as requested */
 .widget-container {
-    background-color: var(--color-card);
-    margin: 1rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
+    background-color: transparent; /* Removed background */
+    margin: 1rem 0; /* Adjusted margin */
+    border-radius: 0; /* Removed radius */
+    border: none; /* Removed border */
     overflow: hidden;
-    /* Takes up substantial height on mobile */
     height: 45vh; 
     min-height: 300px;
     display: flex;
@@ -950,13 +950,10 @@ td .btn-delete {
 
 .widget-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end; /* Move select to right */
     align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--color-border);
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
+    padding: 0.5rem 1.5rem;
+    border-bottom: none; /* Removed border */
 }
 
 .widget-select {
@@ -976,7 +973,6 @@ td .btn-delete {
     justify-content: center;
     align-items: center;
     padding: 1rem;
-    /* Crucial for touch interaction not scrolling the page */
     touch-action: none; 
 }
 
@@ -990,31 +986,29 @@ td .btn-delete {
 /* SVG Internal Styles */
 .spiral-track-base {
     fill: none;
-    stroke: #333; /* Dark gray track */
+    stroke: #333; 
     stroke-width: 12;
     stroke-linecap: round;
 }
 
-/* The colored segments */
 .spiral-segment {
     fill: none;
     stroke-width: 12;
-    stroke-linecap: butt; /* Segments must butt against each other */
+    stroke-linecap: butt; 
 }
 
 /* The layer that hides the colors until dragged */
 .spiral-reveal-mask {
     fill: none;
-    stroke: #1c1c1c; /* Match card background color to hide */
+    /* IMPORTANT: This must match the page background to be "transparent" */
+    stroke: var(--color-bg); 
     stroke-width: 14; /* Slightly wider to ensure full coverage */
     stroke-linecap: round;
-    /* Transition for smoother dragging effect on lower-end devices */
     transition: stroke-dashoffset 0.05s linear; 
 }
 
 .spiral-knob {
     fill: white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    /* Ensure knob catches touch events first */
     pointer-events: none; 
 }
