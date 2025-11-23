@@ -93,7 +93,12 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .app-container { padding: 0; margin: 0 auto; position: relative; overflow-x: hidden; min-height: 100vh; }
 
 /* ===== ITEM LISTS ===== */
-.item-list { list-style: none; width: 100%; padding: 0 1rem; padding-top: 7rem; }
+.item-list { 
+  list-style: none; 
+  width: 100%; 
+  padding: 0 1rem; 
+  padding-top: 5.5rem; /* Reduced from 7rem */
+}
 .item-list li {
   font-size: 1.1rem; font-weight: 500; padding: 1.25rem 1rem; border-bottom: 1px solid var(--color-border);
   cursor: pointer; transition: all var(--transition); display: flex; justify-content: space-between;
@@ -186,7 +191,9 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 }
 .card-header .btn-primary, .card-header .btn-group { grid-column: 3; justify-self: end; }
 .card-header .btn-group { flex-wrap: nowrap; width: auto; }
-#setsDiv .sets-content-wrapper { margin-top: 11rem; }
+#setsDiv .sets-content-wrapper { 
+  margin-top: 9rem; /* Reduced from 11rem */
+}
 
 @keyframes move-back-and-forth {
   0% { transform: translateX(0); } 40% { transform: translateX(-4px); }
