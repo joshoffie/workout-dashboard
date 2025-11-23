@@ -164,6 +164,13 @@
         <div class="spiral-date-label">
             <span id="spiralDateDisplay">Today</span>
         </div>
+        
+              <!-- === SOLUTION C: THE SLIDER === -->
+        <div class="spiral-slider-container">
+            <input type="range" min="0" max="1000" value="1000" class="spiral-slider" id="timeSlider" oninput="SpiralWidget.handleSlider(this.value)">
+        </div>
+        <!-- ============================== -->
+      
         <svg id="spiralCanvas" viewBox="0 0 500 500">
             <path id="bgTrack1" class="track-bg" d="" />
             <path id="bgTrack2" class="track-bg" d="" />
@@ -171,7 +178,10 @@
             <path id="bgTrack4" class="track-bg" d="" />
             <g id="spiralSegments"></g>
             <g id="markersGroup"></g>
-            <path id="hitPath" d="" />
+            
+            <!-- We use this path for calculation only, no hit testing -->
+            <path id="calcPath" d="" style="display:none;" />
+            
             <circle id="timeBall" cx="0" cy="0" />
         </svg>
       </div>
