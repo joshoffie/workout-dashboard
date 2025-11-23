@@ -943,25 +943,22 @@ td .btn-delete {
 
 /* ===== SPIRAL WIDGET STYLES ===== */
 .spiral-container {
-  /* Placed nicely in the card */
   margin: 1rem 1rem 0 1rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  
-  /* Mobile Adaptive Sizing */
   width: calc(100% - 2rem);
   aspect-ratio: 1 / 1;
-  max-height: 450px;
-  
+  max-height: 450px; /* Safety cap for tall screens */
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Prevent highlighting on tap */
+  
+  /* CRITICAL: Allow vertical scroll by default, JS will block it on the line */
+  touch-action: pan-y; 
   -webkit-tap-highlight-color: transparent;
-  touch-action: none; /* Browser shouldn't handle touch here, JS will */
 }
 
 .spiral-controls {
@@ -1011,32 +1008,28 @@ svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
 
 .track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
 
+/* CRITICAL FIX: Stroke must not be 'transparent' for iOS hit testing */
 #hitPath {
   fill: none;
-  stroke: transparent;
-  stroke-width: 120px; /* Increased from 60px to 120px for better touch area */
+  stroke: rgba(255, 255, 255, 0.001); /* Almost invisible, but "there" */
+  stroke-width: 80px; /* Generous touch area */
   cursor: grab;
-  pointer-events: auto; /* Explicitly enable pointer events */
+  pointer-events: auto; 
 }
 #hitPath:active {
   cursor: grabbing;
 }
 
-/* Time Ball: Uses class-based opacity for reliability */
+/* CRITICAL FIX: Remove opacity transition complexity */
 #timeBall {
   fill: #fff;
   stroke: var(--color-bg);
   stroke-width: 2;
-  r: 8;
+  r: 10; /* Slightly larger for visibility */
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
-  pointer-events: none; /* Interaction goes through to hitPath */
-  opacity: 0; /* Hidden by default */
-  transition: cx 0.08s ease-out, cy 0.08s ease-out, opacity 0.5s ease-out;
-}
-
-/* New class to trigger visibility safely */
-#timeBall.visible {
-  opacity: 1;
+  pointer-events: none;
+  opacity: 1; /* Always visible */
+  transition: cx 0.05s linear, cy 0.05s linear; /* Faster, snappy follow */
 }
 
 .workout-marker {
