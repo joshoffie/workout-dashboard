@@ -781,6 +781,11 @@ function renderSets() {
 
   hookEditables(renderedSetsInOrder);
   runComparisonLogic();
+
+    // === INSERT THIS NEW LINE HERE ===
+  if (typeof SpiralWidget !== 'undefined') {
+      SpiralWidget.init(selectedExercise.sets);
+  }
 }
 
 
@@ -1069,3 +1074,310 @@ document.body.addEventListener('touchend', () => {
     }
     touchStartX = 0; touchStartY = 0;
 });
+
+// ... existing app.js code ...
+
+/* ============================================================
+   SPIRAL WIDGET CONTROLLER
+   Integrated as a self-contained module
+   ============================================================ */
+const SpiralWidget = {
+    svg: null,
+    data: [],
+    visibleData: [],
+    range: 'all',
+    
+    // Config
+    CX: 250, CY: 250, START_RADIUS: 30,
+    OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
+    
+    // Interaction State
+    isDragging: false,
+    hitLookup: [],
+    visualPoints: [],
+    totalLen: 0,
+
+    init: function(rawSets) {
+        // 1. Setup DOM References
+        this.svg = document.getElementById('spiralCanvas');
+        
+        // 2. Process Data (Aggregate Sets by Day)
+        this.data = this.processData(rawSets);
+        
+        // 3. Setup Listeners (only once)
+        if (!this.listenersAttached) {
+            this.attachListeners();
+            this.listenersAttached = true;
+        }
+
+        // 4. Initial Draw
+        this.setRange(this.range);
+    },
+
+    processData: function(sets) {
+        if (!sets || sets.length === 0) return [];
+        
+        // Group by Date String
+        const groups = {};
+        sets.forEach(s => {
+            const d = new Date(s.timestamp).toDateString();
+            if(!groups[d]) groups[d] = [];
+            groups[d].push(s);
+        });
+
+        // Aggregate
+        const history = Object.values(groups).map(daySets => {
+            // Sort sets in day to get latest timestamp
+            daySets.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            const totalVol = daySets.reduce((sum, s) => sum + (s.reps * s.weight), 0);
+            const totalReps = daySets.reduce((sum, s) => sum + s.reps, 0);
+            const avgWpr = totalReps > 0 ? (totalVol / totalReps) : 0;
+            
+            return {
+                timestamp: new Date(daySets[0].timestamp).getTime(), // Use latest set time
+                sets: daySets.length,
+                reps: totalReps,
+                volume: totalVol,
+                wpr: parseFloat(avgWpr.toFixed(1))
+            };
+        });
+
+        // Sort Chronologically (Oldest First) for the Spiral
+        return history.sort((a,b) => a.timestamp - b.timestamp);
+    },
+
+    setRange: function(range) {
+        this.range = range;
+        
+        // Update Buttons UI
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active');
+            if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
+                b.classList.add('active');
+        });
+
+        // Filter Data
+        const now = new Date().getTime();
+        let days = 3650;
+        if(range === '4w') days = 28;
+        if(range === '8w') days = 56;
+        if(range === '12w') days = 84;
+        
+        const cutoff = now - (days * 24 * 60 * 60 * 1000);
+        this.visibleData = this.data.filter(d => d.timestamp >= cutoff);
+
+        // Spiral Geometry
+        let turns = 2.5;
+        let pitch = 90;
+        
+        if (range === 'all') { 
+            turns = 3.8; pitch = 55; // Tight
+        } else {
+            pitch = 90; // Spacious
+            if(range === '4w') turns = 1.3;
+            else if(range === '8w') turns = 1.8;
+            else if(range === '12w') turns = 2.2;
+        }
+
+        this.draw(turns, pitch);
+    },
+
+    draw: function(turns, pitch) {
+        const segmentsG = document.getElementById('spiralSegments');
+        const markersG = document.getElementById('markersGroup');
+        segmentsG.innerHTML = '';
+        markersG.innerHTML = '';
+
+        // Helper Maths
+        const getPoint = (t, offset) => {
+            const angle = t * Math.PI * 2 * turns;
+            const r = this.START_RADIUS + (pitch * (angle / (Math.PI * 2))) + offset;
+            return { x: this.CX + r * Math.cos(angle), y: this.CY + r * Math.sin(angle) };
+        };
+        
+        const getPathD = (tEnd, offset) => {
+            let d = "";
+            const steps = 100;
+            for(let i=0; i<=steps; i++) {
+                const t = (i/steps) * tEnd;
+                const p = getPoint(t, offset);
+                d += (i===0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`);
+            }
+            return d;
+        };
+
+        // Draw Backgrounds
+        ['bgTrack1','bgTrack2','bgTrack3','bgTrack4'].forEach((id, i) => {
+            const offset = [this.OFFSETS.sets, this.OFFSETS.reps, this.OFFSETS.vol, this.OFFSETS.wpr][i];
+            document.getElementById(id).setAttribute('d', getPathD(1, offset));
+        });
+
+        // Hit Path & Lookup
+        const hitPath = document.getElementById('hitPath');
+        hitPath.setAttribute('d', getPathD(1, 0));
+        this.totalLen = hitPath.getTotalLength();
+        
+        // Generate Lookup Table
+        this.hitLookup = [];
+        for(let i=0; i<=200; i++) {
+            const l = (i/200) * this.totalLen;
+            const p = hitPath.getPointAtLength(l);
+            this.hitLookup.push({l, x:p.x, y:p.y});
+        }
+
+        // Draw Segments
+        if (this.visibleData.length === 0) return;
+        
+        const oldest = this.visibleData[0].timestamp;
+        const newest = this.visibleData[this.visibleData.length-1].timestamp;
+        const span = newest - oldest || 1;
+
+        this.visualPoints = [];
+
+        this.visibleData.forEach((curr, i) => {
+            const t = (curr.timestamp - oldest) / span;
+            const p = getPoint(t, 0);
+            const delay = (i / this.visibleData.length) * 1.0;
+
+            this.visualPoints.push({x:p.x, y:p.y, idx:i, t});
+
+            // Marker
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
+            circle.setAttribute("class", "workout-marker");
+            circle.style.animation = `fadeInMarker 0.5s ease-out forwards`;
+            circle.style.animationDelay = `${delay + 0.5}s`;
+            markersG.appendChild(circle);
+
+            if (i < this.visibleData.length - 1) {
+                const next = this.visibleData[i+1];
+                const tNext = (next.timestamp - oldest) / span;
+                
+                // Draw 4 Lines
+                const drawSeg = (val1, val2, offset, extraDelay) => {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    let d = "";
+                    for(let k=0; k<=20; k++) {
+                        const tStep = t + (k/20)*(tNext - t);
+                        const pt = getPoint(tStep, offset);
+                        d += (k===0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+                    }
+                    path.setAttribute('d', d);
+                    path.setAttribute('class', 'spiral-segment');
+                    if(val2 > val1) path.classList.add('seg-increase');
+                    else if(val2 < val1) path.classList.add('seg-decrease');
+                    else path.classList.add('seg-neutral');
+                    
+                    path.style.animation = `drawInSegment 0.4s ease-out forwards`;
+                    path.style.animationDelay = `${delay + extraDelay}s`;
+                    segmentsG.appendChild(path);
+                };
+
+                drawSeg(curr.sets, next.sets, this.OFFSETS.sets, 0);
+                drawSeg(curr.reps, next.reps, this.OFFSETS.reps, 0.05);
+                drawSeg(curr.volume, next.volume, this.OFFSETS.vol, 0.1);
+                drawSeg(curr.wpr, next.wpr, this.OFFSETS.wpr, 0.15);
+            }
+        });
+
+        // Snap to end
+        this.updateBall(this.totalLen);
+        
+        // Show ball with delay
+        const ball = document.getElementById('timeBall');
+        ball.style.opacity = 0;
+        ball.style.animation = `fadeInMarker 0.5s ease-out 1s forwards`;
+    },
+
+    attachListeners: function() {
+        const hitPath = document.getElementById('hitPath');
+        
+        const start = (e) => {
+            const pt = this.getSVGPoint(e);
+            const closest = this.findClosestLen(pt.x, pt.y);
+            
+            // ** SCROLL TRAP FIX ** // Only engage if touch is reasonably close to the spiral line (e.g. 60px)
+            const dist = Math.sqrt((closest.x - pt.x)**2 + (closest.y - pt.y)**2);
+            if (dist > 60) return; // Allow scrolling if touching empty space
+
+            this.isDragging = true;
+            this.updateBall(closest.len);
+        };
+        
+        const move = (e) => {
+            if (!this.isDragging) return;
+            if (e.cancelable) e.preventDefault(); // Stop scroll ONLY if dragging
+            const pt = this.getSVGPoint(e);
+            const closest = this.findClosestLen(pt.x, pt.y);
+            this.updateBall(closest.len);
+        };
+        
+        const end = () => { this.isDragging = false; };
+
+        hitPath.addEventListener('mousedown', start);
+        hitPath.addEventListener('touchstart', start, {passive: false});
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('mouseup', end);
+        window.addEventListener('touchend', end);
+    },
+
+    getSVGPoint: function(e) {
+        const pt = this.svg.createSVGPoint();
+        pt.x = e.clientX || e.touches?.[0]?.clientX;
+        pt.y = e.clientY || e.touches?.[0]?.clientY;
+        return pt.matrixTransform(this.svg.getScreenCTM().inverse());
+    },
+
+    findClosestLen: function(x, y) {
+        let best = null, min = Infinity;
+        for(let p of this.hitLookup) {
+            const d = (p.x-x)**2 + (p.y-y)**2;
+            if(d < min) { min = d; best = p; }
+        }
+        return best;
+    },
+
+    updateBall: function(len) {
+        const pt = document.getElementById('hitPath').getPointAtLength(len);
+        const ball = document.getElementById('timeBall');
+        ball.setAttribute('cx', pt.x); ball.setAttribute('cy', pt.y);
+
+        // Find Data Point
+        let bestIdx = 0, min = Infinity;
+        this.visualPoints.forEach(vp => {
+            const d = (vp.x-pt.x)**2 + (vp.y-pt.y)**2;
+            if(d < min) { min=d; bestIdx = vp.idx; }
+        });
+
+        // Update UI
+        this.updateUI(bestIdx);
+    },
+
+    updateUI: function(idx) {
+        const curr = this.visibleData[idx];
+        const prev = idx > 0 ? this.visibleData[idx-1] : {sets:0, reps:0, volume:0, wpr:0};
+
+        // Highlight Marker
+        document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
+        if (document.getElementById('markersGroup').children[idx]) 
+            document.getElementById('markersGroup').children[idx].classList.add('active');
+
+        // Date
+        const d = new Date(curr.timestamp);
+        const now = new Date();
+        const isToday = d.toDateString() === now.toDateString();
+        const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+        document.getElementById('spiralDateDisplay').textContent = isToday ? "Today" : dateStr;
+
+        // Update Your Existing Comparison Banner
+        // Note: using existing global function updateStatUI if available, or reimplementing
+        if (typeof updateStatUI === 'function') {
+            updateStatUI('sets', curr.sets, prev.sets);
+            updateStatUI('reps', curr.reps, prev.reps);
+            updateStatUI('volume', curr.volume, prev.volume);
+            updateStatUI('wpr', curr.wpr, prev.wpr);
+        }
+    }
+};
