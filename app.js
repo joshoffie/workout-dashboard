@@ -27,6 +27,7 @@ const ANIMATION_CLASSES = {
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
 
+// Global state
 let currentAnimationClass = 'calm-1'; 
 
 function getRandomAnimationClass(mood) {
@@ -52,6 +53,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
   
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
+  // Re-render to trigger animations
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -109,6 +111,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
+
 const deleteModal = document.getElementById('deleteModal');
 const deleteModalMessage = document.getElementById('deleteModalMessage');
 const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
@@ -206,13 +209,24 @@ function setTextAsChars(element, text) {
   }
 }
 
+/**
+ * HEADER ANIMATION (Standard Happy/Sad/Calm)
+ * Used only for the top titles (Clients, Sessions, Exercises)
+ */
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
+
   setTextAsChars(element, text);
+
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
   
-  const allClasses = [...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm, 'happy', 'sad', 'calm'];
+  const allClasses = [
+    ...ANIMATION_CLASSES.happy, 
+    ...ANIMATION_CLASSES.sad, 
+    ...ANIMATION_CLASSES.calm, 
+    'happy', 'sad', 'calm'
+  ];
   targetElement.classList.remove(...allClasses);
 
   let mood = 'calm'; 
@@ -244,6 +258,7 @@ function applyTitleStyling(element, text, colorData) {
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
 
+  // Distribution Logic
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -273,6 +288,8 @@ function applyTitleStyling(element, text, colorData) {
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
     char.classList.add(animClass);
+    
+    // Specific Diverge Logic for Headers
     if (animClass === 'calm-3') {
         if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
         if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
@@ -280,14 +297,26 @@ function applyTitleStyling(element, text, colorData) {
   });
 }
 
+/**
+ * =====================================================================
+ * NEW: LIST ANIMATION LOGIC (3 Second Interval)
+ * =====================================================================
+ */
 function setupListTextAnimation(element, text, colorData) {
   if (!element) return;
+
+  // 1. Render Text Chars
   setTextAsChars(element, text);
+
+  // Handle No Data
   if (!colorData || colorData.total === 0) {
-    element.querySelectorAll('.char').forEach(char => { char.style.color = 'var(--color-text)'; });
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+    });
     return; 
   }
 
+  // 2. Calculate Colors
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
@@ -323,34 +352,54 @@ function setupListTextAnimation(element, text, colorData) {
     [colors[i], colors[j]] = [colors[j], colors[i]];
   }
 
+  // 3. Apply Colors & Store Direction
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    if (colors[i] === 'var(--color-green)') char.dataset.moveDirection = 'up'; 
-    else if (colors[i] === 'var(--color-red)') char.dataset.moveDirection = 'down';
+    
+    // Determine which way this specific letter should move
+    if (colors[i] === 'var(--color-green)') {
+        char.dataset.moveDirection = 'up'; 
+    } else if (colors[i] === 'var(--color-red)') {
+        char.dataset.moveDirection = 'down';
+    }
   });
 
+  // 4. Start the Timer for this list item
   runAnimationLoop(element);
 }
 
 function runAnimationLoop(element) {
+    // === TIMER SETTING: 3 Seconds ===
+    // 3000ms = 3 seconds. 
     const delay = 3000; 
+
     setTimeout(() => {
+        // If user left the screen, element is gone, so stop loop
         if (!document.body.contains(element)) return;
+
         const chars = element.querySelectorAll('.char');
+        
+        // A. Add Class (Triggers CSS Animation)
         chars.forEach(char => {
             const dir = char.dataset.moveDirection;
             if (dir === 'up') char.classList.add('animate-up');
             if (dir === 'down') char.classList.add('animate-down');
         });
+
+        // B. Remove Class after 2s (CSS animation duration) to reset
         setTimeout(() => {
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
                 char.classList.remove('animate-up', 'animate-down');
             });
+
+            // C. Recursion: Run loop again
             runAnimationLoop(element);
         }, 2000);
+
     }, delay);
 }
+
 
 function getExerciseColorData(exercise) {
   if (!exercise.sets || exercise.sets.length < 2) {
@@ -390,16 +439,19 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
-// ------------------ RENDER FUNCTIONS ------------------
+// ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
+  
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   
   for (const name in clientsData) {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
+
     const nameSpan = document.createElement("span");
+    // setupListTextAnimation handles textContent via setTextAsChars
     
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
@@ -419,11 +471,14 @@ function renderClients() {
     totalAppColorData.yellow += clientColorData.yellow;
     totalAppColorData.total += clientColorData.total;
     
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, name, clientColorData);
+
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
       selectClient(name);
     };
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -436,16 +491,20 @@ function renderClients() {
         if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
       });
     };
+
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
     clientList.appendChild(li);
   }
+  
+  // Main Title still uses standard Logic
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  
   hookEditables();
 }
 
-// ... [Client Actions, SelectClient same as before] ...
+// ------------------ CLIENT ACTIONS ------------------
 document.getElementById("addClientBtn").onclick = () => {
   const name = prompt("Enter client name:");
   if (!name) return;
@@ -463,8 +522,9 @@ function selectClient(name) {
   navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
-// ... [Session Rendering same as before] ...
+// ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
+
 function getSortedSessions(sessionsArray) {
   if (!sessionsArray) return [];
   return sessionsArray.slice().sort((a, b) => {
@@ -475,6 +535,7 @@ function getSortedSessions(sessionsArray) {
     return dateB.getTime() - dateA.getTime();
   });
 }
+
 document.getElementById("addSessionBtn").onclick = () => {
   if (!selectedClient) { alert("Select a client first"); return; }
   const name = prompt("Enter session name:");
@@ -484,18 +545,23 @@ document.getElementById("addSessionBtn").onclick = () => {
   saveUserJson();
   renderSessions();
 };
+
 function renderSessions() {
   sessionList.innerHTML = "";
   if (!selectedClient) return;
   selectedSession = null;
+
   let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
   const sessions = clientsData[selectedClient]?.sessions || [];
   const sortedSessions = getSortedSessions(sessions);
 
   sortedSessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
+
     const nameSpan = document.createElement("span");
+    
     let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const exercises = sess.exercises || [];
     exercises.forEach(ex => {
@@ -505,15 +571,20 @@ function renderSessions() {
         sessionColorData.yellow += cData.yellow;
         sessionColorData.total += cData.total;
     });
+    
     clientTotalColorData.red += sessionColorData.red;
     clientTotalColorData.green += sessionColorData.green;
     clientTotalColorData.yellow += sessionColorData.yellow;
     clientTotalColorData.total += sessionColorData.total;
+
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
+
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
       selectSession(sess);
     };
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -529,14 +600,18 @@ function renderSessions() {
         if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
       });
     };
+
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
     sessionList.appendChild(li);
   });
+  
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
   applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
+
   hookEditables();
 }
+
 function selectSession(sessionObject) {
   selectedSession = sessionObject;
   selectedExercise = null;
@@ -544,7 +619,7 @@ function selectSession(sessionObject) {
   navigateTo(SCREENS.EXERCISES, 'forward');
 }
 
-// ... [Exercise Rendering same as before] ...
+// ------------------ EXERCISES ------------------
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
   if (!selectedSession) { alert("Select a session first"); return; }
@@ -555,32 +630,52 @@ document.getElementById("addExerciseBtn").onclick = () => {
   saveUserJson();
   renderExercises();
 };
+
 function renderExercises() {
   exerciseList.innerHTML = "";
   const sessionTitleElement = document.getElementById('sessionExercisesTitle');
+  
+  // --- NEW: HANDLE WIDGET VISIBILITY ---
   if (!selectedSession) {
     applyTitleStyling(sessionTitleElement, 'Exercises', null);
+    // Hide widget if no session selected
+    if (spiralContainer) spiralContainer.classList.add('hidden'); 
     return;
+  } else {
+      // Show and render widget
+      if (spiralContainer) {
+          spiralContainer.classList.remove('hidden');
+          // Small timeout ensures DOM is ready for SVG calculations
+          setTimeout(renderSpiralWidget, 50);
+      }
   }
+  // ------------------------------------
+  
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
   selectedSession.exercises.forEach((ex, idx) => {
     const colorData = getExerciseColorData(ex);
     ex.colorData = colorData; 
+
     if (colorData) {
       sessionColorData.red += colorData.red;
       sessionColorData.green += colorData.green;
       sessionColorData.yellow += colorData.yellow;
       sessionColorData.total += colorData.total;
     }
+
     const li = document.createElement("li");
     li.style.cursor = "pointer";
+
     const nameSpan = document.createElement("span");
     nameSpan.textContent = ex.exercise;
+
     li.onclick = (e) => {
       if (editMode) { e.stopPropagation(); return; }
       selectExercise(idx);
     };
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -593,14 +688,19 @@ function renderExercises() {
         if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
       });
     };
+    
+    // USE NEW FUNCTION
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
+
     li.appendChild(nameSpan);
     li.appendChild(deleteBtn);
     exerciseList.appendChild(li);
   });
+  
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
   hookEditables();
 }
+
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets();
@@ -608,11 +708,13 @@ function selectExercise(idx) {
   document.getElementById("graphContainer").classList.add("hidden");
 }
 
-// ------------------ SETS & VISUALIZER ------------------
+// ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
 
 function getLastSet() {
-    if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) return null;
+    if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+        return null;
+    }
     const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return sortedSets[0];
 }
@@ -631,6 +733,7 @@ document.getElementById("addSetBtn").onclick = () => {
   let notes = prompt("Notes:") || "";
   const timestamp = new Date().toISOString();
   const volume = reps * weight;
+
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson();
   renderSets();
@@ -640,7 +743,6 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
 
-  // Sort by Date ascending for table
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const setsByDay = new Map();
   sortedSets.forEach(set => {
@@ -689,424 +791,34 @@ function renderSets() {
   });
 
   hookEditables(renderedSetsInOrder);
-  
-  // Run New Visualizer Logic
-  runComparisonLogic(); 
+  runComparisonLogic();
 }
 
-// =====================================================
-// NEW SWIRL WIDGET CLASS (Vanilla JS Port)
-// =====================================================
-class SwirlWidget {
-  constructor(container, label, metricKey, data, options = {}) {
-    this.container = container;
-    this.label = label;
-    this.metricKey = metricKey;
-    this.data = data;
-    this.options = options;
-    this.progress = 1.0; // Default to end
-    
-    // Geometry Config
-    this.maxRadius = 42;
-    this.coils = 3;
-    this.center = { x: 50, y: 50 };
-    this.resolution = 400;
 
-    // Pre-calculate Spiral
-    this.calcGeometry();
-    
-    // Build DOM
-    this.render();
-    
-    // Update Visuals for initial state
-    this.update(1.0);
-  }
+// ------------------ PLOTLY GRAPH ------------------
+document.getElementById("showGraphBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  const sets = selectedExercise.sets;
+  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
 
-  calcGeometry() {
-    this.points = [];
-    let cumulativeLen = 0;
-    let prevPt = null;
-    this.pathD = "";
+  navigateTo(SCREENS.GRAPH, 'forward');;
 
-    for (let i = 0; i <= this.resolution; i++) {
-      const t = 0.15 + (i / this.resolution) * 0.85;
-      const totalAngle = Math.PI * 2 * this.coils;
-      const angle = t * totalAngle;
-      const r = t * this.maxRadius;
-      const rotOffset = -Math.PI / 2;
-      const x = this.center.x + r * Math.cos(angle + rotOffset);
-      const y = this.center.y + r * Math.sin(angle + rotOffset);
-      
-      const pt = { x, y, len: 0 };
-      
-      if (prevPt) {
-        const d = Math.sqrt((x - prevPt.x) ** 2 + (y - prevPt.y) ** 2);
-        cumulativeLen += d;
-        pt.len = cumulativeLen;
-        this.pathD += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
-      } else {
-        this.pathD += `M ${x.toFixed(2)} ${y.toFixed(2)}`;
-      }
-      this.points.push(pt);
-      prevPt = pt;
-    }
-    this.totalLength = cumulativeLen;
-  }
-
-  render() {
-    this.container.innerHTML = '';
-    
-    // Card Wrapper
-    const card = document.createElement('div');
-    card.className = 'swirl-card';
-    
-    // Header
-    const header = document.createElement('div');
-    header.className = 'swirl-label';
-    header.textContent = this.label;
-    card.appendChild(header);
-    
-    // Visual Area
-    const visArea = document.createElement('div');
-    visArea.className = 'swirl-visual';
-    this.visArea = visArea;
-    
-    // SVG
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("viewBox", "0 0 100 100");
-    
-    // Defs/Mask
-    const defs = document.createElementNS(svgNS, "defs");
-    const mask = document.createElementNS(svgNS, "mask");
-    mask.id = `mask-${this.metricKey}`;
-    const maskPath = document.createElementNS(svgNS, "path");
-    maskPath.setAttribute("d", this.pathD);
-    maskPath.setAttribute("stroke", "white");
-    maskPath.setAttribute("stroke-width", "6");
-    maskPath.setAttribute("fill", "none");
-    maskPath.setAttribute("stroke-linecap", "round");
-    maskPath.setAttribute("stroke-dasharray", `0 1000`); 
-    this.maskPath = maskPath;
-    mask.appendChild(maskPath);
-    defs.appendChild(mask);
-    svg.appendChild(defs);
-
-    // Base Track
-    const baseTrack = document.createElementNS(svgNS, "path");
-    baseTrack.setAttribute("d", this.pathD);
-    baseTrack.setAttribute("stroke", "#333");
-    baseTrack.setAttribute("stroke-width", "3");
-    baseTrack.setAttribute("fill", "none");
-    baseTrack.setAttribute("stroke-linecap", "round");
-    svg.appendChild(baseTrack);
-
-    // Segments Group (Masked)
-    const g = document.createElementNS(svgNS, "g");
-    g.setAttribute("mask", `url(#mask-${this.metricKey})`);
-    
-    // Generate Segments
-    const startTime = this.data[0].timestamp;
-    const endTime = this.data[this.data.length - 1].timestamp;
-    const totalTime = endTime - startTime || 1;
-    
-    for (let i = 1; i < this.data.length; i++) {
-      const prev = this.data[i - 1];
-      const curr = this.data[i];
-      const pctStart = (prev.timestamp - startTime) / totalTime;
-      const pctEnd = (curr.timestamp - startTime) / totalTime;
-      const lenStart = pctStart * this.totalLength;
-      const lenEnd = pctEnd * this.totalLength;
-      
-      // Determine status
-      let statusClass = "stroke-yellow";
-      if (curr.stats[this.metricKey] > prev.stats[this.metricKey]) statusClass = "stroke-green";
-      else if (curr.stats[this.metricKey] < prev.stats[this.metricKey]) statusClass = "stroke-red";
-
-      // Build Path
-      const segmentPoints = this.points.filter(p => p.len >= lenStart && p.len <= lenEnd);
-      if (segmentPoints.length > 1) {
-        let segD = `M ${segmentPoints[0].x.toFixed(2)} ${segmentPoints[0].y.toFixed(2)}`;
-        for(let k=1; k<segmentPoints.length; k++) {
-            segD += ` L ${segmentPoints[k].x.toFixed(2)} ${segmentPoints[k].y.toFixed(2)}`;
-        }
-        const path = document.createElementNS(svgNS, "path");
-        path.setAttribute("d", segD);
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke-width", "3");
-        path.setAttribute("stroke-linecap", "round");
-        path.setAttribute("class", statusClass);
-        g.appendChild(path);
-      }
-    }
-    svg.appendChild(g);
-
-    // Ball
-    const ball = document.createElementNS(svgNS, "circle");
-    ball.setAttribute("r", "5");
-    ball.setAttribute("fill", "white");
-    this.ball = ball;
-    svg.appendChild(ball);
-
-    visArea.appendChild(svg);
-    card.appendChild(visArea);
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.className = 'swirl-footer';
-    footer.innerHTML = `
-        <div class="swirl-date" id="date-${this.metricKey}"></div>
-        <div class="swirl-value-row">
-            <span class="swirl-main-val" id="val-${this.metricKey}">--</span>
-            <span class="swirl-diff" id="diff-${this.metricKey}"></span>
-        </div>
-    `;
-    card.appendChild(footer);
-
-    this.container.appendChild(card);
-    
-    // Elements to update
-    this.elDate = footer.querySelector(`#date-${this.metricKey}`);
-    this.elVal = footer.querySelector(`#val-${this.metricKey}`);
-    this.elDiff = footer.querySelector(`#diff-${this.metricKey}`);
-
-    // Bind Events
-    this.bindEvents();
-  }
-
-  update(newProgress) {
-    this.progress = newProgress;
-    const currentLen = this.progress * this.totalLength;
-    
-    // 1. Mask Reveal
-    this.maskPath.setAttribute("stroke-dasharray", `${currentLen} 1000`);
-
-    // 2. Ball Position
-    let targetPt = this.points[this.points.length-1];
-    for(let p of this.points) {
-        if(p.len >= currentLen) {
-            targetPt = p;
-            break;
-        }
-    }
-    this.ball.setAttribute("cx", targetPt.x);
-    this.ball.setAttribute("cy", targetPt.y);
-
-    // 3. Data Display (Segment Logic)
-    const startTime = this.data[0].timestamp;
-    const endTime = this.data[this.data.length - 1].timestamp;
-    const totalTime = endTime - startTime || 1;
-    
-    let bestIdx = 0;
-    if (this.progress < 0.02) {
-        bestIdx = 0;
-    } else {
-        const currentTimestamp = startTime + (this.progress * totalTime);
-        bestIdx = this.data.length - 1;
-        for (let i = 1; i < this.data.length; i++) {
-            if (currentTimestamp <= this.data[i].timestamp) {
-                bestIdx = i;
-                break;
-            }
-        }
-    }
-    
-    const curr = this.data[bestIdx];
-    const prev = bestIdx > 0 ? this.data[bestIdx-1] : curr;
-    
-    // Render Text
-    const d = new Date(curr.date);
-    const todayStr = new Date().toDateString();
-    this.elDate.textContent = (d.toDateString() === todayStr) ? "Today" : d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-    
-    let valStr = curr.stats[this.metricKey];
-    if(this.metricKey === 'volume') valStr += " lb";
-    this.elVal.textContent = valStr;
-    
-    // Diff Logic
-    if(curr !== prev) {
-        const val = curr.stats[this.metricKey];
-        const pVal = prev.stats[this.metricKey];
-        const diff = (val - pVal);
-        const pct = pVal ? Math.round((diff/pVal)*100) : 0;
-        
-        let colorClass = "text-yellow";
-        let sign = "+";
-        if(diff < 0) { colorClass = "text-red"; sign = ""; }
-        else if(diff > 0) { colorClass = "text-green"; }
-        
-        this.elDiff.className = `swirl-diff ${colorClass}`;
-        this.elDiff.textContent = `${sign}${diff.toFixed(0)} (${pct}%)`;
-    } else {
-        this.elDiff.textContent = "";
-    }
-  }
-
-  bindEvents() {
-    const handler = (e) => {
-        e.preventDefault(); // Prevent scroll on mobile
-        const rect = this.visArea.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // Map to SVG coords (100x100)
-        const svgX = x * (100 / rect.width);
-        const svgY = y * (100 / rect.height);
-        
-        // Find closest point
-        let closestPt = this.points[0];
-        let minDst = Infinity;
-        for(let p of this.points) {
-            const dst = (svgX - p.x)**2 + (svgY - p.y)**2;
-            if(dst < minDst) {
-                minDst = dst;
-                closestPt = p;
-            }
-        }
-        
-        const newProg = Math.min(1, Math.max(0, closestPt.len / this.totalLength));
-        
-        if(this.options.onUpdate) {
-            this.options.onUpdate(newProg);
-        } else {
-            this.update(newProg);
-        }
-    };
-
-    this.visArea.addEventListener('pointerdown', (e) => {
-        this.visArea.setPointerCapture(e.pointerId);
-        handler(e);
-        this.visArea.addEventListener('pointermove', handler);
-    });
-
-    this.visArea.addEventListener('pointerup', (e) => {
-        this.visArea.releasePointerCapture(e.pointerId);
-        this.visArea.removeEventListener('pointermove', handler);
-    });
-  }
-}
-
-// ------------------ VISUALIZER LOGIC ------------------
-let swirlWidgets = [];
-let isSwirlLinked = true;
-
-function aggregateStats(setsArray) {
-  if (!setsArray || setsArray.length === 0) return { sets: 0, reps: 0, volume: 0, wpr: 0 };
-  const totalSets = setsArray.length;
-  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
-  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
-  const avgWpr = totalReps > 0 ? parseFloat((totalVolume / totalReps).toFixed(1)) : 0;
-  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
-}
-
-function isSameDay(d1, d2) {
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
-}
-
-function getHistoryData(sets, limit) {
-    // 1. Group by day
-    const setsByDay = new Map();
-    // Sort oldest to newest
-    const chronological = sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    
-    chronological.forEach(set => {
-        const d = new Date(set.timestamp);
-        const key = d.toDateString();
-        if(!setsByDay.has(key)) setsByDay.set(key, { date: d, sets: [] });
-        setsByDay.get(key).sets.push(set);
-    });
-    
-    const history = [];
-    setsByDay.forEach(val => {
-        history.push({
-            date: val.date,
-            timestamp: val.date.getTime(),
-            stats: aggregateStats(val.sets)
-        });
-    });
-    
-    // Apply limit (take last N)
-    const startIndex = Math.max(0, history.length - limit);
-    return history.slice(startIndex);
-}
-
-function runComparisonLogic() {
-  const container = document.getElementById('swirlContainer');
-  const grid = document.getElementById('swirlGrid');
-  const titleElement = document.getElementById('exerciseSetsTitleSpan');
-  const linkBtn = document.getElementById('swirlLinkBtn');
-  const historySelect = document.getElementById('swirlHistorySelect');
-
-  // 1. Basic Validation
-  if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
-    container.classList.add('hidden');
-    if (titleElement) applyTitleStyling(titleElement, selectedExercise ? selectedExercise.exercise : 'Exercise', null);
-    return;
-  }
-  container.classList.remove('hidden');
+  const dates = sets.map(s => s.timestamp);
+  const reps = sets.map(s => s.reps);
+  const weight = sets.map(s => s.weight);
+  const volume = sets.map(s => s.volume);
+  const wpr = sets.map(s => s.volume / s.reps);
   
-  // 2. Set Title Style (Legacy logic preserved for title)
-  const colorData = getExerciseColorData(selectedExercise);
-  applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
-
-  // 3. Setup Controls
-  // Remove old listeners to prevent duplicates (simple clone hack)
-  const newLinkBtn = linkBtn.cloneNode(true);
-  linkBtn.parentNode.replaceChild(newLinkBtn, linkBtn);
-  const newSelect = historySelect.cloneNode(true);
-  historySelect.parentNode.replaceChild(newSelect, historySelect);
-  
-  newLinkBtn.onclick = () => {
-      isSwirlLinked = !isSwirlLinked;
-      newLinkBtn.classList.toggle('active', isSwirlLinked);
-      newLinkBtn.innerHTML = isSwirlLinked 
-        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Linked` 
-        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg> Unlinked`;
-  };
-  
-  newSelect.onchange = () => runComparisonLogic(); // Re-run on change
-
-  // 4. Prepare Data
-  const limit = parseInt(newSelect.value);
-  const history = getHistoryData(selectedExercise.sets, limit);
-  
-  if(history.length < 2) {
-      // Not enough data to visualize effectively
-      grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#666; padding:20px;">Add more workouts to see trends.</div>';
-      return;
-  }
-
-  // 5. Initialize Widgets
-  grid.innerHTML = '';
-  swirlWidgets = [];
-  
-  const updateAll = (progress) => {
-      if(isSwirlLinked) {
-          swirlWidgets.forEach(w => w.update(progress));
-      }
-  };
-
-  const metrics = [
-      { key: 'sets', label: 'SETS' },
-      { key: 'reps', label: 'REPS' },
-      { key: 'volume', label: 'VOLUME' },
-      { key: 'wpr', label: 'AVG W/R' }
+  const traces = [
+    { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
+    { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
+    { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
+    { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
   ];
-
-  metrics.forEach(m => {
-      const div = document.createElement('div');
-      grid.appendChild(div);
-      const widget = new SwirlWidget(div, m.label, m.key, history, {
-          onUpdate: (prog) => {
-             if(isSwirlLinked) updateAll(prog);
-             else widget.update(prog);
-          }
-      });
-      swirlWidgets.push(widget);
-  });
-}
+  
+  Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
+  Plotly.Plots.resize('graphDiv');
+};
 
 // ------------------ HELPER ------------------
 function hideAllDetails() {
@@ -1117,6 +829,120 @@ function hideAllDetails() {
   currentScreen = SCREENS.CLIENTS;
   document.getElementById("graphDiv").innerHTML = "";
 }
+
+// ------------------ COMPARISON LOGIC ------------------
+
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+function aggregateStats(setsArray) {
+  if (!setsArray || setsArray.length === 0) {
+    return { sets: 0, reps: 0, volume: 0, wpr: 0 };
+  }
+  const totalSets = setsArray.length;
+  const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
+  const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
+  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
+  return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
+}
+
+function formatNum(num) {
+  if (num % 1 === 0) return num.toString();
+  return num.toFixed(1);
+}
+
+function updateStatUI(statName, currentValue, previousValue) {
+  const arrowEl = document.getElementById(statName + 'Arrow');
+  const spiralEl = document.getElementById(statName + 'Spiral');
+  const dataEl = document.getElementById(statName + 'Data');
+  
+  if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
+
+  const status = calculateStatStatus(currentValue, previousValue);
+  
+  let arrow = '—';
+  if (status === 'increase') arrow = '&uarr;';
+  else if (status === 'decrease') arrow = '&darr;';
+  
+  const change = currentValue - previousValue;
+  let percentageChange = 0;
+  if (previousValue !== 0) {
+    percentageChange = (change / previousValue) * 100;
+  } else if (currentValue > 0) {
+    percentageChange = 100;
+  }
+
+  let currentString = '';
+  const changeSign = change > 0 ? '+' : '';
+  
+  switch(statName) {
+    case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
+    case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
+  }
+  
+  let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  if (status === 'neutral') changeString = `(0 / 0%)`;
+  
+  const classesToRemove = ['increase', 'decrease', 'neutral'];
+  arrowEl.innerHTML = arrow;
+  arrowEl.classList.remove(...classesToRemove);
+  arrowEl.classList.add(status);
+
+  spiralEl.classList.remove(...classesToRemove);
+  spiralEl.classList.add(status);
+  
+  dataEl.textContent = `${currentString} ${changeString}`;
+  dataEl.classList.remove(...classesToRemove);
+  dataEl.classList.add(status);
+
+  return status;
+}
+
+
+function runComparisonLogic() {
+  const banner = document.getElementById('comparisonBanner');
+  const titleElement = document.getElementById('exerciseSetsTitleSpan');
+
+  if (!selectedExercise) {
+    banner.classList.add('hidden');
+    if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
+    return;
+  }
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, null);
+
+  const colorData = getExerciseColorData(selectedExercise);
+  selectedExercise.colorData = colorData;
+
+  if (colorData.total === 0) {
+      banner.classList.add('hidden');
+      applyTitleStyling(titleElement, selectedExercise.exercise, null);
+      return;
+  }
+
+  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  updateStatUI('sets', currentStats.sets, prevStats.sets);
+  updateStatUI('reps', currentStats.reps, prevStats.reps);
+  updateStatUI('volume', currentStats.volume, prevStats.volume);
+  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
+  banner.classList.remove('hidden');
+}
+
 
 // ------------------ EDIT MODE ------------------
 let editMode = false;
@@ -1255,29 +1081,267 @@ document.body.addEventListener('touchend', () => {
     touchStartX = 0; touchStartY = 0;
 });
 
-// ------------------ PLOTLY GRAPH ------------------
-document.getElementById("showGraphBtn").onclick = () => {
-  if (!selectedExercise) { alert("Select an exercise first"); return; }
-  const sets = selectedExercise.sets;
-  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+// =====================================================
+// SPIRAL WIDGET LOGIC
+// =====================================================
 
-  navigateTo(SCREENS.GRAPH, 'forward');;
+let currentSpiralPathData = null;
+let spiralTotalLength = 0;
+let isDraggingSpiral = false;
+const spiralContainer = document.getElementById('spiralWidgetContainer');
+const timeframeSelect = document.getElementById('spiralTimeframeSelect');
+const svgWrapper = document.getElementById('spiralSvgWrapper');
 
-  const chronological = sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+// Helper: Convert degrees to radians
+const toRad = (deg) => deg * (Math.PI / 180);
 
-  const dates = chronological.map(s => s.timestamp);
-  const reps = chronological.map(s => s.reps);
-  const weight = chronological.map(s => s.weight);
-  const volume = chronological.map(s => s.volume);
-  const wpr = chronological.map(s => s.volume / s.reps);
-  
-  const traces = [
-    { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
-    { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
-    { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
-    { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
-  ];
-  
-  Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified', paper_bgcolor: '#1c1c1c', plot_bgcolor: '#1c1c1c', font: { color: '#f0f0f0' } });
-  Plotly.Plots.resize('graphDiv');
-};
+// Helper: Generate Spiral Points
+function generateSpiralPath(centerX, centerY, startRadius, endRadius, rotations, pointsPerRotation) {
+    let pathData = [];
+    const totalAngle = rotations * 2 * Math.PI;
+    const growthRate = (endRadius - startRadius) / totalAngle;
+
+    for (let i = 0; i <= rotations * pointsPerRotation; i++) {
+        const angle = (i / pointsPerRotation) * 2 * Math.PI;
+        const radius = startRadius + growthRate * angle;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        // Rotate 90deg so it starts at the top
+        const rotatedX = centerX + (x - centerX) * Math.cos(-Math.PI/2) - (y - centerY) * Math.sin(-Math.PI/2);
+        const rotatedY = centerY + (x - centerX) * Math.sin(-Math.PI/2) + (y - centerY) * Math.cos(-Math.PI/2);
+
+        if (i === 0) {
+            pathData.push(`M ${rotatedX},${rotatedY}`);
+        } else {
+            pathData.push(`L ${rotatedX},${rotatedY}`);
+        }
+    }
+    return pathData.join(" ");
+}
+
+function processSpiralData(timeframeWeeks) {
+    if (!selectedSession || !selectedSession.exercises) return [];
+
+    // 1. Gather all sets across all exercises in this session history
+    // Note: Since we want to visualize history, we need to look at ALL sessions for this client
+    // not just the selected one.
+    
+    if (!clientsData[selectedClient]) return [];
+    const allSessions = clientsData[selectedClient].sessions || [];
+    
+    // Gather sets from all sessions to determine timestamps
+    let sessionDates = allSessions.map(s => ({
+        date: new Date(s.date || s.timestamp), // Handle legacy data structures if any
+        sessionObj: s
+    })).filter(item => !isNaN(item.date.getTime()));
+
+    if (sessionDates.length < 2) return [];
+
+    // Sort by date ascending
+    sessionDates.sort((a, b) => a.date - b.date);
+
+    // Filter by timeframe
+    if (timeframeWeeks !== 'all') {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - (parseInt(timeframeWeeks) * 7));
+        sessionDates = sessionDates.filter(item => item.date >= cutoffDate);
+    }
+
+    if (sessionDates.length < 2) return [];
+
+    // Calculate Segments
+    const segments = [];
+    // Total duration from first relevant session to last
+    let totalDurationMs = sessionDates[sessionDates.length - 1].date - sessionDates[0].date;
+    if (totalDurationMs === 0) totalDurationMs = 1; // Avoid div/0
+
+    for (let i = 1; i < sessionDates.length; i++) {
+        const current = sessionDates[i];
+        const prev = sessionDates[i-1];
+        
+        const duration = current.date - prev.date;
+        const percentage = duration / totalDurationMs;
+
+        // Determine Color based on quality of 'current' session vs 'prev' session
+        // We aggregate all exercises in the current session vs prev session
+        
+        let greenCount = 0, redCount = 0, yellowCount = 0;
+
+        // Simple comparison: iterate exercises in current session
+        current.sessionObj.exercises.forEach(currEx => {
+             // Find matching exercise in prev session for direct comparison
+             // If not found, we can't compare, so neutral
+             const prevEx = prev.sessionObj.exercises.find(e => e.exercise === currEx.exercise);
+             if(prevEx) {
+                 const currStats = aggregateStats(currEx.sets);
+                 const prevStats = aggregateStats(prevEx.sets);
+                 
+                 const s1 = calculateStatStatus(currStats.sets, prevStats.sets);
+                 const s2 = calculateStatStatus(currStats.reps, prevStats.reps);
+                 const s3 = calculateStatStatus(currStats.volume, prevStats.volume);
+                 const s4 = calculateStatStatus(currStats.wpr, prevStats.wpr);
+                 
+                 [s1,s2,s3,s4].forEach(s => {
+                     if(s==='increase') greenCount++;
+                     else if(s==='decrease') redCount++;
+                     else yellowCount++;
+                 });
+             }
+        });
+        
+        // If no exercises matched or no data, default neutral
+        let color = 'var(--color-yellow)';
+        if (greenCount > redCount && greenCount >= yellowCount) color = 'var(--color-green)';
+        else if (redCount > greenCount && redCount >= yellowCount) color = 'var(--color-red)';
+        
+        // Fallback if no comparison was possible (e.g. completely different exercises)
+        if(greenCount === 0 && redCount === 0) color = 'var(--color-yellow)';
+
+        segments.push({ percentage, color, date: current.date.toLocaleDateString() });
+    }
+
+    return segments;
+}
+
+function renderSpiralWidget() {
+    const timeframe = timeframeSelect.value;
+    const segments = processSpiralData(timeframe);
+
+    if (segments.length === 0) {
+        svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;">Not enough history data to display spiral.</p>';
+        return;
+    }
+
+    // SVG ViewBox dimensions
+    const width = 300;
+    const height = 300;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Generate the main spiral path string
+    // Adjust rotations and radii to fit visual style
+    const pathD = generateSpiralPath(centerX, centerY, 20, 130, 2.5, 60);
+
+    svgWrapper.innerHTML = `
+        <svg id="spiral-svg" viewBox="0 0 ${width} ${height}">
+             <!-- 1. Base dark gray track -->
+            <path id="spiralBase" d="${pathD}" class="spiral-track-base" />
+            
+            <!-- 2. Colored Segments Group -->
+            <g id="spiralSegments"></g>
+            
+            <!-- 3. The Reveal Mask (hides colors initially) -->
+            <path id="spiralReveal" d="${pathD}" class="spiral-reveal-mask" />
+
+            <!-- 4. The Draggable Knob -->
+            <circle id="spiralKnob" r="10" class="spiral-knob" />
+        </svg>
+    `;
+
+    const basePathElement = document.getElementById('spiralBase');
+    spiralTotalLength = basePathElement.getTotalLength();
+    currentSpiralPathData = pathD;
+
+    // Render Colored Segments
+    const segmentsGroup = document.getElementById('spiralSegments');
+    let currentOffset = 0;
+
+    segments.forEach(seg => {
+        const segmentLength = seg.percentage * spiralTotalLength;
+        const segPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        segPath.setAttribute('d', pathD);
+        segPath.classList.add('spiral-segment');
+        segPath.style.stroke = seg.color;
+        
+        // Use dasharray to show only this segment's portion
+        // Format: "0 [startOffset] [segmentLength] [rest of path]"
+        segPath.style.strokeDasharray = `0 ${currentOffset} ${segmentLength} ${spiralTotalLength}`;
+        
+        segmentsGroup.appendChild(segPath);
+        currentOffset += segmentLength;
+    });
+
+    // Initialize Reveal Mask (fully covering)
+    const revealPath = document.getElementById('spiralReveal');
+    revealPath.style.strokeDasharray = spiralTotalLength;
+    revealPath.style.strokeDashoffset = 0; // 0 offset means fully drawn (hiding everything underneath)
+
+    // Initialize Knob at Start
+    const startPoint = basePathElement.getPointAtLength(0);
+    updateKnobPosition(startPoint.x, startPoint.y);
+
+    setupSpiralInteraction();
+}
+
+function updateKnobPosition(x, y) {
+    const knob = document.getElementById('spiralKnob');
+    if(knob) {
+        knob.setAttribute('cx', x);
+        knob.setAttribute('cy', y);
+    }
+}
+
+function setupSpiralInteraction() {
+    const svg = document.getElementById('spiral-svg');
+    const revealPath = document.getElementById('spiralReveal');
+    const basePath = document.getElementById('spiralBase');
+
+    // Helper to get raw SVG point relative to the element
+    function getEventPoint(evt) {
+        const pt = svg.createSVGPoint();
+        pt.x = evt.clientX || evt.touches[0].clientX;
+        pt.y = evt.clientY || evt.touches[0].clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    // Finding closest point on a complex curve is expensive. 
+    // Optimization: sample points along the path.
+    const precision = 100; // Higher = more precise, slower
+    const pathPoints = [];
+    for (let i = 0; i <= precision; i++) {
+        const len = (i / precision) * spiralTotalLength;
+        pathPoints.push({ len: len, point: basePath.getPointAtLength(len) });
+    }
+
+    function handleDrag(evt) {
+        evt.preventDefault(); // Prevent scrolling on mobile
+        const loc = getEventPoint(evt);
+        
+        // Find closest sampled point on path
+        let closestLen = 0;
+        let minDistanceSq = Infinity;
+
+        pathPoints.forEach(sample => {
+            const dx = loc.x - sample.point.x;
+            const dy = loc.y - sample.point.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < minDistanceSq) {
+                minDistanceSq = distSq;
+                closestLen = sample.len;
+            }
+        });
+
+        // Update Knob Pos
+        const closestPoint = basePath.getPointAtLength(closestLen);
+        updateKnobPosition(closestPoint.x, closestPoint.y);
+
+        // Update Reveal Mask based on progress length
+        // Increasing offset "erases" the mask from the start
+        revealPath.style.strokeDashoffset = closestLen;
+    }
+
+    svgWrapper.addEventListener('mousedown', (e) => { isDraggingSpiral = true; handleDrag(e); });
+    svgWrapper.addEventListener('touchstart', (e) => { isDraggingSpiral = true; handleDrag(e); }, {passive: false});
+    
+    document.addEventListener('mousemove', (e) => { if(isDraggingSpiral) handleDrag(e); });
+    document.addEventListener('touchmove', (e) => { if(isDraggingSpiral) handleDrag(e); }, {passive: false});
+
+    document.addEventListener('mouseup', () => isDraggingSpiral = false);
+    document.addEventListener('touchend', () => isDraggingSpiral = false);
+}
+
+// Hook up select change handler
+if(timeframeSelect) {
+    timeframeSelect.onchange = renderSpiralWidget;
+}
