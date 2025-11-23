@@ -1158,7 +1158,7 @@ function formatNum(num) {
 
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
-  const spiralEl = document.getElementById(statName + 'Spiral'); // Optional, if exists
+  const spiralEl = document.getElementById(statName + 'Spiral'); 
   const dataEl = document.getElementById(statName + 'Data');
   
   if (!arrowEl || !dataEl) return 'neutral';
@@ -1190,13 +1190,17 @@ function updateStatUI(statName, currentValue, previousValue) {
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
   if (status === 'neutral') changeString = `(0 / 0%)`;
   
+  // Ensure we strip ALL possible status classes first
   const classesToRemove = ['increase', 'decrease', 'neutral'];
+  
   arrowEl.innerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
   if(spiralEl) {
     spiralEl.classList.remove(...classesToRemove);
+    // Force a reflow hack if necessary (usually not needed, but good for sticky SVG classes)
+    void spiralEl.offsetWidth; 
     spiralEl.classList.add(status);
   }
   
