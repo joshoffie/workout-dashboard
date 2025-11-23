@@ -635,21 +635,12 @@ function renderExercises() {
   exerciseList.innerHTML = "";
   const sessionTitleElement = document.getElementById('sessionExercisesTitle');
   
-  // --- NEW: HANDLE WIDGET VISIBILITY ---
+  // Note: Widget logic removed from here, moved to renderSets
+  
   if (!selectedSession) {
     applyTitleStyling(sessionTitleElement, 'Exercises', null);
-    // Hide widget if no session selected
-    if (spiralContainer) spiralContainer.classList.add('hidden'); 
     return;
-  } else {
-      // Show and render widget
-      if (spiralContainer) {
-          spiralContainer.classList.remove('hidden');
-          // Small timeout ensures DOM is ready for SVG calculations
-          setTimeout(renderSpiralWidget, 50);
-      }
   }
-  // ------------------------------------
   
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
@@ -741,7 +732,17 @@ document.getElementById("addSetBtn").onclick = () => {
 
 function renderSets() {
   setsTable.innerHTML = "";
-  if (!selectedExercise) return;
+  if (!selectedExercise) {
+      if (spiralContainer) spiralContainer.classList.add('hidden'); 
+      return;
+  }
+
+  // --- SHOW WIDGET & TRIGGER RENDER ---
+  if (spiralContainer) {
+      spiralContainer.classList.remove('hidden');
+      setTimeout(renderSpiralWidget, 50);
+  }
+  // ------------------------------------
 
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const setsByDay = new Map();
@@ -1121,84 +1122,81 @@ function generateSpiralPath(centerX, centerY, startRadius, endRadius, rotations,
 }
 
 function processSpiralData(timeframeWeeks) {
-    if (!selectedSession || !selectedSession.exercises) return [];
+    if (!selectedExercise || !selectedClient) return [];
 
-    // 1. Gather all sets across all exercises in this session history
-    // Note: Since we want to visualize history, we need to look at ALL sessions for this client
-    // not just the selected one.
+    // Target Exercise Name
+    const targetExerciseName = selectedExercise.exercise;
     
-    if (!clientsData[selectedClient]) return [];
+    // We must scan ALL sessions for this client to build the history
     const allSessions = clientsData[selectedClient].sessions || [];
     
-    // Gather sets from all sessions to determine timestamps
-    let sessionDates = allSessions.map(s => ({
-        date: new Date(s.date || s.timestamp), // Handle legacy data structures if any
-        sessionObj: s
-    })).filter(item => !isNaN(item.date.getTime()));
+    // 1. Filter sessions that contain this specific exercise name
+    let exerciseHistory = [];
+    
+    allSessions.forEach(session => {
+        const date = new Date(session.date || session.timestamp);
+        if(isNaN(date.getTime())) return;
+        
+        // Find if this session has the exercise
+        const exMatch = session.exercises.find(e => e.exercise === targetExerciseName);
+        if(exMatch && exMatch.sets && exMatch.sets.length > 0) {
+            exerciseHistory.push({
+                date: date,
+                sets: exMatch.sets
+            });
+        }
+    });
 
-    if (sessionDates.length < 2) return [];
+    // 2. Sort chronological
+    exerciseHistory.sort((a, b) => a.date - b.date);
 
-    // Sort by date ascending
-    sessionDates.sort((a, b) => a.date - b.date);
-
-    // Filter by timeframe
+    // 3. Filter Timeframe
     if (timeframeWeeks !== 'all') {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - (parseInt(timeframeWeeks) * 7));
-        sessionDates = sessionDates.filter(item => item.date >= cutoffDate);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - (parseInt(timeframeWeeks) * 7));
+        exerciseHistory = exerciseHistory.filter(h => h.date >= cutoff);
     }
 
-    if (sessionDates.length < 2) return [];
+    if (exerciseHistory.length < 2) return [];
 
-    // Calculate Segments
+    // 4. Build Timeline Segments
     const segments = [];
-    // Total duration from first relevant session to last
-    let totalDurationMs = sessionDates[sessionDates.length - 1].date - sessionDates[0].date;
-    if (totalDurationMs === 0) totalDurationMs = 1; // Avoid div/0
+    let totalDuration = exerciseHistory[exerciseHistory.length - 1].date - exerciseHistory[0].date;
+    if(totalDuration === 0) totalDuration = 1;
 
-    for (let i = 1; i < sessionDates.length; i++) {
-        const current = sessionDates[i];
-        const prev = sessionDates[i-1];
+    // We go from the second workout onwards, comparing it to the previous one
+    for(let i=1; i<exerciseHistory.length; i++) {
+        const curr = exerciseHistory[i];
+        const prev = exerciseHistory[i-1];
         
-        const duration = current.date - prev.date;
-        const percentage = duration / totalDurationMs;
+        const duration = curr.date - prev.date;
+        const percentage = duration / totalDuration;
 
-        // Determine Color based on quality of 'current' session vs 'prev' session
-        // We aggregate all exercises in the current session vs prev session
-        
-        let greenCount = 0, redCount = 0, yellowCount = 0;
+        // Compare Stats using existing logic
+        const currStats = aggregateStats(curr.sets);
+        const prevStats = aggregateStats(prev.sets);
 
-        // Simple comparison: iterate exercises in current session
-        current.sessionObj.exercises.forEach(currEx => {
-             // Find matching exercise in prev session for direct comparison
-             // If not found, we can't compare, so neutral
-             const prevEx = prev.sessionObj.exercises.find(e => e.exercise === currEx.exercise);
-             if(prevEx) {
-                 const currStats = aggregateStats(currEx.sets);
-                 const prevStats = aggregateStats(prevEx.sets);
-                 
-                 const s1 = calculateStatStatus(currStats.sets, prevStats.sets);
-                 const s2 = calculateStatStatus(currStats.reps, prevStats.reps);
-                 const s3 = calculateStatStatus(currStats.volume, prevStats.volume);
-                 const s4 = calculateStatStatus(currStats.wpr, prevStats.wpr);
-                 
-                 [s1,s2,s3,s4].forEach(s => {
-                     if(s==='increase') greenCount++;
-                     else if(s==='decrease') redCount++;
-                     else yellowCount++;
-                 });
-             }
+        let green = 0, red = 0, yellow = 0;
+        const stats = [
+            calculateStatStatus(currStats.sets, prevStats.sets),
+            calculateStatStatus(currStats.reps, prevStats.reps),
+            calculateStatStatus(currStats.volume, prevStats.volume),
+            calculateStatStatus(currStats.wpr, prevStats.wpr)
+        ];
+
+        stats.forEach(s => {
+            if(s === 'increase') green++;
+            else if(s === 'decrease') red++;
+            else yellow++;
         });
-        
-        // If no exercises matched or no data, default neutral
-        let color = 'var(--color-yellow)';
-        if (greenCount > redCount && greenCount >= yellowCount) color = 'var(--color-green)';
-        else if (redCount > greenCount && redCount >= yellowCount) color = 'var(--color-red)';
-        
-        // Fallback if no comparison was possible (e.g. completely different exercises)
-        if(greenCount === 0 && redCount === 0) color = 'var(--color-yellow)';
 
-        segments.push({ percentage, color, date: current.date.toLocaleDateString() });
+        let color = 'var(--color-yellow)';
+        // If majority green
+        if(green > red && green >= yellow) color = 'var(--color-green)';
+        // If majority red
+        else if(red > green && red >= yellow) color = 'var(--color-red)';
+
+        segments.push({ percentage, color, date: curr.date.toLocaleDateString() });
     }
 
     return segments;
@@ -1209,7 +1207,7 @@ function renderSpiralWidget() {
     const segments = processSpiralData(timeframe);
 
     if (segments.length === 0) {
-        svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;">Not enough history data to display spiral.</p>';
+        svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;padding-top:2rem;">Not enough specific exercise history.</p>';
         return;
     }
 
