@@ -1124,8 +1124,8 @@ function generateSpiralPath(centerX, centerY, startRadius, endRadius, rotations,
 function processSpiralData(timeframeWeeks) {
     if (!selectedExercise || !selectedClient) return [];
 
-    // Target Exercise Name
-    const targetExerciseName = selectedExercise.exercise;
+    // Target Exercise Name - Normalized for better matching
+    const targetExerciseName = selectedExercise.exercise.trim().toLowerCase();
     
     // We must scan ALL sessions for this client to build the history
     const allSessions = clientsData[selectedClient].sessions || [];
@@ -1137,8 +1137,8 @@ function processSpiralData(timeframeWeeks) {
         const date = new Date(session.date || session.timestamp);
         if(isNaN(date.getTime())) return;
         
-        // Find if this session has the exercise
-        const exMatch = session.exercises.find(e => e.exercise === targetExerciseName);
+        // Find if this session has the exercise (case-insensitive match)
+        const exMatch = session.exercises.find(e => e.exercise.trim().toLowerCase() === targetExerciseName);
         if(exMatch && exMatch.sets && exMatch.sets.length > 0) {
             exerciseHistory.push({
                 date: date,
@@ -1157,7 +1157,21 @@ function processSpiralData(timeframeWeeks) {
         exerciseHistory = exerciseHistory.filter(h => h.date >= cutoff);
     }
 
-    if (exerciseHistory.length < 2) return [];
+    // ZERO-BASELINE FALLBACK
+    // If we only have 1 history point, we can't compare it to a previous one.
+    // So we compare it to a "zero" baseline so the user sees at least 1 segment (Green).
+    if (exerciseHistory.length === 1) {
+        const curr = exerciseHistory[0];
+        const fakePrevDate = new Date(curr.date);
+        fakePrevDate.setDate(fakePrevDate.getDate() - 1); // Arbitrary previous day
+        
+        // Create a "segment" from start to current
+        // Since there's no real previous data, we treat it as 100% of the timeframe shown
+        // and color it Green (Increase) to show positive start.
+        return [{ percentage: 1.0, color: 'var(--color-green)', date: curr.date.toLocaleDateString() }];
+    }
+
+    if (exerciseHistory.length < 1) return [];
 
     // 4. Build Timeline Segments
     const segments = [];
@@ -1207,7 +1221,7 @@ function renderSpiralWidget() {
     const segments = processSpiralData(timeframe);
 
     if (segments.length === 0) {
-        svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;padding-top:2rem;">Not enough specific exercise history.</p>';
+        svgWrapper.innerHTML = '<p style="color:var(--color-text-muted);text-align:center;padding-top:2rem;">No history data found.</p>';
         return;
     }
 
@@ -1218,7 +1232,6 @@ function renderSpiralWidget() {
     const centerY = height / 2;
 
     // Generate the main spiral path string
-    // Adjust rotations and radii to fit visual style
     const pathD = generateSpiralPath(centerX, centerY, 20, 130, 2.5, 60);
 
     svgWrapper.innerHTML = `
@@ -1263,7 +1276,7 @@ function renderSpiralWidget() {
     // Initialize Reveal Mask (fully covering)
     const revealPath = document.getElementById('spiralReveal');
     revealPath.style.strokeDasharray = spiralTotalLength;
-    revealPath.style.strokeDashoffset = 0; // 0 offset means fully drawn (hiding everything underneath)
+    revealPath.style.strokeDashoffset = 0; 
 
     // Initialize Knob at Start
     const startPoint = basePathElement.getPointAtLength(0);
@@ -1293,9 +1306,8 @@ function setupSpiralInteraction() {
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }
 
-    // Finding closest point on a complex curve is expensive. 
     // Optimization: sample points along the path.
-    const precision = 100; // Higher = more precise, slower
+    const precision = 100; 
     const pathPoints = [];
     for (let i = 0; i <= precision; i++) {
         const len = (i / precision) * spiralTotalLength;
@@ -1325,7 +1337,6 @@ function setupSpiralInteraction() {
         updateKnobPosition(closestPoint.x, closestPoint.y);
 
         // Update Reveal Mask based on progress length
-        // Increasing offset "erases" the mask from the start
         revealPath.style.strokeDashoffset = closestLen;
     }
 
