@@ -1078,11 +1078,11 @@ document.body.addEventListener('touchend', () => {
 
 
 /* ============================================================
-   SPIRAL WIDGET CONTROLLER (Mobile Optimized)
-   Paste this at the very bottom of app.js
+   SPIRAL WIDGET CONTROLLER (Solution C: Slider Strategy)
    ============================================================ */
 const SpiralWidget = {
     svg: null,
+    slider: null,
     data: [],
     visibleData: [],
     range: 'all',
@@ -1091,44 +1091,39 @@ const SpiralWidget = {
     CX: 250, CY: 250, START_RADIUS: 30,
     OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
     
-    // Interaction State
-    isDragging: false,
-    hitLookup: [],
     visualPoints: [],
     totalLen: 0,
-    listenersAttached: false,
 
     init: function(rawSets) {
         this.svg = document.getElementById('spiralCanvas');
-        if (!this.svg) return; // Safety check
+        this.slider = document.getElementById('timeSlider');
+        
+        if (!this.svg || !this.slider) return;
 
         this.data = this.processData(rawSets);
-        
-        if (!this.listenersAttached) {
-            this.attachListeners();
-            this.listenersAttached = true;
-        }
-
         this.setRange(this.range);
+    },
+
+    // Called when slider moves (0 to 1000)
+    handleSlider: function(val) {
+        const pct = val / 1000; // 0.0 to 1.0
+        const len = pct * this.totalLen;
+        this.updateBall(len);
     },
 
     processData: function(sets) {
         if (!sets || sets.length === 0) return [];
-        
         const groups = {};
         sets.forEach(s => {
             const d = new Date(s.timestamp).toDateString();
             if(!groups[d]) groups[d] = [];
             groups[d].push(s);
         });
-
         const history = Object.values(groups).map(daySets => {
             daySets.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
             const totalVol = daySets.reduce((sum, s) => sum + (s.reps * s.weight), 0);
             const totalReps = daySets.reduce((sum, s) => sum + s.reps, 0);
             const avgWpr = totalReps > 0 ? (totalVol / totalReps) : 0;
-            
             return {
                 timestamp: new Date(daySets[0].timestamp).getTime(),
                 sets: daySets.length,
@@ -1137,7 +1132,6 @@ const SpiralWidget = {
                 wpr: parseFloat(avgWpr.toFixed(1))
             };
         });
-
         return history.sort((a,b) => a.timestamp - b.timestamp);
     },
 
@@ -1145,13 +1139,11 @@ const SpiralWidget = {
         this.range = range;
         
         const btns = document.querySelectorAll('.filter-btn');
-        if (btns) {
-            btns.forEach(b => {
-                b.classList.remove('active');
-                if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
-                    b.classList.add('active');
-            });
-        }
+        btns.forEach(b => {
+            b.classList.remove('active');
+            if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
+                b.classList.add('active');
+        });
 
         const now = new Date().getTime();
         let days = 3650;
@@ -1164,10 +1156,8 @@ const SpiralWidget = {
 
         let turns = 2.5;
         let pitch = 90;
-        
-        if (range === 'all') { 
-            turns = 3.8; pitch = 55; 
-        } else {
+        if (range === 'all') { turns = 3.8; pitch = 55; } 
+        else {
             pitch = 90; 
             if(range === '4w') turns = 1.3;
             else if(range === '8w') turns = 1.8;
@@ -1185,6 +1175,7 @@ const SpiralWidget = {
         segmentsG.innerHTML = '';
         markersG.innerHTML = '';
 
+        // Helpers
         const getPoint = (t, offset) => {
             const angle = t * Math.PI * 2 * turns;
             const r = this.START_RADIUS + (pitch * (angle / (Math.PI * 2))) + offset;
@@ -1202,25 +1193,21 @@ const SpiralWidget = {
             return d;
         };
 
+        // Draw Backgrounds
         ['bgTrack1','bgTrack2','bgTrack3','bgTrack4'].forEach((id, i) => {
             const offset = [this.OFFSETS.sets, this.OFFSETS.reps, this.OFFSETS.vol, this.OFFSETS.wpr][i];
             const el = document.getElementById(id);
             if(el) el.setAttribute('d', getPathD(1, offset));
         });
 
-        const hitPath = document.getElementById('hitPath');
-        if(hitPath) {
-            hitPath.setAttribute('d', getPathD(1, 0));
-            this.totalLen = hitPath.getTotalLength();
-        }
-        
-        this.hitLookup = [];
-        for(let i=0; i<=200; i++) {
-            const l = (i/200) * this.totalLen;
-            const p = hitPath.getPointAtLength(l);
-            this.hitLookup.push({l, x:p.x, y:p.y});
+        // Draw Calculation Path (Invisible)
+        const calcPath = document.getElementById('calcPath');
+        if(calcPath) {
+            calcPath.setAttribute('d', getPathD(1, 0));
+            this.totalLen = calcPath.getTotalLength();
         }
 
+        // Draw Data
         if (this.visibleData.length > 0) {
             const oldest = this.visibleData[0].timestamp;
             const newest = this.visibleData[this.visibleData.length-1].timestamp;
@@ -1231,13 +1218,20 @@ const SpiralWidget = {
             this.visibleData.forEach((curr, i) => {
                 const t = (curr.timestamp - oldest) / span;
                 const p = getPoint(t, 0);
-                const delay = (i / this.visibleData.length) * 1.0;
-
-                this.visualPoints.push({x:p.x, y:p.y, idx:i, t});
+                
+                // Calculate Length along curve for this point
+                // We estimate using 't' ratio of totalLen as simple approximation
+                // or we could do precise point-on-path projection. 
+                // Since t maps 0-1 along spiral, t*totalLen is extremely close.
+                this.visualPoints.push({
+                    x:p.x, y:p.y, idx:i, 
+                    len: t * this.totalLen 
+                });
 
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
                 circle.setAttribute("class", "workout-marker");
+                const delay = (i / this.visibleData.length) * 0.5;
                 circle.style.animation = `fadeInMarker 0.5s ease-out forwards`;
                 circle.style.animationDelay = `${delay + 0.5}s`;
                 markersG.appendChild(circle);
@@ -1259,7 +1253,6 @@ const SpiralWidget = {
                         if(val2 > val1) path.classList.add('seg-increase');
                         else if(val2 < val1) path.classList.add('seg-decrease');
                         else path.classList.add('seg-neutral');
-                        
                         path.style.animation = `drawInSegment 0.4s ease-out forwards`;
                         path.style.animationDelay = `${delay + extraDelay}s`;
                         segmentsG.appendChild(path);
@@ -1273,111 +1266,32 @@ const SpiralWidget = {
             });
         }
 
-        this.updateBall(this.totalLen);
+        // Reset Slider to End (Today)
+        if(this.slider) {
+            this.slider.value = 1000;
+            this.handleSlider(1000);
+        }
         
-        // MOBILE VISIBILITY FIX: Use class, not animation
+        // Ensure Ball Visible
         const ball = document.getElementById('timeBall');
-        if(ball) {
-            ball.classList.remove('visible');
-            // Small timeout to allow layout to settle
-            setTimeout(() => {
-                ball.classList.add('visible');
-            }, 600); 
-        }
-    },
-
-    // MOBILE COORDINATE FIX
-    getSVGPoint: function(e) {
-        const pt = this.svg.createSVGPoint();
-        
-        // Robustly check for Touch Events first
-        if (e.touches && e.touches.length > 0) {
-            pt.x = e.touches[0].clientX;
-            pt.y = e.touches[0].clientY;
-        } else {
-            // Fallback to mouse
-            pt.x = e.clientX;
-            pt.y = e.clientY;
-        }
-        
-        // Handle CTM inverse safely
-        const ctm = this.svg.getScreenCTM();
-        if (ctm) {
-            return pt.matrixTransform(ctm.inverse());
-        }
-        return { x: 0, y: 0 }; // Fallback
-    },
-
-    attachListeners: function() {
-        const hitPath = document.getElementById('hitPath');
-        if(!hitPath) return;
-        
-        const start = (e) => {
-            const pt = this.getSVGPoint(e);
-            const closest = this.findClosestLen(pt.x, pt.y);
-            
-            if (!closest) return;
-
-            // MOBILE SCROLL TRAP FIX
-            // Increased tolerance distance to 100 for fingers
-            const dist = Math.sqrt((closest.x - pt.x)**2 + (closest.y - pt.y)**2);
-            if (dist > 100) return; // Let them scroll if they miss the line
-
-            // Prevent scroll ONLY if we are confirming a drag on the line
-            if (e.cancelable && e.type === 'touchstart') e.preventDefault();
-
-            this.isDragging = true;
-            this.updateBall(closest.len);
-        };
-        
-        const move = (e) => {
-            if (!this.isDragging) return;
-            
-            // Important: Stop page scrolling while dragging the ball
-            if (e.cancelable) e.preventDefault(); 
-            
-            const pt = this.getSVGPoint(e);
-            const closest = this.findClosestLen(pt.x, pt.y);
-            if(closest) this.updateBall(closest.len);
-        };
-        
-        const end = () => { this.isDragging = false; };
-
-        hitPath.addEventListener('mousedown', start);
-        hitPath.addEventListener('touchstart', start, {passive: false}); // Passive false required to prevent scroll
-        
-        window.addEventListener('mousemove', move);
-        window.addEventListener('touchmove', move, {passive: false});
-        
-        window.addEventListener('mouseup', end);
-        window.addEventListener('touchend', end);
-    },
-
-    findClosestLen: function(x, y) {
-        let best = null, min = Infinity;
-        for(let p of this.hitLookup) {
-            const d = (p.x-x)**2 + (p.y-y)**2;
-            if(d < min) { min = d; best = p; }
-        }
-        return best;
+        if(ball) ball.style.opacity = '1';
     },
 
     updateBall: function(len) {
-        const path = document.getElementById('hitPath');
-        if(!path) return;
+        const path = document.getElementById('calcPath');
+        const ball = document.getElementById('timeBall');
+        if(!path || !ball) return;
         
         const pt = path.getPointAtLength(len);
-        const ball = document.getElementById('timeBall');
-        if(ball) {
-            ball.setAttribute('cx', pt.x); 
-            ball.setAttribute('cy', pt.y);
-        }
+        ball.setAttribute('cx', pt.x); 
+        ball.setAttribute('cy', pt.y);
 
-        let bestIdx = 0, min = Infinity;
+        // Snap Logic: Find Closest Data Point based on length
+        let bestIdx = 0, minDiff = Infinity;
         if (this.visualPoints.length > 0) {
             this.visualPoints.forEach(vp => {
-                const d = (vp.x-pt.x)**2 + (vp.y-pt.y)**2;
-                if(d < min) { min=d; bestIdx = vp.idx; }
+                const diff = Math.abs(vp.len - len);
+                if(diff < minDiff) { minDiff=diff; bestIdx = vp.idx; }
             });
             this.updateUI(bestIdx);
         }
@@ -1389,13 +1303,12 @@ const SpiralWidget = {
         const curr = this.visibleData[idx];
         const prev = idx > 0 ? this.visibleData[idx-1] : {sets:0, reps:0, volume:0, wpr:0};
 
-        const markers = document.querySelectorAll('.workout-marker');
-        markers.forEach(m => m.classList.remove('active'));
-        
-        // Safe index access for markers
         const markersContainer = document.getElementById('markersGroup');
-        if (markersContainer && markersContainer.children[idx]) {
-            markersContainer.children[idx].classList.add('active');
+        if (markersContainer) {
+            Array.from(markersContainer.children).forEach(c => c.classList.remove('active'));
+            if (markersContainer.children[idx]) {
+                markersContainer.children[idx].classList.add('active');
+            }
         }
 
         const d = new Date(curr.timestamp);
