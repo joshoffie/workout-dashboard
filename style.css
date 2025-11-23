@@ -943,22 +943,36 @@ td .btn-delete {
 
 /* ===== SPIRAL WIDGET STYLES ===== */
 .spiral-container {
+  /* ... existing layout props ... */
   margin: 1rem 1rem 0 1rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   width: calc(100% - 2rem);
   aspect-ratio: 1 / 1;
-  max-height: 450px; /* Safety cap for tall screens */
+  max-height: 450px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  
-  /* CRITICAL: Allow vertical scroll by default, JS will block it on the line */
-  touch-action: pan-y; 
-  -webkit-tap-highlight-color: transparent;
+  /* Ensure the container is a reference for absolute children */
+  position: relative; 
+}
+
+/* THE TOUCH GLASS - Invisible layer that captures all interaction */
+#spiralInteractionLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50; /* Above everything else */
+  cursor: crosshair;
+  /* CRITICAL: Tell browser NOT to scroll when touching this specific box */
+  touch-action: none; 
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .spiral-controls {
@@ -1008,34 +1022,29 @@ svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
 
 .track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
 
-/* CRITICAL FIX: Stroke must not be 'transparent' for iOS hit testing */
-#hitPath {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.001); /* Almost invisible, but "there" */
-  stroke-width: 80px; /* Generous touch area */
-  cursor: grab;
-  pointer-events: auto; 
-}
-#hitPath:active {
-  cursor: grabbing;
-}
-
-/* CRITICAL FIX: Remove opacity transition complexity */
+/* Force visibility on the ball - No fancy animations that can fail */
 #timeBall {
   fill: #fff;
   stroke: var(--color-bg);
   stroke-width: 2;
-  r: 10; /* Slightly larger for visibility */
+  r: 10; /* Nice visible size */
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
-  pointer-events: none;
-  opacity: 1; /* Always visible */
-  transition: cx 0.05s linear, cy 0.05s linear; /* Faster, snappy follow */
+  pointer-events: none; /* Interaction handled by layer */
+  opacity: 1 !important; /* FORCE VISIBLE */
+  transition: cx 0.05s linear, cy 0.05s linear; /* Snappy movement */
 }
 
+/* Reset other elements to be passive */
+#hitPath {
+  display: none; /* We don't need this anymore */
+}
 .workout-marker {
-  fill: var(--color-card); stroke: var(--color-text-muted); stroke-width: 2; r: 3;
-  pointer-events: none; transition: r 0.2s; opacity: 0;
+  fill: var(--color-card); 
+  stroke: var(--color-text-muted); 
+  stroke-width: 2; r: 3;
+  pointer-events: none; 
+  opacity: 1; /* Always show markers */
 }
 .workout-marker.active {
-  fill: #fff; stroke: var(--color-primary); r: 6; opacity: 1 !important;
+  fill: #fff; stroke: var(--color-primary); r: 6;
 }
