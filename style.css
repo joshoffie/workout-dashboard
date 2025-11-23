@@ -230,7 +230,7 @@ body {
   list-style: none;
   width: 100%;
   padding: 0 1rem; 
-  padding-top: 7rem; 
+  padding-top: 1rem; 
 }
 .item-list li {
   font-size: 1.1rem;
@@ -780,7 +780,6 @@ td .btn-delete {
   transition: color 0.3s ease;
 }
 
-
 /* -----------------------------------------------------
    HEADER ANIMATION DEFINITIONS (Happy/Sad/Calm)
    ----------------------------------------------------- */
@@ -914,9 +913,7 @@ td .btn-delete {
     50% { transform: translateY(6px); }
 }
 
-/* Use !important to force override any other potential animation conflicts.
-  These classes are toggled by JS.
-*/
+/* Use !important to force override any other potential animation conflicts. */
 .char.animate-up {
     animation: float-up 2s ease-in-out !important;
 }
@@ -936,141 +933,88 @@ td .btn-delete {
 .char:nth-child(8) { --char-index: 8; }
 .char:nth-child(9) { --char-index: 9; }
 .char:nth-child(10) { --char-index: 10; }
-.char:nth-child(11) { --char-index: 11; }
-.char:nth-child(12) { --char-index: 12; }
 
-/* ===== SWIRL WIDGET STYLES (NEW ADDITION) ===== */
-.swirl-container {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  margin: 0 1rem 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* ===== SPIRAL WIDGET STYLES ===== */
+.widget-container {
+    background-color: var(--color-card);
+    margin: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    /* Takes up substantial height on mobile */
+    height: 45vh; 
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
 }
 
-.swirl-controls {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
 }
 
-.swirl-toggle {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  padding: 6px 12px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: var(--transition);
+.widget-select {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-family: inherit;
 }
 
-.swirl-toggle.active {
-  background: rgba(0, 122, 255, 0.15);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+.svg-wrapper {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    /* Crucial for touch interaction not scrolling the page */
+    touch-action: none; 
 }
 
-.swirl-select {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  outline: none;
+#spiral-svg {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    overflow: visible;
 }
 
-.swirl-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+/* SVG Internal Styles */
+.spiral-track-base {
+    fill: none;
+    stroke: #333; /* Dark gray track */
+    stroke-width: 12;
+    stroke-linecap: round;
 }
 
-/* Individual Widget Card */
-.swirl-card {
-  background: #161616;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  user-select: none;
-  -webkit-user-select: none;
+/* The colored segments */
+.spiral-segment {
+    fill: none;
+    stroke-width: 12;
+    stroke-linecap: butt; /* Segments must butt against each other */
 }
 
-.swirl-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+/* The layer that hides the colors until dragged */
+.spiral-reveal-mask {
+    fill: none;
+    stroke: #1c1c1c; /* Match card background color to hide */
+    stroke-width: 14; /* Slightly wider to ensure full coverage */
+    stroke-linecap: round;
+    /* Transition for smoother dragging effect on lower-end devices */
+    transition: stroke-dashoffset 0.05s linear; 
 }
 
-.swirl-visual {
-  width: 100%;
-  aspect-ratio: 1 / 0.85;
-  position: relative;
-  cursor: crosshair;
-  touch-action: none; /* Critical for pointer events */
+.spiral-knob {
+    fill: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    /* Ensure knob catches touch events first */
+    pointer-events: none; 
 }
-
-.swirl-visual svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.swirl-footer {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #2a2a2a;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 42px;
-}
-
-.swirl-date {
-  font-size: 0.65rem;
-  color: #666;
-  margin-bottom: 2px;
-}
-
-.swirl-value-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.swirl-main-val {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: white;
-}
-
-.swirl-diff {
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-/* Colors */
-.text-green { color: var(--color-green); }
-.text-red { color: var(--color-red); }
-.text-yellow { color: var(--color-yellow); }
-
-.stroke-green { stroke: var(--color-green); }
-.stroke-red { stroke: var(--color-red); }
-.stroke-yellow { stroke: var(--color-yellow); }
