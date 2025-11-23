@@ -119,24 +119,6 @@
         <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
-
-      <!-- SPIRAL PROGRESS WIDGET -->
-      <div id="spiralWidgetContainer" class="widget-container hidden">
-          <div class="widget-header">
-              <span>Session History</span>
-              <select id="spiralTimeframeSelect" class="widget-select">
-                  <option value="4">4 Weeks</option>
-                  <option value="8">8 Weeks</option>
-                  <option value="12">12 Weeks</option>
-                  <option value="all" selected>All Time</option>
-              </select>
-          </div>
-          <div id="spiralSvgWrapper" class="svg-wrapper">
-              <!-- SVG injected by JS -->
-          </div>
-      </div>
-      <!-- END WIDGET -->
-
       <ul id="exerciseList" class="item-list"></ul>
     </section>
 
@@ -160,6 +142,24 @@
       </div>
 
       <div class="sets-content-wrapper">
+        
+        <!-- NEW: SPIRAL PROGRESS WIDGET (Moved Here) -->
+        <div id="spiralWidgetContainer" class="widget-container hidden">
+            <div class="widget-header">
+                <span>Exercise History</span>
+                <select id="spiralTimeframeSelect" class="widget-select">
+                    <option value="4">4 Weeks</option>
+                    <option value="8">8 Weeks</option>
+                    <option value="12">12 Weeks</option>
+                    <option value="all" selected>All Time</option>
+                </select>
+            </div>
+            <div id="spiralSvgWrapper" class="svg-wrapper">
+                <!-- SVG injected by JS -->
+            </div>
+        </div>
+        <!-- END WIDGET -->
+
         <div id="comparisonBanner" class="comparison-banner hidden">
           <!-- SETS -->
           <div class="stat-comparison">
