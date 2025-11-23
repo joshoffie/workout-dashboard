@@ -678,7 +678,270 @@ td .btn-delete {
 .stat-data.decrease { color: var(--color-red); }
 .stat-data.neutral { color: var(--color-yellow); }
 
-/* ===== SPIRAL WIDGET STYLES (New) ===== */
+/* ===== LOGO ANIMATION ===== */
+#animated-logo {
+  height: 50px;
+  width: auto;
+  overflow: visible;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 38px;
+  display: block;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); animation-timing-function: ease-in; }
+  50% { transform: translateY(-10px); animation-timing-function: ease-out; }
+}
+@keyframes master-spin-float-loop {
+  0%    { transform: rotate(0deg)   translate(0, 0); }
+  18%   { transform: rotate(720deg) translate(0, 0); } 
+  24.8% { transform: rotate(720deg) translate(-1px, -2px); }
+  31.6% { transform: rotate(720deg) translate(0, 0); }
+  38.4% { transform: rotate(720deg) translate(1px, 2px); }
+  45.2% { transform: rotate(720deg) translate(0, 0); }
+  52.0% { transform: rotate(720deg) translate(-1px, -2px); }
+  58.8% { transform: rotate(720deg) translate(0, 0); }
+  65.6% { transform: rotate(720deg) translate(1px, 2px); }
+  72.4% { transform: rotate(720deg) translate(0, 0); }
+  79.2% { transform: rotate(720deg) translate(-1px, -2px); }
+  86.0% { transform: rotate(720deg) translate(0, 0); }
+  92.8% { transform: rotate(720deg) translate(1px, 2px); }
+  100%  { transform: rotate(720deg) translate(0, 0); } 
+}
+@keyframes master-spin-reverse-float-loop {
+  0%    { transform: rotate(0deg)   translate(0, 0); }
+  18%   { transform: rotate(-720deg) translate(0, 0); } 
+  24.8% { transform: rotate(-720deg) translate(-1px, -2px); }
+  31.6% { transform: rotate(-720deg) translate(0, 0); }
+  38.4% { transform: rotate(-720deg) translate(1px, 2px); }
+  45.2% { transform: rotate(-720deg) translate(0, 0); }
+  52.0% { transform: rotate(-720deg) translate(-1px, -2px); }
+  58.8% { transform: rotate(-720deg) translate(0, 0); }
+  65.6% { transform: rotate(-720deg) translate(1px, 2px); }
+  72.4% { transform: rotate(-720deg) translate(0, 0); }
+  79.2% { transform: rotate(-720deg) translate(-1px, -2px); }
+  86.0% { transform: rotate(-720deg) translate(0, 0); }
+  92.8% { transform: rotate(-720deg) translate(1px, 2px); }
+  100%  { transform: rotate(-720deg) translate(0, 0); } 
+}
+
+#logo-arrow {
+  animation: bounce 1.4s infinite;
+}
+#logo-t, #logo-r, #logo-u, #logo-n, #logo-k {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+#logo-t { animation: master-spin-float-loop 10s 0.4s infinite ease-in-out; }
+#logo-u { animation: master-spin-float-loop 10s 0.1s infinite ease-in-out; }
+#logo-k { animation: master-spin-float-loop 10s 0.5s infinite ease-in-out; }
+#logo-r { animation: master-spin-reverse-float-loop 10s 0.2s infinite ease-in-out; }
+#logo-n { animation: master-spin-reverse-float-loop 10s 0.3s infinite ease-in-out; }
+
+#logo-t { transform-origin: 12px 22px; }
+#logo-r { transform-origin: 33px 22px; }
+#logo-u { transform-origin: 59px 22px; }
+#logo-n { transform-origin: 89px 22px; }
+#logo-k { transform-origin: 114px 22px; }
+
+
+/* =====================================================
+   ANIMATED TITLE STYLES
+   ===================================================== */
+.animated-title {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 36px;
+  position: relative;
+  user-select: none;
+  display: block;
+  margin: 0;
+  grid-column: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* GLOBAL CHAR ANIMATION SUPPORT */
+.char {
+  display: inline-block; /* MUST be inline-block for transforms to work */
+  transition: color 0.3s ease;
+}
+
+/* Header Specific */
+#exerciseSetsTitleSpan .char {
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+
+/* -----------------------------------------------------
+   HEADER ANIMATION DEFINITIONS (Happy/Sad/Calm)
+   ----------------------------------------------------- */
+
+/* * HAPPY (Green) - High Energy */
+@keyframes happy-crash {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    15% { transform: translate(0, -6px) rotate(3deg); }
+    30% { transform: translate(0, 0) rotate(-3deg); }
+    45% { transform: translate(0, -3px) rotate(1deg); }
+    60% { transform: translate(0, 0) rotate(-1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+.char.happy-1 {
+    animation-name: happy-crash;
+    animation-duration: 0.6s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-delay: calc(var(--char-index) * 0.04s);
+}
+
+@keyframes happy-boost {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    20% { transform: translateX(-2px) scaleY(0.95); }
+    40% { transform: translateX(3px) scaleY(1.05); }
+    60% { transform: translateX(-1px) scaleY(0.98); }
+    80% { transform: translateX(2px) scaleY(1.02); }
+}
+.char.happy-2 {
+    animation-name: happy-boost;
+    animation-duration: 0.8s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation-delay: calc(var(--char-index) * 0.05s);
+}
+
+@keyframes happy-jolt {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(3px, -5px) rotate(5deg); }
+    50% { transform: translate(-3px, 5px) rotate(-5deg); }
+    75% { transform: translate(1px, -2px) rotate(2deg); }
+}
+.char.happy-3 {
+    animation-name: happy-jolt;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+/* * SAD (Red) - Stagnant, Hitting Wall, Heavy */
+@keyframes sad-wall {
+    0% { transform: translateX(0) scaleX(1); }
+    60% { transform: translateX(6px) scaleX(1); } 
+    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } 
+    75% { transform: translateX(4px) scaleX(1.1); } 
+    100% { transform: translateX(0) scaleX(1); } 
+}
+.char.sad-1 {
+    animation-name: sad-wall;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    animation-delay: calc(var(--char-index) * 0.08s);
+}
+
+@keyframes sad-fail {
+     0% { transform: translateY(0); }
+     40% { transform: translateY(-3px); } 
+     50% { transform: translateY(-3px) rotate(2deg); } 
+     60% { transform: translateY(4px) rotate(-5deg); } 
+     100% { transform: translateY(0); }
+}
+.char.sad-2 {
+    animation-name: sad-fail;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-delay: calc(var(--char-index) * 0.1s);
+}
+
+@keyframes sad-drag {
+    0%, 100% { transform: translateX(0) skewX(0deg); }
+    50% { transform: translateX(-4px) skewX(10deg); } 
+}
+.char.sad-3 {
+    animation-name: sad-drag;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-delay: calc(var(--char-index) * 0.2s); 
+}
+
+/* * CALM (Yellow) - Chill Gym Vibes */
+@keyframes calm-shrug {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); } 
+    70% { transform: translateY(-5px); } 
+}
+.char.calm-1 {
+    animation-name: calm-shrug;
+    animation-duration: 2.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-delay: calc(var(--char-index) * 0.05s);
+}
+
+@keyframes calm-shakeout {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(3deg) translateX(1px); }
+    75% { transform: rotate(-3deg) translateX(-1px); }
+}
+.char.calm-2 {
+    animation-name: calm-shakeout;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transform-origin: center;
+    animation-delay: calc(var(--char-index) * 0.1s);
+}
+
+/* -----------------------------------------------------
+   NEW: SIMPLE LIST ITEM ANIMATIONS (Up/Down)
+   ----------------------------------------------------- */
+
+@keyframes float-up {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+@keyframes sink-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+}
+
+/* Use !important to force override any other potential animation conflicts.
+  These classes are toggled by JS.
+*/
+.char.animate-up {
+    animation: float-up 2s ease-in-out !important;
+}
+
+.char.animate-down {
+    animation: sink-down 2s ease-in-out !important;
+}
+
+/* Stagger delay helpers */
+.char:nth-child(1) { --char-index: 1; }
+.char:nth-child(2) { --char-index: 2; }
+.char:nth-child(3) { --char-index: 3; }
+.char:nth-child(4) { --char-index: 4; }
+.char:nth-child(5) { --char-index: 5; }
+.char:nth-child(6) { --char-index: 6; }
+.char:nth-child(7) { --char-index: 7; }
+.char:nth-child(8) { --char-index: 8; }
+.char:nth-child(9) { --char-index: 9; }
+.char:nth-child(10) { --char-index: 10; }
+.char:nth-child(11) { --char-index: 11; }
+.char:nth-child(12) { --char-index: 12; }
+
+/* ... existing code ... */
+
+/* ===== SPIRAL WIDGET STYLES ===== */
 .spiral-container {
   /* Placed nicely in the card */
   margin: 1rem 1rem 0 1rem;
@@ -698,7 +961,7 @@ td .btn-delete {
   overflow: hidden;
   /* Prevent highlighting on tap */
   -webkit-tap-highlight-color: transparent;
-  /* IMPORTANT: Removed touch-action: none to allow scrolling if missing line */
+  touch-action: none; /* Browser shouldn't handle touch here, JS will */
 }
 
 .spiral-controls {
@@ -757,7 +1020,7 @@ svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
   pointer-events: none;
   transition: cx 0.08s ease-out, cy 0.08s ease-out;
-  opacity: 1; /* FORCE VISIBLE */
+  opacity: 0; /* Hidden until loaded */
 }
 
 .workout-marker {
@@ -767,5 +1030,3 @@ svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
 .workout-marker.active {
   fill: #fff; stroke: var(--color-primary); r: 6; opacity: 1 !important;
 }
-
-/* ... (Animation keyframes and other existing styles) ... */
