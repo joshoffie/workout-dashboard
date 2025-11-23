@@ -941,6 +941,8 @@ td .btn-delete {
 
 /* ... (Keep all your existing CSS above this line) ... */
 
+/* ... (Keep all existing CSS above this) ... */
+
 /* =========================================
    SPIRAL WIDGET STYLES
    ========================================= */
@@ -955,7 +957,6 @@ td .btn-delete {
     align-items: center; 
     justify-content: center;
     overflow: hidden;
-    /* Critical for mobile swipe handling */
     touch-action: none; 
 }
 
@@ -1018,7 +1019,7 @@ svg#spiralCanvas {
 #hitPath {
     fill: none;
     stroke: transparent;
-    stroke-width: 60px; /* Wide touch target for mobile */
+    stroke-width: 60px; 
     cursor: grab;
 }
 #hitPath:active { cursor: grabbing; }
@@ -1067,3 +1068,91 @@ svg#spiralCanvas {
     font-weight: 600; 
     font-family: 'Fredoka', sans-serif;
 }
+
+/* ===== COMPARISON BANNER STYLES ===== */
+.comparison-banner {
+  display: flex;
+  flex-direction: column; 
+  gap: 1rem;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin: 0 1rem 1rem 1rem;
+}
+.stat-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 0.75rem;
+}
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  min-width: 60px; 
+  flex-shrink: 0; 
+}
+.stat-arrow {
+  font-size: 1.25rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.stat-arrow.increase { color: var(--color-green); }
+.stat-arrow.decrease { color: var(--color-red); }
+.stat-arrow.neutral { color: var(--color-yellow); }
+
+.stat-svg-container {
+  width: 25px;
+  height: 25px;
+  position: relative;
+  flex-shrink: 0;
+}
+.comparison-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  viewBox: 0 0 100 100;
+  overflow: visible;
+}
+.comparison-spiral {
+  fill: none;
+  stroke-width: 5; 
+  stroke-linecap: round;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  transform-origin: 50px 50px;
+  animation: drawSpiral 4s ease-in-out infinite;
+}
+
+/* FIXED ORDER: Neutral first, then Increase/Decrease.
+   This ensures colored status always overrides neutral.
+*/
+.comparison-spiral.neutral {
+  stroke: var(--color-yellow);
+  animation-duration: 4s; 
+}
+.comparison-spiral.increase {
+  stroke: var(--color-green);
+  animation-duration: 2s;
+}
+.comparison-spiral.decrease {
+  stroke: var(--color-red);
+  animation-duration: 6s; 
+}
+
+.stat-data {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-left: auto; 
+  text-align: right;
+  white-space: nowrap; 
+}
+.stat-data.increase { color: var(--color-green); }
+.stat-data.decrease { color: var(--color-red); }
+.stat-data.neutral { color: var(--color-yellow); }
