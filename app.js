@@ -1078,8 +1078,7 @@ document.body.addEventListener('touchend', () => {
 
 
 /* ============================================================
-   SPIRAL WIDGET CONTROLLER (Mobile Optimized)
-   Paste this at the very bottom of app.js
+   SPIRAL WIDGET CONTROLLER (Mobile Failsafe Version)
    ============================================================ */
 const SpiralWidget = {
     svg: null,
@@ -1100,10 +1099,11 @@ const SpiralWidget = {
 
     init: function(rawSets) {
         this.svg = document.getElementById('spiralCanvas');
-        if (!this.svg) return; // Safety check
+        if (!this.svg) return;
 
         this.data = this.processData(rawSets);
         
+        // Always ensure listeners are attached (idempotent check)
         if (!this.listenersAttached) {
             this.attachListeners();
             this.listenersAttached = true;
@@ -1114,7 +1114,6 @@ const SpiralWidget = {
 
     processData: function(sets) {
         if (!sets || sets.length === 0) return [];
-        
         const groups = {};
         sets.forEach(s => {
             const d = new Date(s.timestamp).toDateString();
@@ -1124,7 +1123,6 @@ const SpiralWidget = {
 
         const history = Object.values(groups).map(daySets => {
             daySets.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
             const totalVol = daySets.reduce((sum, s) => sum + (s.reps * s.weight), 0);
             const totalReps = daySets.reduce((sum, s) => sum + s.reps, 0);
             const avgWpr = totalReps > 0 ? (totalVol / totalReps) : 0;
@@ -1137,21 +1135,19 @@ const SpiralWidget = {
                 wpr: parseFloat(avgWpr.toFixed(1))
             };
         });
-
         return history.sort((a,b) => a.timestamp - b.timestamp);
     },
 
     setRange: function(range) {
         this.range = range;
         
+        // Update UI Buttons
         const btns = document.querySelectorAll('.filter-btn');
-        if (btns) {
-            btns.forEach(b => {
-                b.classList.remove('active');
-                if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
-                    b.classList.add('active');
-            });
-        }
+        btns.forEach(b => {
+            b.classList.remove('active');
+            if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
+                b.classList.add('active');
+        });
 
         const now = new Date().getTime();
         let days = 3650;
@@ -1164,10 +1160,8 @@ const SpiralWidget = {
 
         let turns = 2.5;
         let pitch = 90;
-        
-        if (range === 'all') { 
-            turns = 3.8; pitch = 55; 
-        } else {
+        if (range === 'all') { turns = 3.8; pitch = 55; } 
+        else {
             pitch = 90; 
             if(range === '4w') turns = 1.3;
             else if(range === '8w') turns = 1.8;
@@ -1185,6 +1179,7 @@ const SpiralWidget = {
         segmentsG.innerHTML = '';
         markersG.innerHTML = '';
 
+        // --- GEOMETRY HELPERS ---
         const getPoint = (t, offset) => {
             const angle = t * Math.PI * 2 * turns;
             const r = this.START_RADIUS + (pitch * (angle / (Math.PI * 2))) + offset;
@@ -1202,25 +1197,29 @@ const SpiralWidget = {
             return d;
         };
 
+        // 1. Draw Background Tracks
         ['bgTrack1','bgTrack2','bgTrack3','bgTrack4'].forEach((id, i) => {
             const offset = [this.OFFSETS.sets, this.OFFSETS.reps, this.OFFSETS.vol, this.OFFSETS.wpr][i];
             const el = document.getElementById(id);
             if(el) el.setAttribute('d', getPathD(1, offset));
         });
 
+        // 2. Update Hit Path (The interaction layer)
         const hitPath = document.getElementById('hitPath');
         if(hitPath) {
             hitPath.setAttribute('d', getPathD(1, 0));
             this.totalLen = hitPath.getTotalLength();
         }
         
+        // 3. Generate Hit Lookup (Crucial for smooth dragging)
         this.hitLookup = [];
-        for(let i=0; i<=200; i++) {
-            const l = (i/200) * this.totalLen;
+        for(let i=0; i<=250; i++) { // Increased resolution
+            const l = (i/250) * this.totalLen;
             const p = hitPath.getPointAtLength(l);
             this.hitLookup.push({l, x:p.x, y:p.y});
         }
 
+        // 4. Draw Data Segments
         if (this.visibleData.length > 0) {
             const oldest = this.visibleData[0].timestamp;
             const newest = this.visibleData[this.visibleData.length-1].timestamp;
@@ -1235,6 +1234,7 @@ const SpiralWidget = {
 
                 this.visualPoints.push({x:p.x, y:p.y, idx:i, t});
 
+                // Draw Marker
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
                 circle.setAttribute("class", "workout-marker");
@@ -1242,6 +1242,7 @@ const SpiralWidget = {
                 circle.style.animationDelay = `${delay + 0.5}s`;
                 markersG.appendChild(circle);
 
+                // Draw Lines to Next Point
                 if (i < this.visibleData.length - 1) {
                     const next = this.visibleData[i+1];
                     const tNext = (next.timestamp - oldest) / span;
@@ -1256,6 +1257,7 @@ const SpiralWidget = {
                         }
                         path.setAttribute('d', d);
                         path.setAttribute('class', 'spiral-segment');
+                        
                         if(val2 > val1) path.classList.add('seg-increase');
                         else if(val2 < val1) path.classList.add('seg-decrease');
                         else path.classList.add('seg-neutral');
@@ -1273,88 +1275,38 @@ const SpiralWidget = {
             });
         }
 
+        // 5. Force Ball to End and Visible
         this.updateBall(this.totalLen);
-        
-        // MOBILE VISIBILITY FIX: Use class, not animation
         const ball = document.getElementById('timeBall');
-        if(ball) {
-            ball.classList.remove('visible');
-            // Small timeout to allow layout to settle
-            setTimeout(() => {
-                ball.classList.add('visible');
-            }, 600); 
-        }
+        if(ball) ball.style.opacity = '1'; // Force visible immediately
     },
 
-    // MOBILE COORDINATE FIX
+    // --- MOBILE OPTIMIZED INTERACTION ---
+
     getSVGPoint: function(e) {
         const pt = this.svg.createSVGPoint();
         
-        // Robustly check for Touch Events first
-        if (e.touches && e.touches.length > 0) {
-            pt.x = e.touches[0].clientX;
-            pt.y = e.touches[0].clientY;
+        // Robust touch support
+        if (e.targetTouches && e.targetTouches.length > 0) {
+            pt.x = e.targetTouches[0].clientX;
+            pt.y = e.targetTouches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            // Fallback for touchend
+            pt.x = e.changedTouches[0].clientX;
+            pt.y = e.changedTouches[0].clientY;
         } else {
-            // Fallback to mouse
             pt.x = e.clientX;
             pt.y = e.clientY;
         }
         
-        // Handle CTM inverse safely
         const ctm = this.svg.getScreenCTM();
-        if (ctm) {
-            return pt.matrixTransform(ctm.inverse());
-        }
-        return { x: 0, y: 0 }; // Fallback
-    },
-
-    attachListeners: function() {
-        const hitPath = document.getElementById('hitPath');
-        if(!hitPath) return;
-        
-        const start = (e) => {
-            const pt = this.getSVGPoint(e);
-            const closest = this.findClosestLen(pt.x, pt.y);
-            
-            if (!closest) return;
-
-            // MOBILE SCROLL TRAP FIX
-            // Increased tolerance distance to 100 for fingers
-            const dist = Math.sqrt((closest.x - pt.x)**2 + (closest.y - pt.y)**2);
-            if (dist > 100) return; // Let them scroll if they miss the line
-
-            // Prevent scroll ONLY if we are confirming a drag on the line
-            if (e.cancelable && e.type === 'touchstart') e.preventDefault();
-
-            this.isDragging = true;
-            this.updateBall(closest.len);
-        };
-        
-        const move = (e) => {
-            if (!this.isDragging) return;
-            
-            // Important: Stop page scrolling while dragging the ball
-            if (e.cancelable) e.preventDefault(); 
-            
-            const pt = this.getSVGPoint(e);
-            const closest = this.findClosestLen(pt.x, pt.y);
-            if(closest) this.updateBall(closest.len);
-        };
-        
-        const end = () => { this.isDragging = false; };
-
-        hitPath.addEventListener('mousedown', start);
-        hitPath.addEventListener('touchstart', start, {passive: false}); // Passive false required to prevent scroll
-        
-        window.addEventListener('mousemove', move);
-        window.addEventListener('touchmove', move, {passive: false});
-        
-        window.addEventListener('mouseup', end);
-        window.addEventListener('touchend', end);
+        if (ctm) return pt.matrixTransform(ctm.inverse());
+        return {x: 0, y: 0};
     },
 
     findClosestLen: function(x, y) {
         let best = null, min = Infinity;
+        // Iterate lookup table to find closest point on spiral curve
         for(let p of this.hitLookup) {
             const d = (p.x-x)**2 + (p.y-y)**2;
             if(d < min) { min = d; best = p; }
@@ -1362,17 +1314,63 @@ const SpiralWidget = {
         return best;
     },
 
+    attachListeners: function() {
+        const hitPath = document.getElementById('hitPath');
+        if(!hitPath) return;
+        
+        const handleStart = (e) => {
+            const pt = this.getSVGPoint(e);
+            const closest = this.findClosestLen(pt.x, pt.y);
+            
+            if (!closest) return;
+
+            // Scroll Trap Guard: 
+            // Only capture if distance to line is < 80px (generous for thumb)
+            const dist = Math.sqrt((closest.x - pt.x)**2 + (closest.y - pt.y)**2);
+            
+            if (dist > 80) return; // Allow browser scrolling if we missed the line
+
+            // WE HIT THE LINE! Block scroll and start drag.
+            if (e.cancelable) e.preventDefault(); 
+            
+            this.isDragging = true;
+            this.updateBall(closest.len);
+        };
+        
+        const handleMove = (e) => {
+            if (!this.isDragging) return;
+            
+            // Block scroll while dragging
+            if (e.cancelable) e.preventDefault();
+            
+            const pt = this.getSVGPoint(e);
+            const closest = this.findClosestLen(pt.x, pt.y);
+            if(closest) this.updateBall(closest.len);
+        };
+        
+        const handleEnd = () => { this.isDragging = false; };
+
+        // Use passive: false to allow preventDefault() for scroll blocking
+        hitPath.addEventListener('mousedown', handleStart);
+        hitPath.addEventListener('touchstart', handleStart, {passive: false});
+        
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+    },
+
     updateBall: function(len) {
         const path = document.getElementById('hitPath');
-        if(!path) return;
+        const ball = document.getElementById('timeBall');
+        if(!path || !ball) return;
         
         const pt = path.getPointAtLength(len);
-        const ball = document.getElementById('timeBall');
-        if(ball) {
-            ball.setAttribute('cx', pt.x); 
-            ball.setAttribute('cy', pt.y);
-        }
+        ball.setAttribute('cx', pt.x); 
+        ball.setAttribute('cy', pt.y);
 
+        // Find nearest data point to snap stats (Visual snapping)
         let bestIdx = 0, min = Infinity;
         if (this.visualPoints.length > 0) {
             this.visualPoints.forEach(vp => {
@@ -1389,15 +1387,17 @@ const SpiralWidget = {
         const curr = this.visibleData[idx];
         const prev = idx > 0 ? this.visibleData[idx-1] : {sets:0, reps:0, volume:0, wpr:0};
 
-        const markers = document.querySelectorAll('.workout-marker');
-        markers.forEach(m => m.classList.remove('active'));
-        
-        // Safe index access for markers
+        // Highlight Marker
         const markersContainer = document.getElementById('markersGroup');
-        if (markersContainer && markersContainer.children[idx]) {
-            markersContainer.children[idx].classList.add('active');
+        if (markersContainer) {
+            // Manually remove active class
+            Array.from(markersContainer.children).forEach(c => c.classList.remove('active'));
+            if (markersContainer.children[idx]) {
+                markersContainer.children[idx].classList.add('active');
+            }
         }
 
+        // Update Date Label
         const d = new Date(curr.timestamp);
         const now = new Date();
         const isToday = d.toDateString() === now.toDateString();
@@ -1406,6 +1406,7 @@ const SpiralWidget = {
         const label = document.getElementById('spiralDateDisplay');
         if(label) label.textContent = isToday ? "Today" : dateStr;
 
+        // Update Comparison Banner (Global Function)
         if (typeof updateStatUI === 'function') {
             updateStatUI('sets', curr.sets, prev.sets);
             updateStatUI('reps', curr.reps, prev.reps);
