@@ -82,7 +82,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
   }, { once: true });
 }
 
-// ... (Existing button listeners) ...
+// --- Wire up Back Buttons ---
 document.getElementById('backToClientsBtn').onclick = () => {
   selectedClient = null;
   selectedSession = null;
@@ -187,7 +187,8 @@ async function saveUserJson() {
   await db.collection("clients").doc(uid).set(clientsData);
 }
 
-// ... (Animation Helpers Omitted for brevity - assume existing) ... 
+// ------------------ ANIMATED TITLE HELPERS ------------------
+
 function setTextAsChars(element, text) {
   element.innerHTML = '';
   if (!text || text.trim() === '') {
@@ -208,17 +209,197 @@ function setTextAsChars(element, text) {
   }
 }
 
+/**
+ * HEADER ANIMATION (Standard Happy/Sad/Calm)
+ * Used only for the top titles (Clients, Sessions, Exercises)
+ */
 function applyTitleStyling(element, text, colorData) {
-    // ... existing code ...
-    setTextAsChars(element, text);
-    // (Assuming same logic as before)
+  if (!element) return;
+
+  setTextAsChars(element, text);
+
+  const parentTitle = element.closest('.animated-title');
+  const targetElement = parentTitle || element;
+  
+  const allClasses = [
+    ...ANIMATION_CLASSES.happy, 
+    ...ANIMATION_CLASSES.sad, 
+    ...ANIMATION_CLASSES.calm, 
+    'happy', 'sad', 'calm'
+  ];
+  targetElement.classList.remove(...allClasses);
+
+  let mood = 'calm'; 
+  if (colorData && colorData.total > 0) {
+    const { red, green, yellow } = colorData;
+    if (green > red && green > yellow) mood = 'happy';
+    else if (red > green && red > yellow) mood = 'sad';
+    else if (yellow > green && yellow > red) mood = 'calm';
+  }
+
+  const animClass = getRandomAnimationClass(mood);
+  targetElement.classList.add(mood);
+  
+  if (!colorData || colorData.total === 0) {
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+      char.classList.remove(...allClasses);
+    });
+    return;
+  }
+
+  const { red, green, yellow, total } = colorData;
+  const chars = element.querySelectorAll('.char');
+  const numChars = chars.length;
+  if (numChars === 0) return;
+
+  const colors = [];
+  let greenCount = Math.round((green / total) * numChars);
+  let redCount = Math.round((red / total) * numChars);
+  let yellowCount = Math.round((yellow / total) * numChars);
+
+  // Distribution Logic
+  while (greenCount + redCount + yellowCount < numChars) {
+      if (green >= red && green >= yellow) greenCount++;
+      else if (red >= green && red >= yellow) redCount++;
+      else yellowCount++;
+  }
+  while (greenCount + redCount + yellowCount > numChars) {
+      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
+      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0 && yellow <= red) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+  }
+
+  for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
+  for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
+  for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+
+  chars.forEach((char, i) => {
+    char.style.color = colors[i] || 'var(--color-text)';
+    char.classList.add(animClass);
+    
+    // Specific Diverge Logic for Headers
+    if (animClass === 'calm-3') {
+        if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
+        if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
+    }
+  });
 }
 
+/**
+ * =====================================================================
+ * NEW: LIST ANIMATION LOGIC (3 Second Interval)
+ * =====================================================================
+ */
 function setupListTextAnimation(element, text, colorData) {
-    // ... existing code ...
-    setTextAsChars(element, text);
-    // (Assuming same logic as before)
+  if (!element) return;
+
+  // 1. Render Text Chars
+  setTextAsChars(element, text);
+
+  // Handle No Data
+  if (!colorData || colorData.total === 0) {
+    element.querySelectorAll('.char').forEach(char => {
+      char.style.color = 'var(--color-text)';
+    });
+    return; 
+  }
+
+  // 2. Calculate Colors
+  const { red, green, yellow, total } = colorData;
+  const chars = element.querySelectorAll('.char');
+  const numChars = chars.length;
+  
+  const colors = [];
+  let greenCount = Math.round((green / total) * numChars);
+  let redCount = Math.round((red / total) * numChars);
+  let yellowCount = Math.round((yellow / total) * numChars);
+
+  while (greenCount + redCount + yellowCount < numChars) {
+      if (green >= red && green >= yellow) greenCount++;
+      else if (red >= green && red >= yellow) redCount++;
+      else yellowCount++;
+  }
+  while (greenCount + redCount + yellowCount > numChars) {
+      if (yellowCount > 0 && (yellow === 0 || (yellow <= red && yellow <= green))) yellowCount--;
+      else if (redCount > 0 && (red === 0 || (red <= green && red <= yellow))) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0 && yellow <= red) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+      else if (yellowCount > 0) yellowCount--;
+      else if (redCount > 0) redCount--;
+      else if (greenCount > 0) greenCount--;
+  }
+
+  for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
+  for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
+  for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
+
+  for (let i = colors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+
+  // 3. Apply Colors & Store Direction
+  chars.forEach((char, i) => {
+    char.style.color = colors[i] || 'var(--color-text)';
+    
+    // Determine which way this specific letter should move
+    if (colors[i] === 'var(--color-green)') {
+        char.dataset.moveDirection = 'up'; 
+    } else if (colors[i] === 'var(--color-red)') {
+        char.dataset.moveDirection = 'down';
+    }
+  });
+
+  // 4. Start the Timer for this list item
+  runAnimationLoop(element);
 }
+
+function runAnimationLoop(element) {
+    // === TIMER SETTING: 3 Seconds ===
+    // 3000ms = 3 seconds. 
+    const delay = 3000; 
+
+    setTimeout(() => {
+        // If user left the screen, element is gone, so stop loop
+        if (!document.body.contains(element)) return;
+
+        const chars = element.querySelectorAll('.char');
+        
+        // A. Add Class (Triggers CSS Animation)
+        chars.forEach(char => {
+            const dir = char.dataset.moveDirection;
+            if (dir === 'up') char.classList.add('animate-up');
+            if (dir === 'down') char.classList.add('animate-down');
+        });
+
+        // B. Remove Class after 2s (CSS animation duration) to reset
+        setTimeout(() => {
+            if (!document.body.contains(element)) return;
+            chars.forEach(char => {
+                char.classList.remove('animate-up', 'animate-down');
+            });
+
+            // C. Recursion: Run loop again
+            runAnimationLoop(element);
+        }, 2000);
+
+    }, delay);
+}
+
 
 function getExerciseColorData(exercise) {
   if (!exercise.sets || exercise.sets.length < 2) {
@@ -261,19 +442,69 @@ function calculateStatStatus(currentValue, previousValue) {
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
-  // ... existing renderClients logic ...
   clientList.innerHTML = "";
+  
+  let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+  
   for (const name in clientsData) {
-      const li = document.createElement("li");
-      li.innerHTML = `<span>${name}</span><button class="btn-delete">&times;</button>`;
-      li.onclick = () => selectClient(name);
-      clientList.appendChild(li);
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    // setupListTextAnimation handles textContent via setTextAsChars
+    
+    let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const sessions = clientsData[name].sessions || [];
+    sessions.forEach(session => {
+        const exercises = session.exercises || [];
+        exercises.forEach(ex => {
+            const cData = getExerciseColorData(ex);
+            clientColorData.red += cData.red;
+            clientColorData.green += cData.green;
+            clientColorData.yellow += cData.yellow;
+            clientColorData.total += cData.total;
+        });
+    });
+    
+    totalAppColorData.red += clientColorData.red;
+    totalAppColorData.green += clientColorData.green;
+    totalAppColorData.yellow += clientColorData.yellow;
+    totalAppColorData.total += clientColorData.total;
+    
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, name, clientColorData);
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectClient(name);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, () => {
+        delete clientsData[name];
+        saveUserJson();
+        renderClients();
+        if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
+      });
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    clientList.appendChild(li);
   }
+  
+  // Main Title still uses standard Logic
+  const clientsTitle = document.getElementById('clientsScreenTitle');
+  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  
   hookEditables();
 }
 
-// ... (Other render functions omitted for brevity but should remain) ...
-
+// ------------------ CLIENT ACTIONS ------------------
 document.getElementById("addClientBtn").onclick = () => {
   const name = prompt("Enter client name:");
   if (!name) return;
@@ -291,45 +522,211 @@ function selectClient(name) {
   navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
-// ... (Sessions and Exercises Logic) ...
+// ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
-function renderSessions() {
-    sessionList.innerHTML = "";
-    if (!selectedClient) return;
-    (clientsData[selectedClient].sessions || []).forEach(sess => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span>${sess.session_name}</span><button class="btn-delete">&times;</button>`;
-        li.onclick = () => selectSession(sess);
-        sessionList.appendChild(li);
-    });
-    hookEditables();
-}
-function selectSession(s) {
-    selectedSession = s;
-    renderExercises();
-    navigateTo(SCREENS.EXERCISES, 'forward');
+
+function getSortedSessions(sessionsArray) {
+  if (!sessionsArray) return [];
+  return sessionsArray.slice().sort((a, b) => {
+    let dateB = b.date ? new Date(b.date) : new Date(0);
+    if (isNaN(dateB.getTime())) dateB = new Date(0);
+    let dateA = a.date ? new Date(a.date) : new Date(0);
+    if (isNaN(dateA.getTime())) dateA = new Date(0);
+    return dateB.getTime() - dateA.getTime();
+  });
 }
 
-const exerciseList = document.getElementById("exerciseList");
-function renderExercises() {
-    exerciseList.innerHTML = "";
-    if (!selectedSession) return;
-    (selectedSession.exercises || []).forEach((ex, idx) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span>${ex.exercise}</span><button class="btn-delete">&times;</button>`;
-        li.onclick = () => selectExercise(idx);
-        exerciseList.appendChild(li);
+document.getElementById("addSessionBtn").onclick = () => {
+  if (!selectedClient) { alert("Select a client first"); return; }
+  const name = prompt("Enter session name:");
+  if (!name) return;
+  const session = { session_name: name, exercises: [], date: new Date().toISOString() };
+  clientsData[selectedClient].sessions.push(session);
+  saveUserJson();
+  renderSessions();
+};
+
+function renderSessions() {
+  sessionList.innerHTML = "";
+  if (!selectedClient) return;
+  selectedSession = null;
+
+  let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
+  const sessions = clientsData[selectedClient]?.sessions || [];
+  const sortedSessions = getSortedSessions(sessions);
+
+  sortedSessions.forEach((sess, idx) => {
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    
+    let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const exercises = sess.exercises || [];
+    exercises.forEach(ex => {
+        const cData = getExerciseColorData(ex);
+        sessionColorData.red += cData.red;
+        sessionColorData.green += cData.green;
+        sessionColorData.yellow += cData.yellow;
+        sessionColorData.total += cData.total;
     });
-    hookEditables();
+    
+    clientTotalColorData.red += sessionColorData.red;
+    clientTotalColorData.green += sessionColorData.green;
+    clientTotalColorData.yellow += sessionColorData.yellow;
+    clientTotalColorData.total += sessionColorData.total;
+
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, sess.session_name, sessionColorData);
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectSession(sess);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
+        const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
+        if (sessionIndex > -1) {
+          clientsData[selectedClient].sessions.splice(sessionIndex, 1);
+          saveUserJson();
+          renderSessions();
+        }
+        if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
+      });
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    sessionList.appendChild(li);
+  });
+  
+  const sessionsTitle = document.getElementById('sessionsScreenTitle');
+  applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
+
+  hookEditables();
 }
+
+function selectSession(sessionObject) {
+  selectedSession = sessionObject;
+  selectedExercise = null;
+  renderExercises();
+  navigateTo(SCREENS.EXERCISES, 'forward');
+}
+
+// ------------------ EXERCISES ------------------
+const exerciseList = document.getElementById("exerciseList");
+document.getElementById("addExerciseBtn").onclick = () => {
+  if (!selectedSession) { alert("Select a session first"); return; }
+  const name = prompt("Enter exercise name:");
+  if (!name) return;
+  const ex = { exercise: name, sets: [] };
+  selectedSession.exercises.push(ex);
+  saveUserJson();
+  renderExercises();
+};
+
+function renderExercises() {
+  exerciseList.innerHTML = "";
+  const sessionTitleElement = document.getElementById('sessionExercisesTitle');
+  
+  if (!selectedSession) {
+    applyTitleStyling(sessionTitleElement, 'Exercises', null);
+    return;
+  }
+  
+  selectedExercise = null;
+  let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+
+  selectedSession.exercises.forEach((ex, idx) => {
+    const colorData = getExerciseColorData(ex);
+    ex.colorData = colorData; 
+
+    if (colorData) {
+      sessionColorData.red += colorData.red;
+      sessionColorData.green += colorData.green;
+      sessionColorData.yellow += colorData.yellow;
+      sessionColorData.total += colorData.total;
+    }
+
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = ex.exercise;
+
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation(); return; }
+      selectExercise(idx);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      showDeleteConfirm(`Are you sure you want to delete exercise "${ex.exercise}"?`, () => {
+        selectedSession.exercises.splice(idx, 1);
+        saveUserJson();
+        renderExercises();
+        if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
+      });
+    };
+    
+    // USE NEW FUNCTION
+    setupListTextAnimation(nameSpan, ex.exercise, colorData);
+
+    li.appendChild(nameSpan);
+    li.appendChild(deleteBtn);
+    exerciseList.appendChild(li);
+  });
+  
+  applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
+  hookEditables();
+}
+
 function selectExercise(idx) {
-    selectedExercise = selectedSession.exercises[idx];
-    renderSets();
-    navigateTo(SCREENS.SETS, 'forward');
+  selectedExercise = selectedSession.exercises[idx];
+  renderSets();
+  navigateTo(SCREENS.SETS, 'forward');
+  document.getElementById("graphContainer").classList.add("hidden");
 }
 
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
+
+function getLastSet() {
+    if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+        return null;
+    }
+    const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return sortedSets[0];
+}
+
+document.getElementById("addSetBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  const lastSet = getLastSet();
+  const repsPrompt = lastSet ? lastSet.reps : "";
+  const weightPrompt = lastSet ? lastSet.weight : "";
+  let reps = prompt(`Reps (last: ${repsPrompt}):`);
+  if (!reps || isNaN(reps)) return;
+  reps = parseInt(reps);
+  let weight = prompt(`Weight (last: ${weightPrompt}):`);
+  if (!weight || isNaN(weight)) return;
+  weight = parseFloat(weight);
+  let notes = prompt("Notes:") || "";
+  const timestamp = new Date().toISOString();
+  const volume = reps * weight;
+
+  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
+  saveUserJson();
+  renderSets();
+};
 
 function renderSets() {
   setsTable.innerHTML = "";
@@ -369,7 +766,7 @@ function renderSets() {
       deleteBtn.innerHTML = '&times;';
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        showDeleteConfirm(`Are you sure?`, () => {
+        showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
           selectedExercise.sets.splice(originalIndex, 1);
           saveUserJson();
           renderSets();
@@ -385,38 +782,56 @@ function renderSets() {
   hookEditables(renderedSetsInOrder);
   runComparisonLogic();
 
-  // === INITIALIZE SPIRAL WIDGET ===
+    // === INSERT THIS NEW LINE HERE ===
   if (typeof SpiralWidget !== 'undefined') {
       SpiralWidget.init(selectedExercise.sets);
   }
 }
 
-document.getElementById("addSetBtn").onclick = () => {
-    if (!selectedExercise) { alert("Select an exercise first"); return; }
-    let reps = prompt("Reps:");
-    let weight = prompt("Weight:");
-    if (reps && weight) {
-        selectedExercise.sets.push({ 
-            reps: parseInt(reps), 
-            weight: parseFloat(weight), 
-            volume: parseInt(reps)*parseFloat(weight), 
-            notes: "", 
-            timestamp: new Date().toISOString() 
-        });
-        saveUserJson();
-        renderSets();
-    }
+
+// ------------------ PLOTLY GRAPH ------------------
+document.getElementById("showGraphBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  const sets = selectedExercise.sets;
+  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+
+  navigateTo(SCREENS.GRAPH, 'forward');;
+
+  const dates = sets.map(s => s.timestamp);
+  const reps = sets.map(s => s.reps);
+  const weight = sets.map(s => s.weight);
+  const volume = sets.map(s => s.volume);
+  const wpr = sets.map(s => s.volume / s.reps);
+  
+  const traces = [
+    { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
+    { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
+    { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
+    { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
+  ];
+  
+  Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
+  Plotly.Plots.resize('graphDiv');
 };
 
-// ... (Graph and Helper functions) ...
+// ------------------ HELPER ------------------
 function hideAllDetails() {
-    // ...
+  Object.values(SCREENS).forEach(screenId => {
+    document.getElementById(screenId).classList.add('hidden');
+  });
+  document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
+  currentScreen = SCREENS.CLIENTS;
+  document.getElementById("graphDiv").innerHTML = "";
 }
+
+// ------------------ COMPARISON LOGIC ------------------
+
 function isSameDay(d1, d2) {
   return d1.getFullYear() === d2.getFullYear() &&
          d1.getMonth() === d2.getMonth() &&
          d1.getDate() === d2.getDate();
 }
+
 function aggregateStats(setsArray) {
   if (!setsArray || setsArray.length === 0) {
     return { sets: 0, reps: 0, volume: 0, wpr: 0 };
@@ -427,111 +842,322 @@ function aggregateStats(setsArray) {
   const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
+
 function formatNum(num) {
   if (num % 1 === 0) return num.toString();
   return num.toFixed(1);
 }
+
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
+  const spiralEl = document.getElementById(statName + 'Spiral');
   const dataEl = document.getElementById(statName + 'Data');
-  if (!arrowEl || !dataEl) return;
+  
+  if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
 
   const status = calculateStatStatus(currentValue, previousValue);
+  
   let arrow = '—';
   if (status === 'increase') arrow = '&uarr;';
   else if (status === 'decrease') arrow = '&darr;';
   
   const change = currentValue - previousValue;
   let percentageChange = 0;
-  if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
-  else if (currentValue > 0) percentageChange = 100;
+  if (previousValue !== 0) {
+    percentageChange = (change / previousValue) * 100;
+  } else if (currentValue > 0) {
+    percentageChange = 100;
+  }
 
-  let label = statName === 'volume' ? 'lb' : (statName === 'wpr' ? 'lb/rep' : statName);
-  let currentString = `${formatNum(currentValue)} ${label}`;
-  let changeSign = change > 0 ? '+' : '';
+  let currentString = '';
+  const changeSign = change > 0 ? '+' : '';
+  
+  switch(statName) {
+    case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
+    case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
+  }
+  
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
   if (status === 'neutral') changeString = `(0 / 0%)`;
   
+  const classesToRemove = ['increase', 'decrease', 'neutral'];
   arrowEl.innerHTML = arrow;
-  arrowEl.className = `stat-arrow ${status}`;
+  arrowEl.classList.remove(...classesToRemove);
+  arrowEl.classList.add(status);
+
+  spiralEl.classList.remove(...classesToRemove);
+  spiralEl.classList.add(status);
+  
   dataEl.textContent = `${currentString} ${changeString}`;
-  dataEl.className = `stat-data ${status}`;
+  dataEl.classList.remove(...classesToRemove);
+  dataEl.classList.add(status);
+
+  return status;
 }
+
 
 function runComparisonLogic() {
-    // ... existing ...
-    // Just ensures banner is visible
-    const banner = document.getElementById('comparisonBanner');
-    if(banner) banner.classList.remove('hidden');
+  const banner = document.getElementById('comparisonBanner');
+  const titleElement = document.getElementById('exerciseSetsTitleSpan');
+
+  if (!selectedExercise) {
+    banner.classList.add('hidden');
+    if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
+    return;
+  }
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, null);
+
+  const colorData = getExerciseColorData(selectedExercise);
+  selectedExercise.colorData = colorData;
+
+  if (colorData.total === 0) {
+      banner.classList.add('hidden');
+      applyTitleStyling(titleElement, selectedExercise.exercise, null);
+      return;
+  }
+
+  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const mostRecentDate = new Date(allSets[0].timestamp);
+  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
+  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
+  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
+  const currentStats = aggregateStats(currentDaySets);
+  const prevStats = aggregateStats(previousDaySets);
+
+  updateStatUI('sets', currentStats.sets, prevStats.sets);
+  updateStatUI('reps', currentStats.reps, prevStats.reps);
+  updateStatUI('volume', currentStats.volume, prevStats.volume);
+  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
+  
+  applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
+  banner.classList.remove('hidden');
 }
 
-// ... (Edit Mode & Swipe Logic) ...
-let editMode = false;
-function hookEditables() {} // Stub
 
-// ============================================================
-// SPIRAL WIDGET CONTROLLER (MOBILE OPTIMIZED)
-// ============================================================
+// ------------------ EDIT MODE ------------------
+let editMode = false;
+const editToggleBtn = document.getElementById("editToggleBtn");
+
+editToggleBtn.onclick = () => {
+  editMode = !editMode;
+  editToggleBtn.textContent = editMode ? "Done" : "Edit";
+  document.body.classList.toggle('edit-mode-active');
+  if (!editMode) saveUserJson();
+};
+
+// ------------------ MAKE ELEMENTS EDITABLE ------------------
+function makeEditable(element, type, parentIdx, sortedSets) {
+  element.classList.add("editable");
+  element.style.cursor = "pointer";
+
+  element.addEventListener("click", (e) => {
+    if (!editMode) return;
+    e.stopPropagation();
+
+    const currentVal = element.textContent;
+    const newVal = prompt(`Edit ${type}:`, currentVal);
+    if (!newVal || newVal === currentVal) return;
+
+    let originalIndex = -1;
+    if (type.startsWith("Set")) {
+        const sortedSetObject = sortedSets[parentIdx];
+        if (!sortedSetObject) return;
+        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+        if (originalIndex === -1) return;
+    }
+
+    switch(type) {
+      case "Client":
+        const data = clientsData[currentVal];
+        delete clientsData[currentVal];
+        data.client_name = newVal;
+        clientsData[newVal] = data;
+        if (selectedClient === currentVal) selectedClient = newVal;
+        renderClients();
+        break;
+
+      case "Session":
+        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
+        if (sessionToEdit) sessionToEdit.session_name = newVal;
+        renderSessions();
+        break;
+
+      case "Exercise":
+        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+        if(exerciseToEdit) exerciseToEdit.exercise = newVal;
+        renderExercises();
+        break;
+
+      case "SetReps":
+        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetWeight":
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+        renderSets();
+        break;
+
+      case "SetNotes":
+        selectedExercise.sets[originalIndex].notes = newVal;
+        renderSets();
+        break;
+    }
+
+    saveUserJson();
+  });
+}
+
+function hookEditables(sortedSets = []) {
+  document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
+  document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
+  document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
+  
+  let setRowIdx = 0;
+  setsTable.querySelectorAll("tr").forEach((tr) => {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length < 5) return;
+    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
+    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
+    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
+    setRowIdx++;
+  });
+}
+
+// ------------------ SWIPE NAVIGATION ------------------
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoveX = 0;
+let touchMoveY = 0;
+const MIN_SWIPE_DISTANCE = 85;
+const MAX_START_EDGE = 150;
+
+document.body.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoveX = 0;
+    touchMoveY = 0;
+}, { passive: true });
+
+document.body.addEventListener('touchmove', (e) => {
+    touchMoveX = e.touches[0].clientX;
+    touchMoveY = e.touches[0].clientY;
+}, { passive: true });
+
+document.body.addEventListener('touchend', () => {
+    if (touchMoveX === 0 && touchMoveY === 0) return;
+    const deltaX = touchMoveX - touchStartX;
+    const deltaY = touchMoveY - touchStartY;
+    if (touchStartX > MAX_START_EDGE) return;
+    if (deltaX < MIN_SWIPE_DISTANCE) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+    
+    switch (currentScreen) {
+        case SCREENS.SESSIONS:
+            document.getElementById('backToClientsBtn').click();
+            break;
+        case SCREENS.EXERCISES:
+            document.getElementById('backToSessionsBtn').click();
+            break;
+        case SCREENS.SETS:
+            document.getElementById('backToExercisesBtn').click();
+            break;
+        case SCREENS.GRAPH:
+            document.getElementById('backToSetsFromGraphBtn').click();
+            break;
+    }
+    touchStartX = 0; touchStartY = 0;
+});
+
+// ... existing app.js code ...
+
+/* ============================================================
+   SPIRAL WIDGET CONTROLLER
+   Integrated as a self-contained module
+   ============================================================ */
 const SpiralWidget = {
     svg: null,
     data: [],
     visibleData: [],
     range: 'all',
     
+    // Config
     CX: 250, CY: 250, START_RADIUS: 30,
     OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
     
+    // Interaction State
     isDragging: false,
     hitLookup: [],
     visualPoints: [],
     totalLen: 0,
-    listenersAttached: false,
 
     init: function(rawSets) {
+        // 1. Setup DOM References
         this.svg = document.getElementById('spiralCanvas');
-        if(!this.svg) return;
         
+        // 2. Process Data (Aggregate Sets by Day)
         this.data = this.processData(rawSets);
         
+        // 3. Setup Listeners (only once)
         if (!this.listenersAttached) {
             this.attachListeners();
             this.listenersAttached = true;
         }
+
+        // 4. Initial Draw
         this.setRange(this.range);
     },
 
     processData: function(sets) {
         if (!sets || sets.length === 0) return [];
+        
+        // Group by Date String
         const groups = {};
         sets.forEach(s => {
             const d = new Date(s.timestamp).toDateString();
             if(!groups[d]) groups[d] = [];
             groups[d].push(s);
         });
+
+        // Aggregate
         const history = Object.values(groups).map(daySets => {
+            // Sort sets in day to get latest timestamp
             daySets.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
             const totalVol = daySets.reduce((sum, s) => sum + (s.reps * s.weight), 0);
             const totalReps = daySets.reduce((sum, s) => sum + s.reps, 0);
             const avgWpr = totalReps > 0 ? (totalVol / totalReps) : 0;
+            
             return {
-                timestamp: new Date(daySets[0].timestamp).getTime(),
+                timestamp: new Date(daySets[0].timestamp).getTime(), // Use latest set time
                 sets: daySets.length,
                 reps: totalReps,
                 volume: totalVol,
                 wpr: parseFloat(avgWpr.toFixed(1))
             };
         });
+
+        // Sort Chronologically (Oldest First) for the Spiral
         return history.sort((a,b) => a.timestamp - b.timestamp);
     },
 
     setRange: function(range) {
         this.range = range;
+        
+        // Update Buttons UI
         document.querySelectorAll('.filter-btn').forEach(b => {
             b.classList.remove('active');
             if(b.textContent.toLowerCase().includes(range) || (range==='all' && b.textContent==='All')) 
                 b.classList.add('active');
         });
 
+        // Filter Data
         const now = new Date().getTime();
         let days = 3650;
         if(range === '4w') days = 28;
@@ -541,25 +1167,29 @@ const SpiralWidget = {
         const cutoff = now - (days * 24 * 60 * 60 * 1000);
         this.visibleData = this.data.filter(d => d.timestamp >= cutoff);
 
+        // Spiral Geometry
         let turns = 2.5;
         let pitch = 90;
-        if (range === 'all') { turns = 3.8; pitch = 55; } 
-        else {
-            pitch = 90;
+        
+        if (range === 'all') { 
+            turns = 3.8; pitch = 55; // Tight
+        } else {
+            pitch = 90; // Spacious
             if(range === '4w') turns = 1.3;
             else if(range === '8w') turns = 1.8;
             else if(range === '12w') turns = 2.2;
         }
+
         this.draw(turns, pitch);
     },
 
     draw: function(turns, pitch) {
         const segmentsG = document.getElementById('spiralSegments');
         const markersG = document.getElementById('markersGroup');
-        if(!segmentsG || !markersG) return;
         segmentsG.innerHTML = '';
         markersG.innerHTML = '';
 
+        // Helper Maths
         const getPoint = (t, offset) => {
             const angle = t * Math.PI * 2 * turns;
             const r = this.START_RADIUS + (pitch * (angle / (Math.PI * 2))) + offset;
@@ -577,16 +1207,18 @@ const SpiralWidget = {
             return d;
         };
 
+        // Draw Backgrounds
         ['bgTrack1','bgTrack2','bgTrack3','bgTrack4'].forEach((id, i) => {
             const offset = [this.OFFSETS.sets, this.OFFSETS.reps, this.OFFSETS.vol, this.OFFSETS.wpr][i];
-            const el = document.getElementById(id);
-            if(el) el.setAttribute('d', getPathD(1, offset));
+            document.getElementById(id).setAttribute('d', getPathD(1, offset));
         });
 
+        // Hit Path & Lookup
         const hitPath = document.getElementById('hitPath');
         hitPath.setAttribute('d', getPathD(1, 0));
         this.totalLen = hitPath.getTotalLength();
         
+        // Generate Lookup Table
         this.hitLookup = [];
         for(let i=0; i<=200; i++) {
             const l = (i/200) * this.totalLen;
@@ -594,6 +1226,7 @@ const SpiralWidget = {
             this.hitLookup.push({l, x:p.x, y:p.y});
         }
 
+        // Draw Segments
         if (this.visibleData.length === 0) return;
         
         const oldest = this.visibleData[0].timestamp;
@@ -609,6 +1242,7 @@ const SpiralWidget = {
 
             this.visualPoints.push({x:p.x, y:p.y, idx:i, t});
 
+            // Marker
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
             circle.setAttribute("class", "workout-marker");
@@ -620,6 +1254,7 @@ const SpiralWidget = {
                 const next = this.visibleData[i+1];
                 const tNext = (next.timestamp - oldest) / span;
                 
+                // Draw 4 Lines
                 const drawSeg = (val1, val2, offset, extraDelay) => {
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     let d = "";
@@ -633,10 +1268,12 @@ const SpiralWidget = {
                     if(val2 > val1) path.classList.add('seg-increase');
                     else if(val2 < val1) path.classList.add('seg-decrease');
                     else path.classList.add('seg-neutral');
+                    
                     path.style.animation = `drawInSegment 0.4s ease-out forwards`;
                     path.style.animationDelay = `${delay + extraDelay}s`;
                     segmentsG.appendChild(path);
                 };
+
                 drawSeg(curr.sets, next.sets, this.OFFSETS.sets, 0);
                 drawSeg(curr.reps, next.reps, this.OFFSETS.reps, 0.05);
                 drawSeg(curr.volume, next.volume, this.OFFSETS.vol, 0.1);
@@ -644,18 +1281,25 @@ const SpiralWidget = {
             }
         });
 
+        // Snap to end
         this.updateBall(this.totalLen);
+        
+        // Show ball with delay
+        const ball = document.getElementById('timeBall');
+        ball.style.opacity = 0;
+        ball.style.animation = `fadeInMarker 0.5s ease-out 1s forwards`;
     },
 
     attachListeners: function() {
-        const surface = this.svg; // Listen on entire SVG for fat finger support
+        const hitPath = document.getElementById('hitPath');
         
         const start = (e) => {
             const pt = this.getSVGPoint(e);
             const closest = this.findClosestLen(pt.x, pt.y);
-            // Distance check to allow scrolling if touching corners (60 SVG units)
+            
+            // ** SCROLL TRAP FIX ** // Only engage if touch is reasonably close to the spiral line (e.g. 60px)
             const dist = Math.sqrt((closest.x - pt.x)**2 + (closest.y - pt.y)**2);
-            if (dist > 60) return; 
+            if (dist > 60) return; // Allow scrolling if touching empty space
 
             this.isDragging = true;
             this.updateBall(closest.len);
@@ -663,7 +1307,7 @@ const SpiralWidget = {
         
         const move = (e) => {
             if (!this.isDragging) return;
-            if (e.cancelable) e.preventDefault(); 
+            if (e.cancelable) e.preventDefault(); // Stop scroll ONLY if dragging
             const pt = this.getSVGPoint(e);
             const closest = this.findClosestLen(pt.x, pt.y);
             this.updateBall(closest.len);
@@ -671,8 +1315,8 @@ const SpiralWidget = {
         
         const end = () => { this.isDragging = false; };
 
-        surface.addEventListener('mousedown', start);
-        surface.addEventListener('touchstart', start, {passive: false});
+        hitPath.addEventListener('mousedown', start);
+        hitPath.addEventListener('touchstart', start, {passive: false});
         window.addEventListener('mousemove', move);
         window.addEventListener('touchmove', move, {passive: false});
         window.addEventListener('mouseup', end);
@@ -681,15 +1325,13 @@ const SpiralWidget = {
 
     getSVGPoint: function(e) {
         const pt = this.svg.createSVGPoint();
-        // Robustly handle Touch vs Mouse
-        const src = (e.touches && e.touches.length > 0) ? e.touches[0] : e;
-        pt.x = src.clientX;
-        pt.y = src.clientY;
+        pt.x = e.clientX || e.touches?.[0]?.clientX;
+        pt.y = e.clientY || e.touches?.[0]?.clientY;
         return pt.matrixTransform(this.svg.getScreenCTM().inverse());
     },
 
     findClosestLen: function(x, y) {
-        let best = {len:0, x:0, y:0}, min = Infinity;
+        let best = null, min = Infinity;
         for(let p of this.hitLookup) {
             const d = (p.x-x)**2 + (p.y-y)**2;
             if(d < min) { min = d; best = p; }
@@ -702,11 +1344,14 @@ const SpiralWidget = {
         const ball = document.getElementById('timeBall');
         ball.setAttribute('cx', pt.x); ball.setAttribute('cy', pt.y);
 
+        // Find Data Point
         let bestIdx = 0, min = Infinity;
         this.visualPoints.forEach(vp => {
             const d = (vp.x-pt.x)**2 + (vp.y-pt.y)**2;
             if(d < min) { min=d; bestIdx = vp.idx; }
         });
+
+        // Update UI
         this.updateUI(bestIdx);
     },
 
@@ -714,18 +1359,25 @@ const SpiralWidget = {
         const curr = this.visibleData[idx];
         const prev = idx > 0 ? this.visibleData[idx-1] : {sets:0, reps:0, volume:0, wpr:0};
 
+        // Highlight Marker
         document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
         if (document.getElementById('markersGroup').children[idx]) 
             document.getElementById('markersGroup').children[idx].classList.add('active');
 
+        // Date
         const d = new Date(curr.timestamp);
         const now = new Date();
         const isToday = d.toDateString() === now.toDateString();
         const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
         document.getElementById('spiralDateDisplay').textContent = isToday ? "Today" : dateStr;
 
+        // Update Your Existing Comparison Banner
+        // Note: using existing global function updateStatUI if available, or reimplementing
         if (typeof updateStatUI === 'function') {
             updateStatUI('sets', curr.sets, prev.sets);
             updateStatUI('reps', curr.reps, prev.reps);
             updateStatUI('volume', curr.volume, prev.volume);
-            updateStatUI('wpr
+            updateStatUI('wpr', curr.wpr, prev.wpr);
+        }
+    }
+};
