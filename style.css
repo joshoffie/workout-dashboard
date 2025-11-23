@@ -293,8 +293,6 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 .char:nth-child(7) { --char-index: 7; } .char:nth-child(8) { --char-index: 8; } .char:nth-child(9) { --char-index: 9; }
 .char:nth-child(10) { --char-index: 10; } .char:nth-child(11) { --char-index: 11; } .char:nth-child(12) { --char-index: 12; }
 
-/* ... (Keep all CSS above this exactly as is) ... */
-
 /* =========================================
    SPIRAL WIDGET STYLES
    ========================================= */
@@ -329,18 +327,31 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
     transition: cx 0.05s linear, cy 0.05s linear;
 }
 
-/* FIXED: Opacity is now 1. Removed animation dependency. */
+/* === FIXED MARKER STYLES === */
 .workout-marker {
-    fill: var(--color-card); 
-    stroke: var(--color-text-muted); 
-    stroke-width: 2; 
-    r: 3;
-    pointer-events: none; 
-    transition: r 0.2s; 
-    opacity: 1;
+    /* Solid dark grey fill to ensure visibility against background */
+    fill: #444444; 
+    stroke: #8a8a8e; 
+    stroke-width: 1px;
+    
+    /* Static size, slightly larger for visibility */
+    r: 4px;
+    
+    /* Force immediate visibility - NO ANIMATIONS */
+    opacity: 1 !important;
+    visibility: visible !important;
+    
+    pointer-events: none;
+    transition: r 0.1s linear, fill 0.1s linear; /* Simple transition for active state only */
 }
 
-.workout-marker.active { fill: #fff; stroke: var(--color-primary); r: 6; opacity: 1 !important; }
+.workout-marker.active { 
+    fill: #ffffff !important; 
+    stroke: var(--color-primary) !important; 
+    r: 6px !important; 
+    opacity: 1 !important; 
+}
+
 .spiral-date-label { position: absolute; top: 1rem; left: 1rem; pointer-events: none; }
 .spiral-date-label span {
     background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 20px; font-size: 0.9rem;
@@ -371,7 +382,7 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
   transform-origin: 50px 50px; animation: drawSpiral 4s ease-in-out infinite;
 }
 
-/* FIXED COLOR LOGIC: Using !important to override any previous conflicting definitions */
+/* FIXED COLOR LOGIC */
 .comparison-spiral.neutral { stroke: var(--color-yellow) !important; animation-duration: 4s; }
 .comparison-spiral.increase { stroke: var(--color-green) !important; animation-duration: 2s; }
 .comparison-spiral.decrease { stroke: var(--color-red) !important; animation-duration: 6s; }
