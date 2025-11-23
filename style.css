@@ -950,7 +950,7 @@ td .btn-delete {
 
 .widget-header {
     display: flex;
-    justify-content: flex-end; /* Move select to right */
+    justify-content: space-between; 
     align-items: center;
     padding: 0.5rem 1.5rem;
     border-bottom: none; /* Removed border */
