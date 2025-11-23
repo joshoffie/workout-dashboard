@@ -153,24 +153,17 @@
         </div>
       </div>
 
+            <!-- === INSERT START === -->
       <div class="spiral-container">
-        <!-- Buttons -->
         <div class="spiral-controls">
             <button class="filter-btn" onclick="SpiralWidget.setRange('4w')">4w</button>
             <button class="filter-btn" onclick="SpiralWidget.setRange('8w')">8w</button>
             <button class="filter-btn" onclick="SpiralWidget.setRange('12w')">12w</button>
             <button class="filter-btn active" onclick="SpiralWidget.setRange('all')">All</button>
         </div>
-        
-        <!-- Date Label -->
         <div class="spiral-date-label">
             <span id="spiralDateDisplay">Today</span>
         </div>
-      
-        <!-- === SOLUTION B: THE TOUCH GLASS === -->
-        <div id="spiralInteractionLayer"></div>
-        <!-- =================================== -->
-      
         <svg id="spiralCanvas" viewBox="0 0 500 500">
             <path id="bgTrack1" class="track-bg" d="" />
             <path id="bgTrack2" class="track-bg" d="" />
@@ -178,10 +171,7 @@
             <path id="bgTrack4" class="track-bg" d="" />
             <g id="spiralSegments"></g>
             <g id="markersGroup"></g>
-            
-            <!-- Hitpath removed/ignored, using InteractionLayer instead -->
-            <path id="hitPath" d="" style="display:none;" />
-            
+            <path id="hitPath" d="" />
             <circle id="timeBall" cx="0" cy="0" />
         </svg>
       </div>
