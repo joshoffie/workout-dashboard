@@ -293,13 +293,17 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 .char:nth-child(7) { --char-index: 7; } .char:nth-child(8) { --char-index: 8; } .char:nth-child(9) { --char-index: 9; }
 .char:nth-child(10) { --char-index: 10; } .char:nth-child(11) { --char-index: 11; } .char:nth-child(12) { --char-index: 12; }
 
+/* ... (Keep all CSS above this exactly as is) ... */
+
 /* =========================================
    SPIRAL WIDGET STYLES
    ========================================= */
 .spiral-container {
     margin: 0 1rem 1rem 1rem; background: var(--color-card); border: 1px solid var(--color-border);
     border-radius: var(--radius-md); height: 400px; position: relative; display: flex;
-    align-items: center; justify-content: center; overflow: hidden; touch-action: none;
+    align-items: center; justify-content: center; overflow: hidden;
+    
+    /* FIX 1: Removed touch-action: none from container to allow scrolling */
 }
 .spiral-controls {
     position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 4px;
@@ -310,7 +314,12 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
     padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s;
 }
 .filter-btn.active { background: var(--color-primary); color: white; }
-svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visible; touch-action: none; }
+
+svg#spiralCanvas { 
+    width: 100%; height: 100%; max-width: 600px; overflow: visible; 
+    /* FIX 1: Removed touch-action: none from SVG too */
+}
+
 @keyframes drawInSegment { from { opacity: 0; } to { opacity: 0.9; } }
 .spiral-segment {
     fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: 0;
@@ -319,8 +328,15 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 .seg-decrease { stroke: var(--color-red); }
 .seg-neutral { stroke: var(--color-yellow); }
 .track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
-#hitPath { fill: none; stroke: transparent; stroke-width: 60px; cursor: grab; }
+
+#hitPath { 
+    fill: none; stroke: transparent; stroke-width: 60px; cursor: grab; 
+    
+    /* FIX 1: ONLY block scrolling when touching the actual path */
+    touch-action: none; 
+}
 #hitPath:active { cursor: grabbing; }
+
 #timeBall {
     fill: #ffffff; stroke: #1c1c1c; stroke-width: 2px; r: 8px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); opacity: 1; pointer-events: none;
@@ -329,28 +345,16 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 
 /* === FIXED MARKER STYLES === */
 .workout-marker {
-    /* Solid dark grey fill to ensure visibility against background */
-    fill: #444444; 
-    stroke: #8a8a8e; 
-    stroke-width: 1px;
-    
-    /* Static size, slightly larger for visibility */
-    r: 4px;
-    
-    /* Force immediate visibility - NO ANIMATIONS */
-    opacity: 1 !important;
-    visibility: visible !important;
-    
-    pointer-events: none;
-    transition: r 0.1s linear, fill 0.1s linear; /* Simple transition for active state only */
+    fill: #444444; stroke: #8a8a8e; stroke-width: 1px; r: 4px;
+    opacity: 1 !important; visibility: visible !important;
+    pointer-events: none; transition: r 0.1s linear, fill 0.1s linear;
+}
+.workout-marker.active { 
+    fill: #ffffff !important; stroke: var(--color-primary) !important; 
+    r: 6px !important; opacity: 1 !important; 
 }
 
-.workout-marker.active { 
-    fill: #ffffff !important; 
-    stroke: var(--color-primary) !important; 
-    r: 6px !important; 
-    opacity: 1 !important; 
-}
+/* ... (Rest of style.css remains unchanged) ... */
 
 .spiral-date-label { position: absolute; top: 1rem; left: 1rem; pointer-events: none; }
 .spiral-date-label span {
