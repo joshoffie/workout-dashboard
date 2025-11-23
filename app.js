@@ -697,6 +697,316 @@ function selectExercise(idx) {
   document.getElementById("graphContainer").classList.add("hidden");
 }
 
+// ------------------ SPIRAL WIDGET LOGIC ------------------
+const spiralState = {
+    svg: null,
+    hitPath: null,
+    segmentsGroup: null,
+    markersGroup: null,
+    timeBall: null,
+    dateDisplay: null,
+    fullHistory: [],
+    visibleHistory: [],
+    hitPathLookup: [],
+    workoutVisualPoints: [],
+    totalLen: 0,
+    isDragging: false,
+    currentRange: 'all',
+    CX: 250, CY: 250, START_RADIUS: 30,
+    OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
+    RADIAL_PITCH: 45, TURNS: 3.8
+};
+
+function initSpiralElements() {
+    // Grab elements only once
+    if (spiralState.svg) return;
+    
+    spiralState.svg = document.getElementById('spiralCanvas');
+    spiralState.hitPath = document.getElementById('hitPath');
+    spiralState.segmentsGroup = document.getElementById('spiralSegments');
+    spiralState.markersGroup = document.getElementById('markersGroup');
+    spiralState.timeBall = document.getElementById('timeBall');
+    spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
+
+    // Pointer Events
+    if (spiralState.hitPath) {
+        spiralState.hitPath.addEventListener('pointerdown', handleSpiralStart);
+        spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
+        spiralState.hitPath.addEventListener('pointerup', handleSpiralEnd);
+        spiralState.hitPath.addEventListener('pointercancel', handleSpiralEnd);
+    }
+
+    // Filter Buttons
+    document.getElementById('range4w').onclick = () => setSpiralRange('4w');
+    document.getElementById('range8w').onclick = () => setSpiralRange('8w');
+    document.getElementById('range12w').onclick = () => setSpiralRange('12w');
+    document.getElementById('rangeAll').onclick = () => setSpiralRange('all');
+}
+
+// Helper: Aggregate raw Sets into Workout Sessions
+function processSetsForSpiral(sets) {
+    if (!sets || sets.length === 0) return [];
+    
+    // Sort by time ascending
+    const sorted = sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const sessions = [];
+    let currentSession = null;
+
+    sorted.forEach(set => {
+        const d = new Date(set.timestamp);
+        const dayStr = d.toDateString(); // Group by Day
+        
+        if (!currentSession || currentSession.dayStr !== dayStr) {
+            if (currentSession) sessions.push(currentSession);
+            currentSession = {
+                dayStr: dayStr,
+                timestamp: d.getTime(),
+                sets: 0, reps: 0, volume: 0,
+                rawSets: []
+            };
+        }
+        
+        currentSession.sets++;
+        currentSession.reps += (parseInt(set.reps) || 0);
+        currentSession.volume += (parseFloat(set.volume) || 0);
+        currentSession.rawSets.push(set);
+    });
+    if (currentSession) sessions.push(currentSession);
+
+    // Calculate WPR for each session
+    sessions.forEach(s => {
+        s.wpr = s.reps > 0 ? (s.volume / s.reps) : 0;
+    });
+
+    return sessions;
+}
+
+function getSpiralPoint(t, offset) {
+    const totalAngle = Math.PI * 2 * spiralState.TURNS;
+    const angle = t * totalAngle;
+    const baseR = spiralState.START_RADIUS + (spiralState.RADIAL_PITCH * (angle / (Math.PI * 2)));
+    const r = baseR + offset;
+    return {
+        x: spiralState.CX + r * Math.cos(angle),
+        y: spiralState.CY + r * Math.sin(angle)
+    };
+}
+
+function getSegmentD(tStart, tEnd, offset) {
+    let d = "";
+    const steps = 30; 
+    for(let i=0; i<=steps; i++) {
+        const t = tStart + (i/steps) * (tEnd - tStart);
+        const p = getSpiralPoint(t, offset);
+        d += (i===0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`);
+    }
+    return d;
+}
+
+function getFullSpiralD(offset) {
+    let d = "";
+    const points = 300;
+    for(let i=0; i<=points; i++) {
+        const t = i/points;
+        const p = getSpiralPoint(t, offset);
+        d += (i===0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`);
+    }
+    return d;
+}
+
+function setSpiralRange(range) {
+    spiralState.currentRange = range;
+    
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('range' + range.charAt(0).toUpperCase() + range.slice(1));
+    if(activeBtn) activeBtn.classList.add('active');
+
+    const now = new Date().getTime();
+    let days = 3650;
+    if(range === '4w') days = 28;
+    if(range === '8w') days = 56;
+    if(range === '12w') days = 84;
+    
+    const cutoff = now - (days * 24 * 60 * 60 * 1000);
+    spiralState.visibleHistory = spiralState.fullHistory.filter(w => w.timestamp >= cutoff);
+
+    // Dynamic Sizing logic
+    if (range === 'all') {
+        spiralState.RADIAL_PITCH = 45; 
+        spiralState.TURNS = 3.8; 
+    } else {
+        spiralState.RADIAL_PITCH = 90;
+        if (range === '4w') spiralState.TURNS = 1.3;
+        else if (range === '8w') spiralState.TURNS = 1.8;
+        else if (range === '12w') spiralState.TURNS = 2.2;
+    }
+
+    redrawSpiral();
+}
+
+function redrawSpiral() {
+    if (!spiralState.svg) return;
+
+    spiralState.segmentsGroup.innerHTML = '';
+    spiralState.markersGroup.innerHTML = '';
+
+    document.getElementById('bgTrack1').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.sets));
+    document.getElementById('bgTrack2').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.reps));
+    document.getElementById('bgTrack3').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.vol));
+    document.getElementById('bgTrack4').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.wpr));
+    
+    const hitD = getFullSpiralD(0);
+    spiralState.hitPath.setAttribute('d', hitD);
+    spiralState.totalLen = spiralState.hitPath.getTotalLength();
+    
+    // Hit lookup
+    spiralState.hitPathLookup = [];
+    const res = 300; 
+    for(let i=0; i<=res; i++) {
+        const l = (i/res) * spiralState.totalLen;
+        const pt = spiralState.hitPath.getPointAtLength(l);
+        spiralState.hitPathLookup.push({ len: l, x: pt.x, y: pt.y });
+    }
+
+    if (spiralState.visibleHistory.length === 0) {
+         updateBallToLen(0);
+         return;
+    }
+
+    const oldestTime = spiralState.visibleHistory[0].timestamp;
+    const newestTime = spiralState.visibleHistory[spiralState.visibleHistory.length-1].timestamp;
+    const timeSpan = newestTime - oldestTime || 1;
+
+    spiralState.workoutVisualPoints = [];
+
+    spiralState.visibleHistory.forEach((curr, i) => {
+        const t = (curr.timestamp - oldestTime) / timeSpan;
+        const p = getSpiralPoint(t, 0);
+        const progress = i / spiralState.visibleHistory.length;
+        const baseDelay = progress * 1.0; 
+
+        spiralState.workoutVisualPoints.push({ x: p.x, y: p.y, index: i, t: t, data: curr });
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", p.x);
+        circle.setAttribute("cy", p.y);
+        circle.setAttribute("class", "workout-marker");
+        circle.style.animation = `fadeIn 0.5s ease-out forwards`;
+        circle.style.animationDelay = `${baseDelay + 0.5}s`;
+        spiralState.markersGroup.appendChild(circle);
+
+        if(i === spiralState.visibleHistory.length - 1) return;
+        const next = spiralState.visibleHistory[i+1];
+        const tEnd = (next.timestamp - oldestTime) / timeSpan;
+
+        drawSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, baseDelay + 0.0);
+        drawSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, baseDelay + 0.05);
+        drawSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, baseDelay + 0.1);
+        drawSeg(curr.wpr, next.wpr, t, tEnd, spiralState.OFFSETS.wpr, baseDelay + 0.15);
+    });
+
+    function drawSeg(v1, v2, t1, t2, offset, delay) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute('d', getSegmentD(t1, t2, offset));
+        path.setAttribute('class', 'spiral-segment');
+        path.style.animation = `drawInSegment 0.4s ease-out forwards`;
+        path.style.animationDelay = `${delay}s`;
+        
+        const epsilon = 0.01;
+        if (v2 > v1 + epsilon) path.classList.add('seg-increase');
+        else if (v2 < v1 - epsilon) path.classList.add('seg-decrease');
+        else path.classList.add('seg-neutral');
+        
+        spiralState.segmentsGroup.appendChild(path);
+    }
+
+    // Initialize ball at the end
+    updateBallToLen(spiralState.totalLen);
+}
+
+function updateSpiralData(sets) {
+    initSpiralElements();
+    spiralState.fullHistory = processSetsForSpiral(sets);
+    setSpiralRange(spiralState.currentRange); // This triggers redraw
+    document.getElementById('comparisonBanner').classList.remove('hidden');
+}
+
+// --- SPIRAL INTERACTION ---
+function getSVGC(evt) {
+    const pt = spiralState.svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    return pt.matrixTransform(spiralState.svg.getScreenCTM().inverse());
+}
+
+function getClosestLen(x, y) {
+    let best = 0, min = Infinity;
+    for(let p of spiralState.hitPathLookup) {
+        const d = (p.x-x)**2 + (p.y-y)**2;
+        if(d<min) { min=d; best=p.len; }
+    }
+    return best;
+}
+
+function getClosestDataIdx(x, y) {
+    let bestIdx = 0, min = Infinity;
+    spiralState.workoutVisualPoints.forEach((wp, i) => {
+        const d = (wp.x-x)**2 + (wp.y-y)**2;
+        if(d < min) { min = d; bestIdx = i; }
+    });
+    return bestIdx;
+}
+
+function updateBallToLen(len) {
+    const pt = spiralState.hitPath.getPointAtLength(len);
+    spiralState.timeBall.style.display = 'block'; 
+    spiralState.timeBall.setAttribute('cx', pt.x);
+    spiralState.timeBall.setAttribute('cy', pt.y);
+    
+    if (spiralState.workoutVisualPoints.length > 0) {
+        const idx = getClosestDataIdx(pt.x, pt.y);
+        updateDataByIndex(idx);
+    }
+}
+
+function updateDataByIndex(idx) {
+    if (!spiralState.visibleHistory[idx]) return;
+    const curr = spiralState.visibleHistory[idx];
+    const prev = idx > 0 ? spiralState.visibleHistory[idx-1] : { sets:0, reps:0, volume:0, wpr:0 };
+
+    document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
+    if (spiralState.markersGroup.children[idx]) spiralState.markersGroup.children[idx].classList.add('active');
+
+    const d = new Date(curr.timestamp);
+    const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+    spiralState.dateDisplay.textContent = dateStr;
+
+    updateStatUI('sets', curr.sets, prev.sets);
+    updateStatUI('reps', curr.reps, prev.reps);
+    updateStatUI('volume', curr.volume, prev.volume);
+    updateStatUI('wpr', curr.wpr, prev.wpr);
+}
+
+// Handlers
+const handleSpiralStart = (e) => {
+    spiralState.isDragging = true;
+    spiralState.hitPath.setPointerCapture(e.pointerId);
+    const c = getSVGC(e);
+    updateBallToLen(getClosestLen(c.x, c.y));
+}
+const handleSpiralMove = (e) => { 
+    if(!spiralState.isDragging) return;
+    e.preventDefault(); 
+    const c = getSVGC(e);
+    updateBallToLen(getClosestLen(c.x, c.y)); 
+}
+const handleSpiralEnd = (e) => {
+    if (!spiralState.isDragging) return;
+    spiralState.isDragging = false;
+    spiralState.hitPath.releasePointerCapture(e.pointerId);
+}
+
+
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
 
@@ -731,6 +1041,9 @@ document.getElementById("addSetBtn").onclick = () => {
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
+  
+  // 1. Trigger Spiral Update
+  updateSpiralData(selectedExercise.sets);
 
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const setsByDay = new Map();
@@ -780,7 +1093,7 @@ function renderSets() {
   });
 
   hookEditables(renderedSetsInOrder);
-  runComparisonLogic();
+  runTitleOnlyLogic();
 }
 
 
@@ -845,10 +1158,10 @@ function formatNum(num) {
 
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
-  const spiralEl = document.getElementById(statName + 'Spiral');
+  const spiralEl = document.getElementById(statName + 'Spiral'); // Optional, if exists
   const dataEl = document.getElementById(statName + 'Data');
   
-  if (!arrowEl || !spiralEl || !dataEl) return 'neutral';
+  if (!arrowEl || !dataEl) return 'neutral';
 
   const status = calculateStatStatus(currentValue, previousValue);
   
@@ -882,8 +1195,10 @@ function updateStatUI(statName, currentValue, previousValue) {
   arrowEl.classList.remove(...classesToRemove);
   arrowEl.classList.add(status);
 
-  spiralEl.classList.remove(...classesToRemove);
-  spiralEl.classList.add(status);
+  if(spiralEl) {
+    spiralEl.classList.remove(...classesToRemove);
+    spiralEl.classList.add(status);
+  }
   
   dataEl.textContent = `${currentString} ${changeString}`;
   dataEl.classList.remove(...classesToRemove);
@@ -892,44 +1207,17 @@ function updateStatUI(statName, currentValue, previousValue) {
   return status;
 }
 
-
-function runComparisonLogic() {
-  const banner = document.getElementById('comparisonBanner');
+// NEW: Replaces runComparisonLogic (since Spiral handles Banner)
+function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
-
-  if (!selectedExercise) {
-    banner.classList.add('hidden');
-    if (titleElement) applyTitleStyling(titleElement, 'Exercise', null);
-    return;
-  }
+  if (!selectedExercise) return;
   
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
 
   const colorData = getExerciseColorData(selectedExercise);
   selectedExercise.colorData = colorData;
-
-  if (colorData.total === 0) {
-      banner.classList.add('hidden');
-      applyTitleStyling(titleElement, selectedExercise.exercise, null);
-      return;
-  }
-
-  const allSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  const mostRecentDate = new Date(allSets[0].timestamp);
-  const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
-  const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
-  const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
-  const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
-  const currentStats = aggregateStats(currentDaySets);
-  const prevStats = aggregateStats(previousDaySets);
-
-  updateStatUI('sets', currentStats.sets, prevStats.sets);
-  updateStatUI('reps', currentStats.reps, prevStats.reps);
-  updateStatUI('volume', currentStats.volume, prevStats.volume);
-  updateStatUI('wpr', currentStats.wpr, prevStats.wpr);
   
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
-  banner.classList.remove('hidden');
 }
 
 
