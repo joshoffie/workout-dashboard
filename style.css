@@ -938,3 +938,95 @@ td .btn-delete {
 .char:nth-child(10) { --char-index: 10; }
 .char:nth-child(11) { --char-index: 11; }
 .char:nth-child(12) { --char-index: 12; }
+
+/* ... existing code ... */
+
+/* ===== SPIRAL WIDGET STYLES ===== */
+.spiral-container {
+  /* Placed nicely in the card */
+  margin: 1rem 1rem 0 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  
+  /* Mobile Adaptive Sizing */
+  width: calc(100% - 2rem);
+  aspect-ratio: 1 / 1;
+  max-height: 450px;
+  
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Prevent highlighting on tap */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none; /* Browser shouldn't handle touch here, JS will */
+}
+
+.spiral-controls {
+  position: absolute;
+  top: 10px; right: 10px; z-index: 10;
+  display: flex; gap: 4px;
+  background: rgba(0,0,0,0.6);
+  padding: 4px; border-radius: 8px;
+}
+
+.filter-btn {
+  background: transparent; border: none;
+  color: var(--color-text-muted);
+  font-size: 0.7rem; padding: 4px 8px;
+  border-radius: 4px; cursor: pointer;
+  font-weight: 600; font-family: inherit;
+  transition: all 0.2s;
+}
+.filter-btn.active {
+  background: var(--color-primary); color: white;
+}
+
+.spiral-date-label {
+  position: absolute; top: 1rem; left: 1rem; pointer-events: none;
+}
+.spiral-date-label span {
+  background: rgba(0,0,0,0.6);
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 0.9rem; color: var(--color-text);
+  font-weight: 600;
+}
+
+/* SVG Elements */
+svg#spiralCanvas { width: 100%; height: 100%; overflow: visible; }
+
+@keyframes drawInSegment { from { opacity: 0; } to { opacity: 0.9; } }
+@keyframes fadeInMarker { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+
+.spiral-segment {
+  fill: none; stroke-width: 4;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0; /* Hidden until animation */
+}
+.seg-increase { stroke: var(--color-green); }
+.seg-decrease { stroke: var(--color-red); }
+.seg-neutral { stroke: var(--color-yellow); }
+
+.track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
+
+/* Hit Path is invisible but clickable */
+#hitPath { fill: none; stroke: transparent; stroke-width: 60px; cursor: grab; }
+#hitPath:active { cursor: grabbing; }
+
+#timeBall {
+  fill: #fff; stroke: var(--color-bg); stroke-width: 2; r: 8;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  pointer-events: none;
+  transition: cx 0.08s ease-out, cy 0.08s ease-out;
+  opacity: 0; /* Hidden until loaded */
+}
+
+.workout-marker {
+  fill: var(--color-card); stroke: var(--color-text-muted); stroke-width: 2; r: 3;
+  pointer-events: none; transition: r 0.2s; opacity: 0;
+}
+.workout-marker.active {
+  fill: #fff; stroke: var(--color-primary); r: 6; opacity: 1 !important;
+}
