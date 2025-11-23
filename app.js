@@ -807,6 +807,7 @@ function redrawSpiral() {
     spiralState.hitPath.setAttribute('d', hitD);
     spiralState.totalLen = spiralState.hitPath.getTotalLength();
     
+    // Populate lookup table for path coordinates
     spiralState.hitPathLookup = [];
     const res = 300; 
     for(let i=0; i<=res; i++) {
@@ -829,27 +830,40 @@ function redrawSpiral() {
     spiralState.visibleHistory.forEach((curr, i) => {
         const t = (curr.timestamp - oldestTime) / timeSpan;
         const p = getSpiralPoint(t, 0);
-        const progress = i / spiralState.visibleHistory.length;
-        const baseDelay = progress * 1.0; 
-
-        spiralState.workoutVisualPoints.push({ x: p.x, y: p.y, index: i, t: t, data: curr });
+        
+        // --- NEW: CALCULATE MARKER LENGTH ON PATH ---
+        let bestWpLen = 0; 
+        let minWpDist = Infinity;
+        for(let lp of spiralState.hitPathLookup) {
+            const d = (lp.x - p.x)**2 + (lp.y - p.y)**2;
+            if(d < minWpDist) { minWpDist = d; bestWpLen = lp.len; }
+        }
+        
+        // Store "len" (path distance) instead of just X/Y for lookup
+        spiralState.workoutVisualPoints.push({ 
+            x: p.x, 
+            y: p.y, 
+            len: bestWpLen, // Crucial for "track hopping" fix
+            index: i, 
+            data: curr 
+        });
 
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
         circle.setAttribute("class", "workout-marker");
         circle.style.animation = `fadeIn 0.5s ease-out forwards`;
-        circle.style.animationDelay = `${baseDelay + 0.5}s`;
+        circle.style.animationDelay = `${(i / spiralState.visibleHistory.length) + 0.5}s`;
         spiralState.markersGroup.appendChild(circle);
 
         if(i === spiralState.visibleHistory.length - 1) return;
         const next = spiralState.visibleHistory[i+1];
         const tEnd = (next.timestamp - oldestTime) / timeSpan;
 
-        drawSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, baseDelay + 0.0);
-        drawSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, baseDelay + 0.05);
-        drawSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, baseDelay + 0.1);
-        drawSeg(curr.wpr, next.wpr, t, tEnd, spiralState.OFFSETS.wpr, baseDelay + 0.15);
+        drawSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, (i / spiralState.visibleHistory.length) + 0.0);
+        drawSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, (i / spiralState.visibleHistory.length) + 0.05);
+        drawSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, (i / spiralState.visibleHistory.length) + 0.1);
+        drawSeg(curr.wpr, next.wpr, t, tEnd, spiralState.OFFSETS.wpr, (i / spiralState.visibleHistory.length) + 0.15);
     });
 
     function drawSeg(v1, v2, t1, t2, offset, delay) {
@@ -894,12 +908,20 @@ function getClosestLen(x, y) {
     return best;
 }
 
-function getClosestDataIdx(x, y) {
-    let bestIdx = 0, min = Infinity;
-    spiralState.workoutVisualPoints.forEach((wp, i) => {
-        const d = (wp.x-x)**2 + (wp.y-y)**2;
-        if(d < min) { min = d; bestIdx = i; }
+// --- FIXED LOGIC: Use Path Length (Linear Distance), NOT X/Y Distance ---
+function getClosestDataIdx(currentLen) {
+    let bestIdx = -1; 
+    let minDist = Infinity;
+    
+    spiralState.workoutVisualPoints.forEach((wp) => {
+        // Compare linear distance along the wire
+        const dist = Math.abs(currentLen - wp.len); 
+        if(dist < minDist) { minDist = dist; bestIdx = wp.index; }
     });
+    
+    // STRICT THRESHOLD: Only snap if within 15 units (approx pixels) along the wire
+    if (minDist > 15) return -1;
+    
     return bestIdx;
 }
 
@@ -910,13 +932,32 @@ function updateBallToLen(len) {
     spiralState.timeBall.setAttribute('cy', pt.y);
     
     if (spiralState.workoutVisualPoints.length > 0) {
-        const idx = getClosestDataIdx(pt.x, pt.y);
+        // Pass LENGTH (position on line) instead of X/Y coords
+        const idx = getClosestDataIdx(len);
         updateDataByIndex(idx);
     }
 }
 
 function updateDataByIndex(idx) {
-    if (!spiralState.visibleHistory[idx]) return;
+    // Handle "Ghost" state (no nearby dot)
+    if (idx === -1 || !spiralState.visibleHistory[idx]) {
+        document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
+        spiralState.dateDisplay.textContent = "History";
+        
+        // Reset banner to "empty" or "neutral" state
+        updateStatUI('sets', 0, 0);
+        updateStatUI('reps', 0, 0);
+        updateStatUI('volume', 0, 0);
+        updateStatUI('wpr', 0, 0);
+        
+        // Manually override text to dashes
+        document.getElementById('setsData').textContent = "--";
+        document.getElementById('repsData').textContent = "--";
+        document.getElementById('volumeData').textContent = "--";
+        document.getElementById('wprData').textContent = "--";
+        return;
+    }
+
     const curr = spiralState.visibleHistory[idx];
     const prev = idx > 0 ? spiralState.visibleHistory[idx-1] : { sets:0, reps:0, volume:0, wpr:0 };
 
@@ -1139,7 +1180,6 @@ function updateStatUI(statName, currentValue, previousValue) {
   arrowEl.className = `stat-arrow ${status}`;
 
   if(spiralEl) {
-    // CRITICAL FIX: Use setAttribute to wipe all other classes cleanly
     spiralEl.setAttribute('class', `comparison-spiral ${status}`);
   }
   
