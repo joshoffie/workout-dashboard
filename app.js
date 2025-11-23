@@ -793,7 +793,7 @@ function setSpiralRange(range) {
     redrawSpiral();
 }
 
-// ... (Keep everything up to redrawSpiral unchanged) ...
+// ... (Keep everything above redrawSpiral unchanged) ...
 
 function redrawSpiral() {
     if (!spiralState.svg) return;
@@ -849,13 +849,12 @@ function redrawSpiral() {
             data: curr 
         });
 
+        // === SIMPLIFIED MARKER CREATION ===
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
-        circle.setAttribute("class", "workout-marker");
-        
-        // FIXED: Removed animation lines here. They are now static and visible by default.
-        
+        circle.setAttribute("class", "workout-marker"); 
+        // No animations, no fade-in. Just add it.
         spiralState.markersGroup.appendChild(circle);
 
         if(i === spiralState.visibleHistory.length - 1) return;
@@ -885,6 +884,8 @@ function redrawSpiral() {
 
     updateBallToLen(spiralState.totalLen);
 }
+
+// ... (Keep the rest of the file unchanged) ...
 
 // ... (Keep the rest of the file unchanged) ...
 
