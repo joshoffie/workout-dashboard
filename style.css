@@ -230,7 +230,7 @@ body {
   list-style: none;
   width: 100%;
   padding: 0 1rem; 
-  padding-top: 1rem; 
+  padding-top: 7rem; 
 }
 .item-list li {
   font-size: 1.1rem;
@@ -780,6 +780,7 @@ td .btn-delete {
   transition: color 0.3s ease;
 }
 
+
 /* -----------------------------------------------------
    HEADER ANIMATION DEFINITIONS (Happy/Sad/Calm)
    ----------------------------------------------------- */
@@ -913,7 +914,9 @@ td .btn-delete {
     50% { transform: translateY(6px); }
 }
 
-/* Use !important to force override any other potential animation conflicts. */
+/* Use !important to force override any other potential animation conflicts.
+  These classes are toggled by JS.
+*/
 .char.animate-up {
     animation: float-up 2s ease-in-out !important;
 }
@@ -933,82 +936,5 @@ td .btn-delete {
 .char:nth-child(8) { --char-index: 8; }
 .char:nth-child(9) { --char-index: 9; }
 .char:nth-child(10) { --char-index: 10; }
-
-/* ===== SPIRAL WIDGET STYLES ===== */
-/* Changed to transparent/clean as requested */
-.widget-container {
-    background-color: transparent; /* Removed background */
-    margin: 1rem 0; /* Adjusted margin */
-    border-radius: 0; /* Removed radius */
-    border: none; /* Removed border */
-    overflow: hidden;
-    height: 45vh; 
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-}
-
-.widget-header {
-    display: flex;
-    justify-content: space-between; 
-    align-items: center;
-    padding: 0.5rem 1.5rem;
-    border-bottom: none; /* Removed border */
-}
-
-.widget-select {
-    background-color: var(--color-bg);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 0.25rem 0.5rem;
-    font-family: inherit;
-}
-
-.svg-wrapper {
-    flex: 1;
-    position: relative;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    touch-action: none; 
-}
-
-#spiral-svg {
-    width: 100%;
-    height: 100%;
-    max-height: 100%;
-    overflow: visible;
-}
-
-/* SVG Internal Styles */
-.spiral-track-base {
-    fill: none;
-    stroke: #333; 
-    stroke-width: 12;
-    stroke-linecap: round;
-}
-
-.spiral-segment {
-    fill: none;
-    stroke-width: 12;
-    stroke-linecap: butt; 
-}
-
-/* The layer that hides the colors until dragged */
-.spiral-reveal-mask {
-    fill: none;
-    /* IMPORTANT: This must match the page background to be "transparent" */
-    stroke: var(--color-bg); 
-    stroke-width: 14; /* Slightly wider to ensure full coverage */
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.05s linear; 
-}
-
-.spiral-knob {
-    fill: white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    pointer-events: none; 
-}
+.char:nth-child(11) { --char-index: 11; }
+.char:nth-child(12) { --char-index: 12; }
