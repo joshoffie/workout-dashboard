@@ -833,7 +833,7 @@ function redrawSpiral() {
         const t = (curr.timestamp - oldestTime) / timeSpan;
         const p = getSpiralPoint(t, 0);
         
-        // --- NEW: CALCULATE MARKER LENGTH ON PATH ---
+        // --- CALCULATE MARKER LENGTH ON PATH ---
         let bestWpLen = 0; 
         let minWpDist = Infinity;
         for(let lp of spiralState.hitPathLookup) {
@@ -841,7 +841,6 @@ function redrawSpiral() {
             if(d < minWpDist) { minWpDist = d; bestWpLen = lp.len; }
         }
         
-        // Store "len" (path distance) instead of just X/Y for lookup
         spiralState.workoutVisualPoints.push({ 
             x: p.x, 
             y: p.y, 
@@ -854,7 +853,9 @@ function redrawSpiral() {
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
         circle.setAttribute("class", "workout-marker");
-        // REMOVED ANIMATION LINES HERE
+        
+        // FIXED: Removed animation lines here. They are now static and visible by default.
+        
         spiralState.markersGroup.appendChild(circle);
 
         if(i === spiralState.visibleHistory.length - 1) return;
