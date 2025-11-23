@@ -793,6 +793,8 @@ function setSpiralRange(range) {
     redrawSpiral();
 }
 
+// ... (Keep everything up to redrawSpiral unchanged) ...
+
 function redrawSpiral() {
     if (!spiralState.svg) return;
     spiralState.segmentsGroup.innerHTML = '';
@@ -843,7 +845,7 @@ function redrawSpiral() {
         spiralState.workoutVisualPoints.push({ 
             x: p.x, 
             y: p.y, 
-            len: bestWpLen, // Crucial for "track hopping" fix
+            len: bestWpLen, 
             index: i, 
             data: curr 
         });
@@ -852,8 +854,7 @@ function redrawSpiral() {
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
         circle.setAttribute("class", "workout-marker");
-        circle.style.animation = `fadeIn 0.5s ease-out forwards`;
-        circle.style.animationDelay = `${(i / spiralState.visibleHistory.length) + 0.5}s`;
+        // REMOVED ANIMATION LINES HERE
         spiralState.markersGroup.appendChild(circle);
 
         if(i === spiralState.visibleHistory.length - 1) return;
@@ -883,6 +884,8 @@ function redrawSpiral() {
 
     updateBallToLen(spiralState.totalLen);
 }
+
+// ... (Keep the rest of the file unchanged) ...
 
 function updateSpiralData(sets) {
     initSpiralElements();
