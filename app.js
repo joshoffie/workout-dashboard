@@ -919,9 +919,7 @@ function getClosestDataIdx(currentLen) {
         if(dist < minDist) { minDist = dist; bestIdx = wp.index; }
     });
     
-    // STRICT THRESHOLD: Only snap if within 15 units (approx pixels) along the wire
-    if (minDist > 15) return -1;
-    
+    // STRICT THRESHOLD removed. Always return bestIdx.
     return bestIdx;
 }
 
@@ -939,22 +937,9 @@ function updateBallToLen(len) {
 }
 
 function updateDataByIndex(idx) {
-    // Handle "Ghost" state (no nearby dot)
+    // Removed "Ghost" state logic. Always update if index is valid.
     if (idx === -1 || !spiralState.visibleHistory[idx]) {
-        document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
-        spiralState.dateDisplay.textContent = "History";
-        
-        // Reset banner to "empty" or "neutral" state
-        updateStatUI('sets', 0, 0);
-        updateStatUI('reps', 0, 0);
-        updateStatUI('volume', 0, 0);
-        updateStatUI('wpr', 0, 0);
-        
-        // Manually override text to dashes
-        document.getElementById('setsData').textContent = "--";
-        document.getElementById('repsData').textContent = "--";
-        document.getElementById('volumeData').textContent = "--";
-        document.getElementById('wprData').textContent = "--";
+        // Fallback just in case no data exists at all
         return;
     }
 
