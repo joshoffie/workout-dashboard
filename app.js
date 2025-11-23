@@ -781,9 +781,10 @@ function setSpiralRange(range) {
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     spiralState.visibleHistory = spiralState.fullHistory.filter(w => w.timestamp >= cutoff);
 
+    // FIX 2: Adjusted math for "All" to prevent overlap
     if (range === 'all') {
-        spiralState.RADIAL_PITCH = 45; 
-        spiralState.TURNS = 3.8; 
+        spiralState.RADIAL_PITCH = 52; // Increased gap (was 45)
+        spiralState.TURNS = 3.2;       // Reduced turns (was 3.8) to stay in bounds
     } else {
         spiralState.RADIAL_PITCH = 90;
         if (range === '4w') spiralState.TURNS = 1.3;
@@ -792,6 +793,9 @@ function setSpiralRange(range) {
     }
     redrawSpiral();
 }
+
+function redrawSpiral() {
+    if (!spiralState.svg) return;
 
 // ... (Keep everything above redrawSpiral unchanged) ...
 
