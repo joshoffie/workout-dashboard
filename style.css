@@ -97,7 +97,7 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   list-style: none; 
   width: 100%; 
   padding: 0 1rem; 
-  padding-top: 1rem; /* Reduced from 7rem to 1rem */
+  padding-top: 2rem; /* Reduced from 7rem to 1rem */
 }
 .item-list li {
   font-size: 1.1rem; font-weight: 500; padding: 1.25rem 1rem; border-bottom: 1px solid var(--color-border);
@@ -192,7 +192,7 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 .card-header .btn-primary, .card-header .btn-group { grid-column: 3; justify-self: end; }
 .card-header .btn-group { flex-wrap: nowrap; width: auto; }
 #setsDiv .sets-content-wrapper { 
-  margin-top: 1rem; /* Drastically reduced from 11rem to match the top gap */
+  margin-top: 2rem; /* Drastically reduced from 11rem to match the top gap */
 }
 
 @keyframes move-back-and-forth {
