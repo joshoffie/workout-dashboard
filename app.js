@@ -711,7 +711,7 @@ const spiralState = {
     workoutVisualPoints: [],
     totalLen: 0,
     isDragging: false,
-    currentRange: 'all',
+    currentRange: '8w', // Updated default to 8w [cite: 271]
     CX: 250, CY: 250, START_RADIUS: 30,
     OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
     RADIAL_PITCH: 45, TURNS: 3.8
