@@ -250,8 +250,12 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 /* ===== ANIMATED TITLE STYLES ===== */
 .animated-title {
   font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.75rem; color: var(--color-text);
-  text-align: center; line-height: 36px; position: relative; user-select: none; display: block;
-  margin: 0; grid-column: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-align: center;
+  line-height: 36px; position: relative; user-select: none; display: block;
+  margin: 0; grid-column: 2; white-space: nowrap; 
+  
+  /* FIXED: Allow animations to spill outside the box */
+  overflow: visible; 
 }
 .char { display: inline-block; transition: color 0.3s ease; }
 #exerciseSetsTitleSpan .char { display: inline-block; transition: color 0.3s ease; }
