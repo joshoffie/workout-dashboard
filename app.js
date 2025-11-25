@@ -924,17 +924,45 @@ function redrawSpiral() {
 
     function drawSeg(v1, v2, t1, t2, offset, delay) {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getSegmentD(t1, t2, offset));
+        
+        // Use the HD curve generator we fixed earlier
+        path.setAttribute('d', getSegmentD(t1, t2, offset)); 
         path.setAttribute('class', 'spiral-segment');
-        path.style.animation = `drawInSegment 0.4s ease-out forwards`;
-        path.style.animationDelay = `${delay}s`;
         
+        // --- SPEED LOGIC ---
+        // Green (Increase) = 0.5s (Fast Sprint)
+        // Yellow (Neutral) = 1.2s (Jog)
+        // Red (Decrease)   = 2.5s (Slow Walk)
+        let speed = 1.2; 
         const epsilon = 0.01;
-        if (v2 > v1 + epsilon) path.classList.add('seg-increase');
-        else if (v2 < v1 - epsilon) path.classList.add('seg-decrease');
-        else path.classList.add('seg-neutral');
         
+        if (v2 > v1 + epsilon) {
+            path.classList.add('seg-increase');
+            speed = 0.5; 
+        } else if (v2 < v1 - epsilon) {
+            path.classList.add('seg-decrease');
+            speed = 2.5; 
+        } else {
+            path.classList.add('seg-neutral');
+            speed = 1.2; 
+        }
+
+        // Add the path to the SVG group so we can measure it
         spiralState.segmentsGroup.appendChild(path);
+
+        // --- THE "SELF-DRAWING" TRICK ---
+        // 1. Measure the exact length of this curved line
+        const len = path.getTotalLength();
+        
+        // 2. Create a "gap" (dash) in the line that is exactly the length of the line
+        // This makes the line invisible initially
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+
+        // 3. Animate the offset to 0, which makes the line appear to "grow"
+        // We multiply delay by 0.5 to make the whole spiral load faster
+        path.style.animation = `drawSpiralStroke ${speed}s ease-out forwards`;
+        path.style.animationDelay = `${delay * 0.5}s`; 
     }
 
     updateBallToLen(spiralState.totalLen);
