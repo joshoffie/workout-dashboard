@@ -329,9 +329,18 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visible; 
     /* FIX: Removed touch-action: none here to allow scrolling */
 }
-@keyframes drawInSegment { from { opacity: 0; } to { opacity: 0.9; } }
+@keyframes drawSpiralStroke {
+  to { stroke-dashoffset: 0; }
+}
+
+/* UPDATE .spiral-segment to be visible (opacity handled by stroke) */
 .spiral-segment {
-    fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: 0;
+    fill: none; 
+    stroke-width: 4; 
+    stroke-linecap: round; 
+    stroke-linejoin: round;
+    /* Remove opacity: 0 here so the stroke logic works */
+    opacity: 0.9; 
 }
 .seg-increase { stroke: var(--color-green); }
 .seg-decrease { stroke: var(--color-red); }
