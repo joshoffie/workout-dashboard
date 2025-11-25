@@ -727,6 +727,7 @@ function initSpiralElements() {
     spiralState.markersGroup = document.getElementById('markersGroup');
     spiralState.timeBall = document.getElementById('timeBall');
     spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
+    spiralState.slider = document.getElementById('spiralSlider');
 
     // Pointer Events
     if (spiralState.hitPath) {
@@ -734,6 +735,18 @@ function initSpiralElements() {
         spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
         spiralState.hitPath.addEventListener('pointerup', handleSpiralEnd);
         spiralState.hitPath.addEventListener('pointercancel', handleSpiralEnd);
+    }
+
+  // NEW: Slider Listener
+    if (spiralState.slider) {
+        spiralState.slider.addEventListener('input', (e) => {
+            // Convert slider value (0-1000) to path length
+            const val = parseFloat(e.target.value);
+            const len = (val / 1000) * spiralState.totalLen;
+            
+            // Move ball but tell it NOT to update the slider (to avoid loop)
+            updateBallToLen(len, false); 
+        });
     }
 
     // Filter Buttons
@@ -1033,16 +1046,31 @@ function getClosestDataIdx(currentLen) {
     return bestIdx;
 }
 
-function updateBallToLen(len) {
+function updateBallToLen(len, syncSlider = true) {
+    if (!spiralState.hitPath) return;
+
+    // Ensure len is within bounds
+    if (len < 0) len = 0;
+    if (len > spiralState.totalLen) len = spiralState.totalLen;
+
     const pt = spiralState.hitPath.getPointAtLength(len);
+    
+    // Move the ball
     spiralState.timeBall.style.display = 'block'; 
     spiralState.timeBall.setAttribute('cx', pt.x);
     spiralState.timeBall.setAttribute('cy', pt.y);
     
+    // Update Data
     if (spiralState.workoutVisualPoints.length > 0) {
-        // Pass LENGTH (position on line) instead of X/Y coords
         const idx = getClosestDataIdx(len);
         updateDataByIndex(idx);
+    }
+
+    // NEW: Sync Slider Position
+    // We update the slider unless the user is currently dragging it (syncSlider = false)
+    if (syncSlider && spiralState.slider && spiralState.totalLen > 0) {
+        const sliderVal = (len / spiralState.totalLen) * 1000;
+        spiralState.slider.value = sliderVal;
     }
 }
 
