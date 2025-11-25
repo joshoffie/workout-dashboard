@@ -794,7 +794,8 @@ function getSpiralPoint(t, offset) {
 
 function getSegmentD(tStart, tEnd, offset) {
     let d = "";
-    const steps = 30; 
+    // CHANGED: Increased from 30 to 150 for HD curves
+    const steps = 150; 
     for(let i=0; i<=steps; i++) {
         const t = tStart + (i/steps) * (tEnd - tStart);
         const p = getSpiralPoint(t, offset);
@@ -805,7 +806,8 @@ function getSegmentD(tStart, tEnd, offset) {
 
 function getFullSpiralD(offset) {
     let d = "";
-    const points = 300;
+    // CHANGED: Increased from 300 to 1000 for HD background
+    const points = 1000;
     for(let i=0; i<=points; i++) {
         const t = i/points;
         const p = getSpiralPoint(t, offset);
@@ -861,7 +863,8 @@ function redrawSpiral() {
     
     // Hit lookup
     spiralState.hitPathLookup = [];
-    const res = 300; 
+    // CHANGED: Increased from 300 to 1000 to match the visual smoothness
+    const res = 1000; 
     for(let i=0; i<=res; i++) {
         const l = (i/res) * spiralState.totalLen;
         const pt = spiralState.hitPath.getPointAtLength(l);
