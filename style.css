@@ -240,7 +240,11 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
   92.8% { transform: rotate(-720deg) translate(1px, 2px); } 100% { transform: rotate(-720deg) translate(0, 0); }
 }
 #logo-arrow { animation: bounce 1.4s infinite; }
-#logo-t, #logo-r, #logo-u, #logo-n, #logo-k { transform-box: fill-box; transform-origin: center; }
+#logo-t, #logo-r, #logo-u, #logo-n, #logo-k { 
+  /* transform-box: fill-box; REMOVED */
+  transform-origin: center; 
+  transform-box: view-box; /* Optional: explicit default */
+}
 #logo-t { animation: master-spin-float-loop 10s 0.4s infinite ease-in-out; transform-origin: 12px 22px; }
 #logo-u { animation: master-spin-float-loop 10s 0.1s infinite ease-in-out; transform-origin: 59px 22px; }
 #logo-k { animation: master-spin-float-loop 10s 0.5s infinite ease-in-out; transform-origin: 114px 22px; }
