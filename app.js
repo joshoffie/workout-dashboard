@@ -858,125 +858,140 @@ function redrawSpiral() {
     document.getElementById('bgTrack2').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.reps));
     document.getElementById('bgTrack3').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.vol));
     document.getElementById('bgTrack4').setAttribute('d', getFullSpiralD(spiralState.OFFSETS.wpr));
-    
+
     // 3. Setup Hit Path (HD)
     const hitD = getFullSpiralD(0);
     spiralState.hitPath.setAttribute('d', hitD);
     spiralState.totalLen = spiralState.hitPath.getTotalLength();
     
-    // Recalculate hit lookup for dragging
+    // Hit lookup
     spiralState.hitPathLookup = [];
-    const res = 1000; // HD Resolution
+    const res = 1000;
     for(let i=0; i<=res; i++) {
         const l = (i/res) * spiralState.totalLen;
         const pt = spiralState.hitPath.getPointAtLength(l);
         spiralState.hitPathLookup.push({ len: l, x: pt.x, y: pt.y });
     }
 
-    if (spiralState.visibleHistory.length === 0) {
+    if (!spiralState.visibleHistory || spiralState.visibleHistory.length === 0) {
          updateBallToLen(0);
          return;
     }
 
-    // 4. Time Calculation
+    // 4. Setup Time & Data
     const oldestTime = spiralState.visibleHistory[0].timestamp;
     const newestTime = spiralState.visibleHistory[spiralState.visibleHistory.length-1].timestamp;
     const timeSpan = newestTime - oldestTime || 1;
     spiralState.workoutVisualPoints = [];
 
-    // --- NEW: CUMULATIVE DELAY TRACKERS ---
-    // These track exactly when the "pen" is finished drawing the previous segment
-    let delays = { sets: 0, reps: 0, vol: 0, wpr: 0 };
-    
-    // --- NEW: TIME SCALING ---
-    [cite_start]// We want the total animation to take roughly 4 seconds[cite: 13].
-    // We calculate a "Base Unit" of time based on how many segments we have.
+    // Scale animation speed: Ensure total race takes ~3.5s regardless of history length
     const totalSegments = spiralState.visibleHistory.length;
-    // If we have many segments, the base unit is small (fast). 
-    // If few segments, base unit is larger (slower).
-    const baseUnit = 3.5 / (totalSegments || 1); 
+    const baseUnit = 3.5 / (totalSegments || 1);
 
-    // 5. Loop and Draw
+    // 5. Generate Segments (BUT DO NOT MEASURE/ANIMATE YET)
+    // We categorize segments into "tracks" to animate them independently
+    const tracks = { sets: [], reps: [], vol: [], wpr: [] };
+
     spiralState.visibleHistory.forEach((curr, i) => {
         const t = (curr.timestamp - oldestTime) / timeSpan;
         const p = getSpiralPoint(t, 0);
         
-        // Calculate marker position
+        // Marker Logic
         let bestWpLen = 0; 
         let minWpDist = Infinity;
         for(let lp of spiralState.hitPathLookup) {
             const d = (lp.x - p.x)**2 + (lp.y - p.y)**2;
             if(d < minWpDist) { minWpDist = d; bestWpLen = lp.len; }
         }
-        
-        spiralState.workoutVisualPoints.push({ 
-            x: p.x, y: p.y, len: bestWpLen, index: i, data: curr 
-        });
+        spiralState.workoutVisualPoints.push({ x: p.x, y: p.y, len: bestWpLen, index: i, data: curr });
 
-        // Markers (Static)
+        // Static Marker
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", p.x);
         circle.setAttribute("cy", p.y);
         circle.setAttribute("class", "workout-marker");
         spiralState.markersGroup.appendChild(circle);
 
-        // Stop if this is the last point (no segment to draw to next)
         if(i === spiralState.visibleHistory.length - 1) return;
 
         const next = spiralState.visibleHistory[i+1];
         const tEnd = (next.timestamp - oldestTime) / timeSpan;
 
-        // Draw the 4 lines, updating the cumulative delay for each track independently
-        // This ensures that if the "Volume" line gets red (slow), it physically falls behind the others visually
-        delays.sets += drawSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, delays.sets, baseUnit);
-        delays.reps += drawSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, delays.reps, baseUnit);
-        delays.vol  += drawSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, delays.vol, baseUnit);
-        delays.wpr  += drawSeg(curr.wpr, next.wpr, t, tEnd, spiralState.OFFSETS.wpr, delays.wpr, baseUnit);
+        // Create the 4 segment paths but keep them "un-drawn"
+        // We push them to our `tracks` object to animate later
+        tracks.sets.push(createSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, baseUnit));
+        tracks.reps.push(createSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, baseUnit));
+        tracks.vol.push(createSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, baseUnit));
+        tracks.wpr.push(createSeg(curr.wpr, next.wpr, t, tEnd, spiralState.OFFSETS.wpr, baseUnit));
     });
 
-    // 6. Updated Draw Function
-    function drawSeg(v1, v2, t1, t2, offset, startDelay, baseTime) {
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getSegmentD(t1, t2, offset));
-        path.setAttribute('class', 'spiral-segment');
-        
-        // --- PACE LOGIC ---
-        // Green (Increase) = 0.4x Speed (Sprinting)
-        // Yellow (Neutral) = 1.0x Speed (Jogging)
-        // Red (Decrease)   = 2.5x Speed (Struggling)
-        let speedFactor = 1.0;
-        const epsilon = 0.01;
-        
-        if (v2 > v1 + epsilon) {
-            path.classList.add('seg-increase');
-            speedFactor = 0.4; 
-        } else if (v2 < v1 - epsilon) {
-            path.classList.add('seg-decrease');
-            speedFactor = 2.5; 
-        } else {
-            path.classList.add('seg-neutral');
-            speedFactor = 1.0; 
-        }
-
-        // Calculate exact duration for this specific segment
-        const duration = baseTime * speedFactor;
-
-        spiralState.segmentsGroup.appendChild(path);
-
-        // Stroke Dash Trick
-        const len = path.getTotalLength();
-        path.style.strokeDasharray = len;
-        path.style.strokeDashoffset = len;
-        
-        [cite_start]// Use 'linear' ease so the line doesn't stop/start at every joint [cite: 5]
-        path.style.animation = `drawSpiralStroke ${duration}s linear forwards`;
-        path.style.animationDelay = `${startDelay}s`;
-        
-        // Return the duration so we can add it to the cumulative timer
-        return duration;
-    }
-
     updateBallToLen(spiralState.totalLen);
+
+    // 6. Start the "Race" (Recursive Animation)
+    // This runs 4 independent loops safely
+    runTrack(tracks.sets);
+    runTrack(tracks.reps);
+    runTrack(tracks.vol);
+    runTrack(tracks.wpr);
+}
+
+// --- HELPER: Create Segment DOM Node (Fast, No Measuring) ---
+function createSeg(v1, v2, t1, t2, offset, baseUnit) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute('d', getSegmentD(t1, t2, offset));
+    path.setAttribute('class', 'spiral-segment');
+    
+    // Determine Color & Speed
+    const epsilon = 0.01;
+    let speedFactor = 1.0;
+
+    if (v2 > v1 + epsilon) {
+        path.classList.add('seg-increase');
+        speedFactor = 0.4; // Fast
+    } else if (v2 < v1 - epsilon) {
+        path.classList.add('seg-decrease');
+        speedFactor = 2.5; // Slow
+    } else {
+        path.classList.add('seg-neutral');
+        speedFactor = 1.0; 
+    }
+    
+    // Hide initially using opacity
+    path.style.opacity = '0';
+    spiralState.segmentsGroup.appendChild(path);
+
+    // Return data needed for the runner
+    return { 
+        el: path, 
+        duration: baseUnit * speedFactor 
+    };
+}
+
+// --- HELPER: Recursive Runner (Safe, No Crashes) ---
+function runTrack(segments, index = 0) {
+    if (index >= segments.length) return;
+
+    const segment = segments[index];
+    const path = segment.el;
+
+    // 1. Measure NOW (One measurement per animation frame = No Crash)
+    const len = path.getTotalLength();
+
+    // 2. Setup Stroke Dash for drawing effect
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.style.opacity = '0.9'; // Make visible now that we are ready to draw
+
+    // 3. Animate using Web Animations API (Cleaner than CSS classes for dynamic duration)
+    const animation = path.animate(
+        [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+        { duration: segment.duration * 1000, fill: 'forwards', easing: 'linear' }
+    );
+
+    // 4. When this segment finishes, trigger the next one
+    animation.onfinish = () => {
+        runTrack(segments, index + 1);
+    };
 }
 
 function updateSpiralData(sets) {
