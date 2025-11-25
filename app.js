@@ -924,44 +924,21 @@ function redrawSpiral() {
 
     function drawSeg(v1, v2, t1, t2, offset, delay) {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        
-        // Ensure we keep the High-Def curves from the previous step
-        path.setAttribute('d', getSegmentD(t1, t2, offset)); 
+        path.setAttribute('d', getSegmentD(t1, t2, offset));
         path.setAttribute('class', 'spiral-segment');
+        path.style.animation = `drawInSegment 0.4s ease-out forwards`;
+        path.style.animationDelay = `${delay}s`;
         
-        // 1. Assign Colors & Determine "Race Speed"
-        // Green = Fast (0.5s), Yellow = Medium (1.2s), Red = Slow (2.5s)
-        let speed = 1.2; 
         const epsilon = 0.01;
+        if (v2 > v1 + epsilon) path.classList.add('seg-increase');
+        else if (v2 < v1 - epsilon) path.classList.add('seg-decrease');
+        else path.classList.add('seg-neutral');
         
-        if (v2 > v1 + epsilon) {
-            path.classList.add('seg-increase');
-            speed = 0.5; // Fast!
-        } else if (v2 < v1 - epsilon) {
-            path.classList.add('seg-decrease');
-            speed = 2.5; // Dragging/Slow
-        } else {
-            path.classList.add('seg-neutral');
-            speed = 1.2; // Normal
-        }
-
         spiralState.segmentsGroup.appendChild(path);
-
-        // 2. The "Self-Drawing" Trick
-        // We calculate the length of the line we just drew
-        const len = path.getTotalLength();
-        
-        // We set the dash array and offset to that length
-        // This effectively makes the line "invisible" because the dash gap covers the whole line
-        path.style.strokeDasharray = len;
-        path.style.strokeDashoffset = len;
-
-        // 3. Trigger the Animation
-        // We compress the delay slightly (delay * 0.5) so the race feels more dynamic
-        // The animation eases out the offset to 0, revealing the line
-        path.style.animation = `drawSpiralStroke ${speed}s ease-out forwards`;
-        path.style.animationDelay = `${delay * 0.5}s`; 
     }
+
+    updateBallToLen(spiralState.totalLen);
+}
 
 function updateSpiralData(sets) {
     initSpiralElements();
