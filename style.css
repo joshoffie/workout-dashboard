@@ -414,3 +414,60 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 .stat-data.increase { color: var(--color-green); }
 .stat-data.decrease { color: var(--color-red); }
 .stat-data.neutral { color: var(--color-yellow); }
+
+/* ===== SLIDER STYLES ===== */
+.spiral-slider {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 300px;
+    z-index: 20;
+    -webkit-appearance: none; /* Remove default styling */
+    background: transparent;
+    height: 6px;
+    cursor: pointer;
+}
+
+/* The Track (Background Line) */
+.spiral-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+/* The Thumb (Draggable Circle) */
+.spiral-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--color-primary);
+    margin-top: -7px; /* Centers thumb on the track */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+}
+
+.spiral-slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+    background: var(--color-primary);
+}
+
+/* Firefox Support */
+.spiral-slider::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 10px;
+}
+.spiral-slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border: 2px solid var(--color-primary);
+    border-radius: 50%;
+    background: #ffffff;
+}
