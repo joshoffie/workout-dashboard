@@ -570,7 +570,8 @@ const spiralState = {
     fullHistory: [], visibleHistory: [], hitPathLookup: [], workoutVisualPoints: [],
     totalLen: 0, isDragging: false, currentRange: '8w',
     CX: 250, CY: 250, START_RADIUS: 30, OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
-    RADIAL_PITCH: 45, TURNS: 3.8
+    RADIAL_PITCH: 45, TURNS: 3.8,
+    slider: null
 };
 
 function initSpiralElements() {
@@ -581,6 +582,13 @@ function initSpiralElements() {
     spiralState.markersGroup = document.getElementById('markersGroup');
     spiralState.timeBall = document.getElementById('timeBall');
     spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
+    
+    // RESTORED SLIDER HOOK
+    spiralState.slider = document.getElementById('spiralSlider');
+    if(spiralState.slider) {
+        spiralState.slider.addEventListener('input', handleSliderMove);
+    }
+
     if (spiralState.hitPath) {
         spiralState.hitPath.addEventListener('pointerdown', handleSpiralStart);
         spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
@@ -781,6 +789,14 @@ function updateBallToLen(len) {
     const pt = spiralState.hitPath.getPointAtLength(len);
     spiralState.timeBall.style.display = 'block'; 
     spiralState.timeBall.setAttribute('cx', pt.x); spiralState.timeBall.setAttribute('cy', pt.y);
+    
+    // SYNC SLIDER
+    if(spiralState.slider && spiralState.totalLen > 0) {
+        // Map length 0..totalLen -> 0..100
+        const val = (len / spiralState.totalLen) * 100;
+        spiralState.slider.value = val;
+    }
+
     if (spiralState.workoutVisualPoints.length > 0) {
         const idx = getClosestDataIdx(len);
         updateDataByIndex(idx);
@@ -804,6 +820,13 @@ function updateDataByIndex(idx) {
 const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
 const handleSpiralMove = (e) => { if(!spiralState.isDragging) return; e.preventDefault(); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
 const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralState.isDragging = false; spiralState.hitPath.releasePointerCapture(e.pointerId); }
+
+// NEW SLIDER HANDLER
+const handleSliderMove = (e) => {
+    const val = parseFloat(e.target.value);
+    const len = (val / 100) * spiralState.totalLen;
+    updateBallToLen(len);
+}
 
 
 // ------------------ SETS ------------------
