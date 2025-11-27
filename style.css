@@ -1,3 +1,18 @@
+/* ===== HEADER ===== */
+.app-header {
+  background-color: var(--color-card); 
+  
+  /* UPDATED: Add dynamic top padding for iOS Safe Area */
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: 1rem;
+  padding-left: 1.5rem; 
+  padding-right: 1.5rem;
+  
+  border-bottom: 1px solid var(--color-border); 
+  position: sticky; top: 0; z-index: 100;
+}
+/* ... rest of style.css (Keep everything else the same) ... */
+
 /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
   /* Dark Mode Palette */
