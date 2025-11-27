@@ -50,7 +50,6 @@ function navigateTo(targetScreenId, direction = 'forward') {
   
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
-  // Re-render to trigger animations
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -366,7 +365,7 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
-// ------------------ RENDER CLIENTS, SESSIONS, EXERCISES ------------------
+// ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
@@ -565,7 +564,7 @@ function selectExercise(idx) {
   document.getElementById("graphContainer").classList.add("hidden");
 }
 
-// ------------------ SPIRAL WIDGET ------------------
+// ------------------ SPIRAL WIDGET LOGIC ------------------
 const spiralState = {
     svg: null, hitPath: null, segmentsGroup: null, markersGroup: null, timeBall: null, dateDisplay: null,
     fullHistory: [], visibleHistory: [], hitPathLookup: [], workoutVisualPoints: [],
@@ -882,7 +881,6 @@ function renderSets() {
 // ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
 const chartState = {
     range: '12w',
-    // Updated default metrics: Reps & W/R active
     metrics: { wpr: true, reps: true, volume: false, sets: false },
     dataPoints: [],
     width: 0, height: 0
@@ -907,7 +905,6 @@ function initChart() {
     chartState.height = stage.clientHeight;
 }
 
-// UPDATED: Aggregates sets by day (sum reps, sum vol, count sets, avg W/R)
 function getChartData() {
     const now = new Date().getTime();
     let days = 3650;
@@ -916,42 +913,28 @@ function getChartData() {
     if(chartState.range === '12w') days = 84;
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     
-    // 1. Group sets by Day string
+    // Group sets by Day
     const dayMap = {};
     selectedExercise.sets.forEach(s => {
         const time = new Date(s.timestamp).getTime();
         if (time < cutoff) return;
         
-        const dateKey = new Date(s.timestamp).toDateString(); // "Fri Nov 28 2025"
+        const dateKey = new Date(s.timestamp).toDateString();
         if (!dayMap[dateKey]) {
-            dayMap[dateKey] = { 
-                timestamp: time, 
-                reps: 0, vol: 0, sets: 0 
-            };
+            dayMap[dateKey] = { timestamp: time, reps: 0, vol: 0, sets: 0 };
         }
-        
-        // Accumulate
         dayMap[dateKey].reps += (parseInt(s.reps) || 0);
         dayMap[dateKey].vol += (parseFloat(s.volume) || 0);
         dayMap[dateKey].sets += 1;
     });
 
-    // 2. Convert to Array and Calculate Avg W/R
     const points = Object.values(dayMap).map(d => {
-        // W/R = Total Vol / Total Reps
         const wpr = d.reps > 0 ? d.vol / d.reps : 0;
-        return { 
-            timestamp: d.timestamp, 
-            vol: d.vol, 
-            reps: d.reps, 
-            sets: d.sets, 
-            wpr: wpr 
-        };
+        return { timestamp: d.timestamp, vol: d.vol, reps: d.reps, sets: d.sets, wpr: wpr };
     }).sort((a,b) => a.timestamp - b.timestamp);
 
     if(points.length === 0) return [];
 
-    // 3. Normalize
     let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0; 
     points.forEach(p => {
         if(p.reps > maxReps) maxReps = p.reps;
@@ -979,6 +962,7 @@ function getChartData() {
     });
 }
 
+// UPDATED: Added Sprint Animation Logic
 function drawChart() {
     chartState.dataPoints = getChartData();
     const points = chartState.dataPoints;
@@ -1015,6 +999,21 @@ function drawChart() {
                 circle.dataset.idx = idx; 
                 pointsGroup.appendChild(circle);
             });
+            
+            // TRIGGER SPRINT ANIMATION
+            const len = el.getTotalLength();
+            el.style.strokeDasharray = len;
+            el.style.strokeDashoffset = len;
+            // Using WAAPI for smooth JS control
+            el.animate([
+                { strokeDashoffset: len },
+                { strokeDashoffset: 0 }
+            ], {
+                duration: 1000,
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)', // Fast sprint start, ease out
+                fill: 'forwards'
+            });
+
         } else {
             el.classList.remove('active');
         }
@@ -1041,7 +1040,6 @@ const handleInteraction = (clientX) => {
     if (closestIdx !== -1) updateDetailView(closestIdx);
 };
 
-// FIX: Added touchstart to handle initial tap reliably on mobile
 touchLayer.addEventListener('mousemove', (e) => handleInteraction(e.clientX));
 touchLayer.addEventListener('touchmove', (e) => { e.preventDefault(); handleInteraction(e.touches[0].clientX); }, { passive: false });
 touchLayer.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e.touches[0].clientX); }, { passive: false });
@@ -1057,20 +1055,15 @@ function updateDetailView(idx) {
         if (parseInt(c.dataset.idx) === idx) c.classList.add('active');
     });
 
-    // Populate Top Header (Setgraph style)
-    const raw = p.data; // Now holds {reps, vol, sets, wpr, timestamp}
+    const raw = p.data; 
     const dateStr = new Date(raw.timestamp).toLocaleDateString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric'
     });
     
-    // Primary Row
     document.getElementById('headerReps').textContent = raw.reps;
     document.getElementById('headerWpr').textContent = raw.wpr.toFixed(1);
-    
-    // Secondary Row
     document.getElementById('headerSets').textContent = raw.sets;
     document.getElementById('headerVol').textContent = raw.vol;
-    
     document.getElementById('headerDate').textContent = dateStr;
 }
 
@@ -1109,20 +1102,14 @@ function aggregateStats(setsArray) {
 }
 function formatNum(num) { if (num % 1 === 0) return num.toString(); return num.toFixed(1); }
 
-// UPDATED: Restored Arrow Characters
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral'); 
   const dataEl = document.getElementById(statName + 'Data');
   if (!arrowEl || !dataEl) return 'neutral';
-  
   const status = calculateStatStatus(currentValue, previousValue);
-  
-  // FIX: Explicitly set arrow characters instead of empty strings
   let arrow = '—';
-  if (status === 'increase') arrow = '↑'; 
-  else if (status === 'decrease') arrow = '↓';
-  
+  if (status === 'increase') arrow = '↑'; else if (status === 'decrease') arrow = '↓';
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
@@ -1145,7 +1132,6 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.classList.remove(...classesToRemove); dataEl.classList.add(status);
   return status;
 }
-
 function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
   if (!selectedExercise) return;
