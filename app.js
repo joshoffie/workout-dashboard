@@ -1023,7 +1023,7 @@ function drawChart() {
                 pointsGroup.appendChild(circle);
             });
             
-            // TRIGGER SPRINT ANIMATION
+            // TRIGGER SPRINT ANIMATION (SLOWER)
             const len = el.getTotalLength();
             el.style.strokeDasharray = len;
             el.style.strokeDashoffset = len;
@@ -1032,7 +1032,7 @@ function drawChart() {
                 { strokeDashoffset: len },
                 { strokeDashoffset: 0 }
             ], {
-                duration: 1000,
+                duration: 2000, // Changed to 2000ms
                 easing: 'cubic-bezier(0.25, 1, 0.5, 1)', // Fast sprint start, ease out
                 fill: 'forwards'
             });
