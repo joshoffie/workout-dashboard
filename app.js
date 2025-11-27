@@ -27,9 +27,6 @@ const ANIMATION_CLASSES = {
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
 
-// Global state
-let currentAnimationClass = 'calm-1'; 
-
 function getRandomAnimationClass(mood) {
   const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
   return classes[Math.floor(Math.random() * classes.length)];
@@ -84,22 +81,16 @@ function navigateTo(targetScreenId, direction = 'forward') {
 
 // --- Wire up Back Buttons ---
 document.getElementById('backToClientsBtn').onclick = () => {
-  selectedClient = null;
-  selectedSession = null;
-  selectedExercise = null;
-  renderClients();
-  navigateTo(SCREENS.CLIENTS, 'back');
+  selectedClient = null; selectedSession = null; selectedExercise = null;
+  renderClients(); navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
-  selectedSession = null;
-  selectedExercise = null;
-  renderSessions();
-  navigateTo(SCREENS.SESSIONS, 'back');
+  selectedSession = null; selectedExercise = null;
+  renderSessions(); navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
   selectedExercise = null;
-  renderExercises();
-  navigateTo(SCREENS.EXERCISES, 'back');
+  renderExercises(); navigateTo(SCREENS.EXERCISES, 'back');
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
   navigateTo(SCREENS.SETS, 'back');
@@ -146,25 +137,15 @@ modalLoginBtn.onclick = async () => {
   }
 };
 
-logoutBtn.onclick = async () => {
-  await auth.signOut();
-};
+logoutBtn.onclick = async () => { await auth.signOut(); };
 
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
   deleteModal.classList.remove('hidden');
-  deleteConfirmBtn.addEventListener('click', () => {
-    onConfirm();
-    hideDeleteConfirm();
-  }, { once: true });
-  deleteCancelBtn.addEventListener('click', () => {
-    hideDeleteConfirm();
-  }, { once: true });
+  deleteConfirmBtn.addEventListener('click', () => { onConfirm(); hideDeleteConfirm(); }, { once: true });
+  deleteCancelBtn.addEventListener('click', () => { hideDeleteConfirm(); }, { once: true });
 }
-
-function hideDeleteConfirm() {
-  deleteModal.classList.add('hidden');
-}
+function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
 
 // ------------------ FIRESTORE DATA ------------------
@@ -172,13 +153,8 @@ async function loadUserJson() {
   const uid = auth.currentUser.uid;
   const docRef = db.collection("clients").doc(uid);
   const docSnap = await docRef.get();
-
-  if (docSnap.exists) {
-    clientsData = docSnap.data();
-  } else {
-    clientsData = {};
-    await docRef.set(clientsData);
-  }
+  if (docSnap.exists) clientsData = docSnap.data();
+  else { clientsData = {}; await docRef.set(clientsData); }
 }
 
 async function saveUserJson() {
@@ -188,7 +164,6 @@ async function saveUserJson() {
 }
 
 // ------------------ ANIMATED TITLE HELPERS ------------------
-
 function setTextAsChars(element, text) {
   element.innerHTML = '';
   if (!text || text.trim() === '') {
@@ -202,27 +177,19 @@ function setTextAsChars(element, text) {
     const span = document.createElement('span');
     span.className = 'char';
     span.textContent = char;
-    if (char === ' ') {
-        span.innerHTML = '&nbsp;';
-    }
+    if (char === ' ') span.innerHTML = '&nbsp;';
     element.appendChild(span);
   }
 }
 
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
-
   setTextAsChars(element, text);
 
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
   
-  const allClasses = [
-    ...ANIMATION_CLASSES.happy, 
-    ...ANIMATION_CLASSES.sad, 
-    ...ANIMATION_CLASSES.calm, 
-    'happy', 'sad', 'calm'
-  ];
+  const allClasses = [...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm, 'happy', 'sad', 'calm'];
   targetElement.classList.remove(...allClasses);
 
   let mood = 'calm'; 
@@ -338,11 +305,8 @@ function setupListTextAnimation(element, text, colorData) {
 
   chars.forEach((char, i) => {
     char.style.color = colors[i] || 'var(--color-text)';
-    if (colors[i] === 'var(--color-green)') {
-        char.dataset.moveDirection = 'up'; 
-    } else if (colors[i] === 'var(--color-red)') {
-        char.dataset.moveDirection = 'down';
-    }
+    if (colors[i] === 'var(--color-green)') char.dataset.moveDirection = 'up'; 
+    else if (colors[i] === 'var(--color-red)') char.dataset.moveDirection = 'down';
   });
 
   runAnimationLoop(element);
@@ -369,17 +333,13 @@ function runAnimationLoop(element) {
 }
 
 function getExerciseColorData(exercise) {
-  if (!exercise.sets || exercise.sets.length < 2) {
-      return { red: 0, green: 0, yellow: 0, total: 0 };
-  }
+  if (!exercise.sets || exercise.sets.length < 2) return { red: 0, green: 0, yellow: 0, total: 0 };
   const allSets = exercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const mostRecentDate = new Date(allSets[0].timestamp);
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
   const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
 
-  if (!previousWorkoutSet) {
-      return { red: 0, green: 0, yellow: 0, total: 0 };
-  }
+  if (!previousWorkoutSet) return { red: 0, green: 0, yellow: 0, total: 0 };
 
   const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
   const previousDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), previousWorkoutDate));
@@ -406,7 +366,7 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
-// ------------------ RENDER CLIENTS ------------------
+// ------------------ RENDER CLIENTS, SESSIONS, EXERCISES ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
@@ -447,15 +407,12 @@ function renderClients() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, () => {
-        delete clientsData[name];
-        saveUserJson();
-        renderClients();
+        delete clientsData[name]; saveUserJson(); renderClients();
         if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
       });
     };
 
-    li.appendChild(nameSpan);
-    li.appendChild(deleteBtn);
+    li.appendChild(nameSpan); li.appendChild(deleteBtn);
     clientList.appendChild(li);
   }
   const clientsTitle = document.getElementById('clientsScreenTitle');
@@ -463,27 +420,20 @@ function renderClients() {
   hookEditables();
 }
 
-// ------------------ CLIENT ACTIONS ------------------
 document.getElementById("addClientBtn").onclick = () => {
   const name = prompt("Enter client name:");
   if (!name) return;
   if (clientsData[name]) { alert("Client already exists."); return; }
   clientsData[name] = { client_name: name, sessions: [] };
-  saveUserJson();
-  renderClients();
+  saveUserJson(); renderClients();
 };
 
 function selectClient(name) {
-  selectedClient = name;
-  selectedSession = null;
-  selectedExercise = null;
-  renderSessions();
-  navigateTo(SCREENS.SESSIONS, 'forward');
+  selectedClient = name; selectedSession = null; selectedExercise = null;
+  renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
-// ------------------ SESSIONS ------------------
 const sessionList = document.getElementById("sessionList");
-
 function getSortedSessions(sessionsArray) {
   if (!sessionsArray) return [];
   return sessionsArray.slice().sort((a, b) => {
@@ -501,8 +451,7 @@ document.getElementById("addSessionBtn").onclick = () => {
   if (!name) return;
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
   clientsData[selectedClient].sessions.push(session);
-  saveUserJson();
-  renderSessions();
+  saveUserJson(); renderSessions();
 };
 
 function renderSessions() {
@@ -527,7 +476,6 @@ function renderSessions() {
         sessionColorData.yellow += cData.yellow;
         sessionColorData.total += cData.total;
     });
-    
     clientTotalColorData.red += sessionColorData.red;
     clientTotalColorData.green += sessionColorData.green;
     clientTotalColorData.yellow += sessionColorData.yellow;
@@ -539,7 +487,6 @@ function renderSessions() {
       if (editMode) { e.stopPropagation(); return; }
       selectSession(sess);
     };
-
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -547,33 +494,23 @@ function renderSessions() {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
         const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
-        if (sessionIndex > -1) {
-          clientsData[selectedClient].sessions.splice(sessionIndex, 1);
-          saveUserJson();
-          renderSessions();
-        }
+        if (sessionIndex > -1) { clientsData[selectedClient].sessions.splice(sessionIndex, 1); saveUserJson(); renderSessions(); }
         if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
       });
     };
-
-    li.appendChild(nameSpan);
-    li.appendChild(deleteBtn);
+    li.appendChild(nameSpan); li.appendChild(deleteBtn);
     sessionList.appendChild(li);
   });
-  
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
   applyTitleStyling(sessionsTitle, 'Sessions', clientTotalColorData);
   hookEditables();
 }
 
 function selectSession(sessionObject) {
-  selectedSession = sessionObject;
-  selectedExercise = null;
-  renderExercises();
-  navigateTo(SCREENS.EXERCISES, 'forward');
+  selectedSession = sessionObject; selectedExercise = null;
+  renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
 }
 
-// ------------------ EXERCISES ------------------
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
   if (!selectedSession) { alert("Select a session first"); return; }
@@ -581,74 +518,54 @@ document.getElementById("addExerciseBtn").onclick = () => {
   if (!name) return;
   const ex = { exercise: name, sets: [] };
   selectedSession.exercises.push(ex);
-  saveUserJson();
-  renderExercises();
+  saveUserJson(); renderExercises();
 };
 
 function renderExercises() {
   exerciseList.innerHTML = "";
   const sessionTitleElement = document.getElementById('sessionExercisesTitle');
-  
-  if (!selectedSession) {
-    applyTitleStyling(sessionTitleElement, 'Exercises', null);
-    return;
-  }
-  
+  if (!selectedSession) { applyTitleStyling(sessionTitleElement, 'Exercises', null); return; }
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-
   selectedSession.exercises.forEach((ex, idx) => {
     const colorData = getExerciseColorData(ex);
     ex.colorData = colorData; 
-
     if (colorData) {
       sessionColorData.red += colorData.red;
       sessionColorData.green += colorData.green;
       sessionColorData.yellow += colorData.yellow;
       sessionColorData.total += colorData.total;
     }
-
     const li = document.createElement("li");
     li.style.cursor = "pointer";
     const nameSpan = document.createElement("span");
     nameSpan.textContent = ex.exercise;
-
-    li.onclick = (e) => {
-      if (editMode) { e.stopPropagation(); return; }
-      selectExercise(idx);
-    };
-
+    li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } selectExercise(idx); };
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete exercise "${ex.exercise}"?`, () => {
-        selectedSession.exercises.splice(idx, 1);
-        saveUserJson();
-        renderExercises();
+        selectedSession.exercises.splice(idx, 1); saveUserJson(); renderExercises();
         if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
       });
     };
-    
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
-    li.appendChild(nameSpan);
-    li.appendChild(deleteBtn);
+    li.appendChild(nameSpan); li.appendChild(deleteBtn);
     exerciseList.appendChild(li);
   });
-  
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
   hookEditables();
 }
 
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
-  renderSets();
-  navigateTo(SCREENS.SETS, 'forward');
+  renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
 }
 
-// ------------------ SPIRAL WIDGET LOGIC ------------------
+// ------------------ SPIRAL WIDGET ------------------
 const spiralState = {
     svg: null, hitPath: null, segmentsGroup: null, markersGroup: null, timeBall: null, dateDisplay: null,
     fullHistory: [], visibleHistory: [], hitPathLookup: [], workoutVisualPoints: [],
@@ -665,7 +582,6 @@ function initSpiralElements() {
     spiralState.markersGroup = document.getElementById('markersGroup');
     spiralState.timeBall = document.getElementById('timeBall');
     spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
-
     if (spiralState.hitPath) {
         spiralState.hitPath.addEventListener('pointerdown', handleSpiralStart);
         spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
@@ -744,9 +660,8 @@ function setSpiralRange(range) {
     
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     spiralState.visibleHistory = spiralState.fullHistory.filter(w => w.timestamp >= cutoff);
-    if (range === 'all') {
-        spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.2;
-    } else {
+    if (range === 'all') { spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.2; } 
+    else {
         spiralState.RADIAL_PITCH = 90;
         if (range === '4w') spiralState.TURNS = 1.3;
         else if (range === '8w') spiralState.TURNS = 1.8;
@@ -775,10 +690,7 @@ function redrawSpiral() {
         spiralState.hitPathLookup.push({ len: l, x: pt.x, y: pt.y });
     }
 
-    if (!spiralState.visibleHistory || spiralState.visibleHistory.length === 0) {
-         updateBallToLen(0);
-         return;
-    }
+    if (!spiralState.visibleHistory || spiralState.visibleHistory.length === 0) { updateBallToLen(0); return; }
 
     const oldestTime = spiralState.visibleHistory[0].timestamp;
     const newestTime = spiralState.visibleHistory[spiralState.visibleHistory.length-1].timestamp;
@@ -920,8 +832,7 @@ document.getElementById("addSetBtn").onclick = () => {
   const volume = reps * weight;
 
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson();
-  renderSets();
+  saveUserJson(); renderSets();
 };
 
 function renderSets() {
@@ -955,8 +866,7 @@ function renderSets() {
         e.stopPropagation();
         showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
           selectedExercise.sets.splice(originalIndex, 1);
-          saveUserJson();
-          renderSets();
+          saveUserJson(); renderSets();
         });
       };
       deleteTd.appendChild(deleteBtn);
@@ -972,7 +882,8 @@ function renderSets() {
 // ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
 const chartState = {
     range: '12w',
-    metrics: { wpr: false, reps: true, volume: false, sets: true }, // Default: Reps & Weight
+    // Updated default metrics: Reps & W/R active
+    metrics: { wpr: true, reps: true, volume: false, sets: false },
     dataPoints: [],
     width: 0, height: 0
 };
@@ -996,6 +907,7 @@ function initChart() {
     chartState.height = stage.clientHeight;
 }
 
+// UPDATED: Aggregates sets by day (sum reps, sum vol, count sets, avg W/R)
 function getChartData() {
     const now = new Date().getTime();
     let days = 3650;
@@ -1004,22 +916,50 @@ function getChartData() {
     if(chartState.range === '12w') days = 84;
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     
-    let relevantSets = selectedExercise.sets.filter(s => new Date(s.timestamp).getTime() >= cutoff);
-    relevantSets.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-    if(relevantSets.length === 0) return [];
-
-    let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0; 
-    const points = relevantSets.map(s => {
-        const vol = parseFloat(s.volume);
-        const reps = parseInt(s.reps);
-        const wpr = reps > 0 ? vol/reps : 0;
-        const weight = parseFloat(s.weight);
-        if(reps > maxReps) maxReps = reps;
-        if(vol > maxVol) maxVol = vol;
-        if(wpr > maxWpr) maxWpr = wpr;
-        if(weight > maxSets) maxSets = weight;
-        return { timestamp: new Date(s.timestamp).getTime(), vol, reps, wpr, weight, raw: s };
+    // 1. Group sets by Day string
+    const dayMap = {};
+    selectedExercise.sets.forEach(s => {
+        const time = new Date(s.timestamp).getTime();
+        if (time < cutoff) return;
+        
+        const dateKey = new Date(s.timestamp).toDateString(); // "Fri Nov 28 2025"
+        if (!dayMap[dateKey]) {
+            dayMap[dateKey] = { 
+                timestamp: time, 
+                reps: 0, vol: 0, sets: 0 
+            };
+        }
+        
+        // Accumulate
+        dayMap[dateKey].reps += (parseInt(s.reps) || 0);
+        dayMap[dateKey].vol += (parseFloat(s.volume) || 0);
+        dayMap[dateKey].sets += 1;
     });
+
+    // 2. Convert to Array and Calculate Avg W/R
+    const points = Object.values(dayMap).map(d => {
+        // W/R = Total Vol / Total Reps
+        const wpr = d.reps > 0 ? d.vol / d.reps : 0;
+        return { 
+            timestamp: d.timestamp, 
+            vol: d.vol, 
+            reps: d.reps, 
+            sets: d.sets, 
+            wpr: wpr 
+        };
+    }).sort((a,b) => a.timestamp - b.timestamp);
+
+    if(points.length === 0) return [];
+
+    // 3. Normalize
+    let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0; 
+    points.forEach(p => {
+        if(p.reps > maxReps) maxReps = p.reps;
+        if(p.vol > maxVol) maxVol = p.vol;
+        if(p.wpr > maxWpr) maxWpr = p.wpr;
+        if(p.sets > maxSets) maxSets = p.sets;
+    });
+
     maxReps *= 1.1; maxVol *= 1.1; maxWpr *= 1.1; maxSets *= 1.1;
     const startTime = points[0].timestamp;
     const endTime = points[points.length-1].timestamp;
@@ -1033,7 +973,7 @@ function getChartData() {
             yReps: maxReps ? chartState.height - ((p.reps / maxReps) * chartState.height) : chartState.height,
             yVol: maxVol ? chartState.height - ((p.vol / maxVol) * chartState.height) : chartState.height,
             yWpr: maxWpr ? chartState.height - ((p.wpr / maxWpr) * chartState.height) : chartState.height,
-            ySets: maxSets ? chartState.height - ((p.weight / maxSets) * chartState.height) : chartState.height,
+            ySets: maxSets ? chartState.height - ((p.sets / maxSets) * chartState.height) : chartState.height,
             data: p
         };
     });
@@ -1118,13 +1058,19 @@ function updateDetailView(idx) {
     });
 
     // Populate Top Header (Setgraph style)
-    const raw = p.data.raw;
+    const raw = p.data; // Now holds {reps, vol, sets, wpr, timestamp}
     const dateStr = new Date(raw.timestamp).toLocaleDateString(undefined, {
-        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
+        weekday: 'short', month: 'short', day: 'numeric'
     });
     
+    // Primary Row
     document.getElementById('headerReps').textContent = raw.reps;
-    document.getElementById('headerWeight').textContent = raw.weight;
+    document.getElementById('headerWpr').textContent = raw.wpr.toFixed(1);
+    
+    // Secondary Row
+    document.getElementById('headerSets').textContent = raw.sets;
+    document.getElementById('headerVol').textContent = raw.vol;
+    
     document.getElementById('headerDate').textContent = dateStr;
 }
 
@@ -1162,14 +1108,21 @@ function aggregateStats(setsArray) {
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
 function formatNum(num) { if (num % 1 === 0) return num.toString(); return num.toFixed(1); }
+
+// UPDATED: Restored Arrow Characters
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral'); 
   const dataEl = document.getElementById(statName + 'Data');
   if (!arrowEl || !dataEl) return 'neutral';
+  
   const status = calculateStatStatus(currentValue, previousValue);
+  
+  // FIX: Explicitly set arrow characters instead of empty strings
   let arrow = '—';
-  if (status === 'increase') arrow = ''; else if (status === 'decrease') arrow = '';
+  if (status === 'increase') arrow = '↑'; 
+  else if (status === 'decrease') arrow = '↓';
+  
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
@@ -1192,6 +1145,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.classList.remove(...classesToRemove); dataEl.classList.add(status);
   return status;
 }
+
 function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
   if (!selectedExercise) return;
