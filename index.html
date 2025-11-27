@@ -95,6 +95,7 @@
           <div class="stat-comparison"><span class="stat-label">VOLUME</span><span id="volumeArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="volumeData" class="stat-data neutral">--</span></div>
           <div class="stat-comparison"><span class="stat-label">AVG W/R</span><span id="wprArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="wprData" class="stat-data neutral">--</span></div>
         </div>
+        <!-- ORIGINAL SPIRAL WIDGET LAYOUT -->
         <div class="spiral-container">
             <div class="spiral-controls"><button class="filter-btn" id="range4w">4w</button><button class="filter-btn" id="range8w">8w</button><button class="filter-btn" id="range12w">12w</button><button class="filter-btn active" id="rangeAll">All</button></div>
             <div class="spiral-date-label"><span id="spiralDateDisplay">History</span></div>
@@ -104,14 +105,12 @@
       </div>
     </section>
 
-    <!-- GRAPH SCREEN (Updated Data Header) -->
     <section class="screen hidden" id="graphContainer">
       <div class="card-header">
         <button id="backToSetsFromGraphBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
         <h3 id="graphTitle" class="animated-title">Progress</h3>
       </div>
       <div class="chart-wrapper">
-        <!-- 1. DATA DISPLAY (Updated with 4 Metrics) -->
         <div class="chart-data-header">
            <div class="data-primary">
                <span id="headerReps" class="big-stat reps">--</span><span class="unit">reps</span>
