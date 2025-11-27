@@ -4,50 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Workout Tracker</title>
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
-  
-  <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css">
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-
-  <!-- Login Modal -->
   <div id="loginModal" class="overlay hidden">
     <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
             <svg class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <path class="spiral-path"
-                      d="M 50,50 
-                         C 58,50 58,58 50,58 
-                         C 42,58 42,42 50,42 
-                         C 66,42 66,66 50,66 
-                         C 34,66 34,34 50,34 
-                         C 74,34 74,74 50,74 
-                         C 26,74 26,26 50,26 
-                         C 82,26 82,82 50,82 
-                         C 18,82 18,18 50,18" />
+                <path class="spiral-path" d="M 50,50 C 58,50 58,58 50,58 C 42,58 42,42 50,42 C 66,42 66,66 50,66 C 34,66 34,34 50,34 C 74,34 74,74 50,74 C 26,74 26,26 50,26 C 82,26 82,82 50,82 C 18,82 18,18 50,18" />
             </svg>
         </div>
         <h2>Welcome</h2>
         <p class="modal-subtitle">Sign in to track your workouts.</p>
-        <button id="modalLoginBtn" class="btn btn-primary">
-          <span>Login with Google</span>
-        </button>
+        <button id="modalLoginBtn" class="btn btn-primary"><span>Login with Google</span></button>
       </div>
     </div>
   </div>
-
-  <!-- Main App Header -->
   <header class="app-header">
     <div class="header-content">
       <h1>
@@ -59,15 +39,7 @@
               <text id="logo-n" x="75" y="40" fill="#34c759">n</text>
               <text id="logo-k" x="101" y="40" fill="#34c759">k</text>
           </g>
-          <path 
-            id="logo-arrow" 
-            d="M 125 22 L 125 6 M 121 14 L 125 6 L 129 14" 
-            fill="none" 
-            stroke="#34c759" 
-            stroke-width="4" 
-            stroke-linecap="round" 
-            stroke-linejoin="round"
-          />
+          <path id="logo-arrow" d="M 125 22 L 125 6 M 121 14 L 125 6 L 129 14" fill="none" stroke="#34c759" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </h1>
       <div id="authDiv" class="auth-controls">
@@ -78,11 +50,7 @@
       </div>
     </div>
   </header>
-
-  <!-- App Content -->
   <main class="app-container">
-    
-    <!-- Clients Screen -->
     <section class="screen" id="clientsDiv">
       <div class="card-header">
         <h2 id="clientsScreenTitle" class="animated-title" aria-label="Clients">Clients</h2>
@@ -90,171 +58,86 @@
       </div>
       <ul id="clientList" class="item-list"></ul>
     </section>
-
-    <!-- Sessions Screen -->
     <section class="screen hidden" id="sessionsDiv">
       <div class="card-header">
-        <button id="backToClientsBtn" class="btn-back">
-          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
-        </button>
+        <button id="backToClientsBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
         <h2 id="sessionsScreenTitle" class="animated-title" aria-label="Sessions">Sessions</h2>
         <span id="selectedClientLabel" class="hidden"></span>
         <button id="addSessionBtn" class="btn btn-primary">+ Add Session</button>
       </div>
       <ul id="sessionList" class="item-list"></ul>
     </section>
-
-    <!-- Exercises Screen -->
     <section class="screen hidden" id="exercisesDiv">
       <div class="card-header">
-        <button id="backToSessionsBtn" class="btn-back">
-          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
-        </button>
+        <button id="backToSessionsBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
         <h2 id="sessionExercisesTitle" class="animated-title" aria-label="Exercises">Exercises</h2>
         <span id="selectedSessionLabel" class="hidden"></span>
         <button id="addExerciseBtn" class="btn btn-primary">+ Add Exercise</button>
       </div>
       <ul id="exerciseList" class="item-list"></ul>
     </section>
-
-    <!-- Sets Screen -->
     <section class="screen hidden" id="setsDiv">
       <div class="card-header">
-        <button id="backToExercisesBtn" class="btn-back">
-          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
-        </button>
-        <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise">
-          <span id="exerciseSetsTitleSpan">Exercise</span>
-        </h2>
+        <button id="backToExercisesBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
+        <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise"><span id="exerciseSetsTitleSpan">Exercise</span></h2>
         <span id="selectedExerciseLabel" class="hidden"></span>
       </div>
-
       <div class="action-header">
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
           <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
         </div>
       </div>
-
       <div class="sets-content-wrapper">
-        
-        <!-- 1. DATA BANNER -->
         <div id="comparisonBanner" class="comparison-banner hidden">
-          <!-- SETS -->
-          <div class="stat-comparison">
-            <span class="stat-label">SETS</span>
-            <span id="setsArrow" class="stat-arrow neutral">—</span>
-            <div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div>
-            <span id="setsData" class="stat-data neutral">--</span>
-          </div>
-          <!-- REPS -->
-          <div class="stat-comparison">
-            <span class="stat-label">REPS</span>
-            <span id="repsArrow" class="stat-arrow neutral">—</span>
-            <div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div>
-            <span id="repsData" class="stat-data neutral">--</span>
-          </div>
-          <!-- VOLUME -->
-          <div class="stat-comparison">
-            <span class="stat-label">VOLUME</span>
-            <span id="volumeArrow" class="stat-arrow neutral">—</span>
-            <div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div>
-            <span id="volumeData" class="stat-data neutral">--</span>
-          </div>
-          <!-- AVG W/R -->
-          <div class="stat-comparison">
-            <span class="stat-label">AVG W/R</span>
-            <span id="wprArrow" class="stat-arrow neutral">—</span>
-            <div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div>
-            <span id="wprData" class="stat-data neutral">--</span>
-          </div>
+          <div class="stat-comparison"><span class="stat-label">SETS</span><span id="setsArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="setsData" class="stat-data neutral">--</span></div>
+          <div class="stat-comparison"><span class="stat-label">REPS</span><span id="repsArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="repsData" class="stat-data neutral">--</span></div>
+          <div class="stat-comparison"><span class="stat-label">VOLUME</span><span id="volumeArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="volumeData" class="stat-data neutral">--</span></div>
+          <div class="stat-comparison"><span class="stat-label">AVG W/R</span><span id="wprArrow" class="stat-arrow neutral">—</span><div class="stat-svg-container"><svg class="comparison-spiral" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></div><span id="wprData" class="stat-data neutral">--</span></div>
         </div>
-
-        <!-- 2. SPIRAL WIDGET -->
         <div class="spiral-container">
-            <div class="spiral-controls">
-                <button class="filter-btn" id="range4w">4w</button>
-                <button class="filter-btn" id="range8w">8w</button>
-                <button class="filter-btn" id="range12w">12w</button>
-                <button class="filter-btn active" id="rangeAll">All</button>
-            </div>
-      
-            <div class="spiral-date-label">
-                <span id="spiralDateDisplay">History</span>
-            </div>
-      
-            <svg id="spiralCanvas" viewBox="0 0 500 500">
-                <path id="bgTrack1" class="track-bg" d="" />
-                <path id="bgTrack2" class="track-bg" d="" />
-                <path id="bgTrack3" class="track-bg" d="" />
-                <path id="bgTrack4" class="track-bg" d="" />
-                <g id="spiralSegments"></g>
-                <g id="markersGroup"></g>
-                
-                <path id="hitPath" d="" />
-                <circle id="timeBall" cx="0" cy="0" />
-            </svg>
+            <div class="spiral-controls"><button class="filter-btn" id="range4w">4w</button><button class="filter-btn" id="range8w">8w</button><button class="filter-btn" id="range12w">12w</button><button class="filter-btn active" id="rangeAll">All</button></div>
+            <div class="spiral-date-label"><span id="spiralDateDisplay">History</span></div>
+            <svg id="spiralCanvas" viewBox="0 0 500 500"><path id="bgTrack1" class="track-bg" d="" /><path id="bgTrack2" class="track-bg" d="" /><path id="bgTrack3" class="track-bg" d="" /><path id="bgTrack4" class="track-bg" d="" /><g id="spiralSegments"></g><g id="markersGroup"></g><path id="hitPath" d="" /><circle id="timeBall" cx="0" cy="0" /></svg>
         </div>
-
-        <!-- 3. DATA TABLE -->
-        <div class="table-container">
-          <table id="setsTable">
-            <thead>
-              <tr>
-                <th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
+        <div class="table-container"><table id="setsTable"><thead><tr><th>#</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Notes</th><th>Timestamp</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
     </section>
 
-    <!-- GRAPH SCREEN (Updated Layout) -->
+    <!-- GRAPH SCREEN (Updated Data Header) -->
     <section class="screen hidden" id="graphContainer">
       <div class="card-header">
-        <button id="backToSetsFromGraphBtn" class="btn-back">
-          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
-        </button>
+        <button id="backToSetsFromGraphBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
         <h3 id="graphTitle" class="animated-title">Progress</h3>
       </div>
-
       <div class="chart-wrapper">
-        <!-- 1. DATA DISPLAY (Top, Setgraph Style) -->
+        <!-- 1. DATA DISPLAY (Updated with 4 Metrics) -->
         <div class="chart-data-header">
            <div class="data-primary">
-               <span id="headerReps" class="big-stat reps">--</span>
-               <span class="unit">rep</span>
-               <span id="headerWeight" class="big-stat weight">--</span>
-               <span class="unit">lb</span>
+               <span id="headerReps" class="big-stat reps">--</span><span class="unit">reps</span>
+               <span id="headerWpr" class="big-stat wpr">--</span><span class="unit">lb/r</span>
            </div>
-           <div class="data-secondary">
-               <span id="headerDate">Select a point</span>
+           <div class="data-secondary-stats">
+               <span class="mini-metric"><span id="headerSets" class="sub-stat sets">--</span> sets</span>
+               <span class="mini-metric"><span id="headerVol" class="sub-stat vol">--</span> vol</span>
            </div>
+           <div class="data-date" id="headerDate">Select a point</div>
         </div>
 
-        <!-- 2. SVG CHART (Middle) -->
         <div class="svg-stage" id="chartStage">
            <svg id="mainChartSvg" width="100%" height="100%" preserveAspectRatio="none">
                <g id="chartGrid"></g>
-               <!-- Connecting Lines -->
                <path id="pathVol" class="chart-line vol" d="" />
                <path id="pathSets" class="chart-line sets" d="" />
                <path id="pathReps" class="chart-line reps" d="" />
                <path id="pathWpr" class="chart-line wpr" d="" />
-               <!-- Connecting Circles -->
                <g id="chartPoints"></g>
-               <!-- Interaction Line -->
                <line id="cursorLine" x1="0" y1="0" x2="0" y2="100%" class="cursor-line hidden" />
            </svg>
            <div id="touchLayer"></div>
         </div>
 
-        <!-- 3. CONTROLS (Bottom) -->
         <div class="chart-footer-controls">
-           <!-- Range Pills -->
            <div class="pill-group">
              <button class="filter-btn small" id="gRange4w">4W</button>
              <button class="filter-btn small" id="gRange8w">8W</button>
@@ -262,30 +145,24 @@
              <button class="filter-btn small" id="gRangeAll">ALL</button>
            </div>
            
-           <!-- Metric Toggles -->
            <div class="metric-toggles-minimal">
              <button class="toggle-text active" data-metric="reps" style="--accent: var(--color-green)">Reps</button>
-             <button class="toggle-text active" data-metric="sets" style="--accent: var(--color-primary)">Weight</button>
+             <button class="toggle-text active" data-metric="wpr" style="--accent: var(--color-yellow)">W/R</button>
              <button class="toggle-text" data-metric="volume" style="--accent: var(--color-red)">Vol</button>
-             <button class="toggle-text" data-metric="wpr" style="--accent: var(--color-yellow)">W/R</button>
+             <button class="toggle-text" data-metric="sets" style="--accent: var(--color-primary)">Sets</button>
            </div>
         </div>
       </div>
     </section>
     
-    <!-- Delete Modal -->
     <div id="deleteModal" class="overlay hidden">
       <div class="delete-modal">
         <h2>Are you sure?</h2>
         <p id="deleteModalMessage">This action cannot be undone.</p>
-        <div class="delete-modal-actions">
-          <button id="deleteCancelBtn" class="btn btn-tertiary">Cancel</button>
-          <button id="deleteConfirmBtn" class="btn btn-danger">Delete</button>
-        </div>
+        <div class="delete-modal-actions"><button id="deleteCancelBtn" class="btn btn-tertiary">Cancel</button><button id="deleteConfirmBtn" class="btn btn-danger">Delete</button></div>
       </div>
     </div>
   </main>
-
   <script src="app.js"></script>
 </body>
 </html>
