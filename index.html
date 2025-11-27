@@ -219,13 +219,67 @@
 
     <!-- Graph -->
     <section class="screen hidden" id="graphContainer">
-       <div class="card-header">
-         <button id="backToSetsFromGraphBtn" class="btn-back">
-           <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
-         </button>
-         <h3>Progress Graph</h3>
-       </div>
-       <div id="graphDiv"></div>
+      <div class="card-header">
+        <button id="backToSetsFromGraphBtn" class="btn-back">
+          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
+        </button>
+        <h3 id="graphTitle" class="animated-title">Progress</h3>
+      </div>
+    
+      <div class="chart-wrapper">
+        <div class="chart-controls">
+           <div class="pill-group">
+             <button class="filter-btn small" id="gRange4w">4W</button>
+             <button class="filter-btn small" id="gRange8w">8W</button>
+             <button class="filter-btn small active" id="gRange12w">12W</button>
+             <button class="filter-btn small" id="gRangeAll">ALL</button>
+           </div>
+        </div>
+    
+        <div class="svg-stage" id="chartStage">
+           <svg id="mainChartSvg" width="100%" height="100%" preserveAspectRatio="none">
+               <g id="chartGrid"></g>
+               <path id="pathVol" class="chart-line vol" d="" />
+               <path id="pathSets" class="chart-line sets" d="" />
+               <path id="pathReps" class="chart-line reps" d="" />
+               <path id="pathWpr" class="chart-line wpr" d="" />
+               <g id="chartPoints"></g>
+               <line id="cursorLine" x1="0" y1="0" x2="0" y2="100%" class="cursor-line hidden" />
+           </svg>
+           <div id="touchLayer"></div>
+        </div>
+    
+        <div class="metric-toggles-minimal">
+           <button class="toggle-text active" data-metric="wpr" style="--accent: var(--color-green)">Avg W/R</button>
+           <button class="toggle-text active" data-metric="reps" style="--accent: var(--color-primary)">Reps</button>
+           <button class="toggle-text" data-metric="volume" style="--accent: var(--color-red)">Volume</button>
+           <button class="toggle-text" data-metric="sets" style="--accent: var(--color-yellow)">Sets</button>
+        </div>
+    
+        <div id="chartDetailPanel" class="chart-detail-panel hidden">
+            <div class="detail-row header">
+                <span id="dDate" class="detail-date">Select a point</span>
+            </div>
+            <div class="detail-stats-grid">
+                <div class="d-stat">
+                    <span class="label">REPS</span>
+                    <span id="dReps" class="val" style="color: var(--color-primary)">-</span>
+                </div>
+                <div class="d-stat">
+                    <span class="label">AVG W/R</span>
+                    <span id="dWpr" class="val" style="color: var(--color-green)">-</span>
+                </div>
+                <div class="d-stat">
+                    <span class="label">VOL</span>
+                    <span id="dVol" class="val" style="color: var(--color-red)">-</span>
+                </div>
+                <div class="d-stat">
+                    <span class="label">SETS</span>
+                    <span id="dSets" class="val" style="color: var(--color-yellow)">-</span>
+                </div>
+            </div>
+        </div>
+      </div>
     </section>
     
     <!-- Delete Modal -->
