@@ -727,7 +727,6 @@ function initSpiralElements() {
     spiralState.markersGroup = document.getElementById('markersGroup');
     spiralState.timeBall = document.getElementById('timeBall');
     spiralState.dateDisplay = document.getElementById('spiralDateDisplay');
-    spiralState.slider = document.getElementById('spiralSlider');
 
     // Pointer Events
     if (spiralState.hitPath) {
@@ -735,18 +734,6 @@ function initSpiralElements() {
         spiralState.hitPath.addEventListener('pointermove', handleSpiralMove);
         spiralState.hitPath.addEventListener('pointerup', handleSpiralEnd);
         spiralState.hitPath.addEventListener('pointercancel', handleSpiralEnd);
-    }
-
-  // NEW: Slider Listener
-    if (spiralState.slider) {
-        spiralState.slider.addEventListener('input', (e) => {
-            // Convert slider value (0-1000) to path length
-            const val = parseFloat(e.target.value);
-            const len = (val / 1000) * spiralState.totalLen;
-            
-            // Move ball but tell it NOT to update the slider (to avoid loop)
-            updateBallToLen(len, false); 
-        });
     }
 
     // Filter Buttons
@@ -1046,31 +1033,16 @@ function getClosestDataIdx(currentLen) {
     return bestIdx;
 }
 
-function updateBallToLen(len, syncSlider = true) {
-    if (!spiralState.hitPath) return;
-
-    // Ensure len is within bounds
-    if (len < 0) len = 0;
-    if (len > spiralState.totalLen) len = spiralState.totalLen;
-
+function updateBallToLen(len) {
     const pt = spiralState.hitPath.getPointAtLength(len);
-    
-    // Move the ball
     spiralState.timeBall.style.display = 'block'; 
     spiralState.timeBall.setAttribute('cx', pt.x);
     spiralState.timeBall.setAttribute('cy', pt.y);
     
-    // Update Data
     if (spiralState.workoutVisualPoints.length > 0) {
+        // Pass LENGTH (position on line) instead of X/Y coords
         const idx = getClosestDataIdx(len);
         updateDataByIndex(idx);
-    }
-
-    // NEW: Sync Slider Position
-    // We update the slider unless the user is currently dragging it (syncSlider = false)
-    if (syncSlider && spiralState.slider && spiralState.totalLen > 0) {
-        const sliderVal = (len / spiralState.totalLen) * 1000;
-        spiralState.slider.value = sliderVal;
     }
 }
 
@@ -1206,31 +1178,261 @@ function renderSets() {
   runTitleOnlyLogic();
 }
 
+// ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
 
-// ------------------ PLOTLY GRAPH ------------------
+const chartState = {
+    range: '12w',
+    metrics: { wpr: true, reps: true, volume: false, sets: false },
+    dataPoints: [], // Holds processed {x, yReps, yVol... rawData}
+    width: 0,
+    height: 0
+};
+
+// 1. Entry Point
 document.getElementById("showGraphBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
   const sets = selectedExercise.sets;
   if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
 
-  navigateTo(SCREENS.GRAPH, 'forward');;
+  navigateTo(SCREENS.GRAPH, 'forward');
+  
+  // Set Title
+  const graphTitle = document.getElementById('graphTitle');
+  // Use existing helper for coloring title
+  applyTitleStyling(graphTitle, selectedExercise.exercise, getExerciseColorData(selectedExercise));
 
-  const dates = sets.map(s => s.timestamp);
-  const reps = sets.map(s => s.reps);
-  const weight = sets.map(s => s.weight);
-  const volume = sets.map(s => s.volume);
-  const wpr = sets.map(s => s.volume / s.reps);
-  
-  const traces = [
-    { x: dates, y: reps, type: 'scatter', mode: 'lines+markers', name: 'Reps' },
-    { x: dates, y: weight, type: 'scatter', mode: 'lines+markers', name: 'Weight' },
-    { x: dates, y: volume, type: 'scatter', mode: 'lines+markers', name: 'Volume' },
-    { x: dates, y: wpr, type: 'scatter', mode: 'lines+markers', name: 'Weight/Rep' }
-  ];
-  
-  Plotly.newPlot('graphDiv', traces, { title: `${selectedExercise.exercise} Progress`, hovermode: 'x unified' });
-  Plotly.Plots.resize('graphDiv');
+  // Init Chart
+  requestAnimationFrame(() => {
+      initChart();
+      drawChart();
+  });
 };
+
+function initChart() {
+    // Measure the stage
+    const stage = document.getElementById('chartStage');
+    chartState.width = stage.clientWidth;
+    chartState.height = stage.clientHeight;
+}
+
+// 2. Data Processing & Normalization
+function getChartData() {
+    const now = new Date().getTime();
+    let days = 3650;
+    if(chartState.range === '4w') days = 28;
+    if(chartState.range === '8w') days = 56;
+    if(chartState.range === '12w') days = 84;
+    
+    const cutoff = now - (days * 24 * 60 * 60 * 1000);
+    
+    // Filter and Sort
+    let relevantSets = selectedExercise.sets.filter(s => new Date(s.timestamp).getTime() >= cutoff);
+    relevantSets.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    if(relevantSets.length === 0) return [];
+
+    // Aggregate into Sessions (Optional: simple per-set mapping is cleaner for "Setgraph" style usually, 
+    // but if you do multiple sets a day, we should probably take the BEST set or AVG set).
+    // Let's stick to RAW SETS for "Simple" linearity, or group by day if too noisy.
+    // Setgraph usually maps every log. Let's map every log sorted by time.
+    
+    // Calculate Maxima for Normalization
+    let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0; // maxSets is effectively Weight if we use that mapping
+    
+    const points = relevantSets.map(s => {
+        const vol = parseFloat(s.volume);
+        const reps = parseInt(s.reps);
+        const wpr = reps > 0 ? vol/reps : 0;
+        const weight = parseFloat(s.weight); // Mapping "Sets" button to Weight for graph utility
+        
+        if(reps > maxReps) maxReps = reps;
+        if(vol > maxVol) maxVol = vol;
+        if(wpr > maxWpr) maxWpr = wpr;
+        if(weight > maxSets) maxSets = weight;
+
+        return { timestamp: new Date(s.timestamp).getTime(), vol, reps, wpr, weight, raw: s };
+    });
+
+    // Add 10% headroom to max values so lines don't hit the very top
+    maxReps *= 1.1; maxVol *= 1.1; maxWpr *= 1.1; maxSets *= 1.1;
+
+    // Normalize X (Time) and Y (Value)
+    const startTime = points[0].timestamp;
+    const endTime = points[points.length-1].timestamp;
+    const timeSpan = endTime - startTime || 1; // avoid divide by 0
+
+    return points.map(p => {
+        // X is percentage of width
+        const xNorm = (p.timestamp - startTime) / timeSpan;
+        const x = xNorm * chartState.width;
+
+        // Y is inverted (0 is top), normalized to height
+        // If Max is 0, y is bottom (height)
+        return {
+            x: x,
+            yReps: maxReps ? chartState.height - ((p.reps / maxReps) * chartState.height) : chartState.height,
+            yVol: maxVol ? chartState.height - ((p.vol / maxVol) * chartState.height) : chartState.height,
+            yWpr: maxWpr ? chartState.height - ((p.wpr / maxWpr) * chartState.height) : chartState.height,
+            ySets: maxSets ? chartState.height - ((p.weight / maxSets) * chartState.height) : chartState.height,
+            data: p
+        };
+    });
+}
+
+// 3. Drawing Logic
+function drawChart() {
+    chartState.dataPoints = getChartData();
+    const points = chartState.dataPoints;
+    
+    // Clear old points
+    const pointsGroup = document.getElementById('chartPoints');
+    pointsGroup.innerHTML = '';
+    document.getElementById('chartGrid').innerHTML = '';
+
+    if (points.length < 1) return;
+
+    // Draw Grid (Just 5 vertical lines for time)
+    const gridGroup = document.getElementById('chartGrid');
+    for(let i=1; i<5; i++) {
+        const x = (chartState.width / 5) * i;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x); line.setAttribute("y1", 0);
+        line.setAttribute("x2", x); line.setAttribute("y2", chartState.height);
+        line.setAttribute("class", "chart-grid-line");
+        gridGroup.appendChild(line);
+    }
+
+    // Helper to build Path 'd' attribute
+    const buildPath = (key) => {
+        return points.map((p, i) => {
+            return (i === 0 ? 'M' : 'L') + ` ${p.x},${p[key]}`;
+        }).join(' ');
+    };
+
+    // Update Paths
+    const updateLine = (id, key, metricKey, colorClass) => {
+        const el = document.getElementById(id);
+        if (chartState.metrics[metricKey]) {
+            el.setAttribute('d', buildPath(key));
+            el.classList.add('active');
+            
+            // Draw Dots for this line
+            points.forEach((p, idx) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", p.x);
+                circle.setAttribute("cy", p[key]);
+                circle.setAttribute("class", `chart-point ${colorClass} visible`);
+                circle.dataset.idx = idx; // Store index for lookup
+                pointsGroup.appendChild(circle);
+            });
+        } else {
+            el.classList.remove('active');
+        }
+    };
+
+    updateLine('pathReps', 'yReps', 'reps', 'reps');
+    updateLine('pathWpr', 'yWpr', 'wpr', 'wpr');
+    updateLine('pathVol', 'yVol', 'volume', 'vol');
+    updateLine('pathSets', 'ySets', 'sets', 'sets');
+
+    // Reset Detail View
+    if (points.length > 0) {
+        // Show last point by default
+        updateDetailView(points.length - 1);
+    }
+}
+
+// 4. Interaction (Touch/Drag)
+const touchLayer = document.getElementById('touchLayer');
+
+const handleInteraction = (clientX) => {
+    const rect = touchLayer.getBoundingClientRect();
+    const x = clientX - rect.left;
+    
+    // Find closest point based on X
+    let closestDist = Infinity;
+    let closestIdx = -1;
+    
+    chartState.dataPoints.forEach((p, i) => {
+        const dist = Math.abs(p.x - x);
+        if (dist < closestDist) {
+            closestDist = dist;
+            closestIdx = i;
+        }
+    });
+
+    if (closestIdx !== -1) {
+        updateDetailView(closestIdx);
+    }
+};
+
+touchLayer.addEventListener('mousemove', (e) => handleInteraction(e.clientX));
+touchLayer.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent scroll while scrubbing
+    handleInteraction(e.touches[0].clientX);
+}, { passive: false });
+touchLayer.addEventListener('touchstart', (e) => handleInteraction(e.touches[0].clientX));
+
+
+function updateDetailView(idx) {
+    const p = chartState.dataPoints[idx];
+    if(!p) return;
+
+    // Move Cursor Line
+    const cursor = document.getElementById('cursorLine');
+    cursor.classList.remove('hidden');
+    cursor.setAttribute('x1', p.x);
+    cursor.setAttribute('x2', p.x);
+
+    // Highlight Dots
+    document.querySelectorAll('.chart-point').forEach(c => {
+        c.classList.remove('active');
+        if (parseInt(c.dataset.idx) === idx) c.classList.add('active');
+    });
+
+    // Populate Panel
+    const raw = p.data.raw;
+    const dateStr = new Date(raw.timestamp).toLocaleDateString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric'
+    });
+    
+    document.getElementById('dDate').textContent = dateStr;
+    document.getElementById('dReps').textContent = raw.reps;
+    document.getElementById('dVol').textContent = raw.volume;
+    document.getElementById('dSets').textContent = raw.weight; // Using weight for "Sets" slot
+    document.getElementById('dWpr').textContent = (p.data.wpr).toFixed(1);
+}
+
+
+// 5. Controls Wiring
+// Range
+['gRange4w', 'gRange8w', 'gRange12w', 'gRangeAll'].forEach(id => {
+    document.getElementById(id).onclick = (e) => {
+        document.querySelectorAll('.pill-group .filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        chartState.range = id.replace('gRange', '').toLowerCase();
+        drawChart();
+    };
+});
+
+// Metrics
+document.querySelectorAll('.toggle-text').forEach(btn => {
+    btn.onclick = () => {
+        const m = btn.dataset.metric;
+        chartState.metrics[m] = !chartState.metrics[m];
+        btn.classList.toggle('active');
+        drawChart();
+    };
+});
+
+// Window Resize Handling
+window.addEventListener('resize', () => {
+    if(currentScreen === SCREENS.GRAPH) {
+        initChart();
+        drawChart();
+    }
+});
+
 
 // ------------------ HELPER ------------------
 function hideAllDetails() {
@@ -1276,8 +1478,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   const status = calculateStatStatus(currentValue, previousValue);
   
   let arrow = '—';
-  if (status === 'increase') arrow = '↑';
-  else if (status === 'decrease') arrow = '↓';
+  if (status === 'increase') arrow = '';
+  else if (status === 'decrease') arrow = '';
   
   const change = currentValue - previousValue;
   let percentageChange = 0;
