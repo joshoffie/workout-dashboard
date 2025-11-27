@@ -238,7 +238,7 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 #exerciseSetsTitleSpan .char { display: inline-block; transition: color 0.3s ease; }
 
 /* ... [Retaining existing Animation Keyframes for Happy/Sad/Calm] ... */
-@keyframes happy-crash { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); } } /* Shortened for brevity in diff */
+@keyframes happy-crash { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); } } 
 .char.happy-1, .char.happy-2, .char.happy-3, .char.sad-1, .char.sad-2, .char.sad-3, .char.calm-1, .char.calm-2 {
     /* Using placeholders, assuming original keyframes exist. */
 }
@@ -326,23 +326,25 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
   line-height: 1.2;
 }
 .big-stat.reps { color: var(--color-green); }
-.big-stat.weight { color: var(--color-primary); } /* Used Primary for Weight */
+.big-stat.wpr { color: var(--color-yellow); } /* Changed to yellow for W/R */
 .unit {
   font-size: 1.2rem;
   color: var(--color-text-muted);
   font-weight: 500;
   margin-right: 8px;
 }
-.data-secondary {
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  margin-top: 0.25rem;
+.data-secondary-stats {
+  display: flex; justify-content: center; gap: 1rem;
+  margin-top: 0.25rem; margin-bottom: 0.25rem;
 }
+.mini-metric { font-size: 0.9rem; color: var(--color-text-muted); }
+.sub-stat { font-weight: 700; color: var(--color-text); }
+.data-date { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 4px; }
 
-/* 2. SVG STAGE (Reduced Height) */
+/* 2. SVG STAGE */
 .svg-stage {
   width: 100%;
-  height: 40vh; /* Reduced from Full Screen to 40% */
+  height: 40vh; /* Reduced Height */
   position: relative;
   margin: 0;
   padding: 0 10px; 
@@ -353,22 +355,20 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 /* Lines */
 .chart-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transition: all 0.3s ease; opacity: 0; }
 .chart-line.active { opacity: 1; }
-.chart-line.reps { stroke: var(--color-green); } /* Swapped to Green for Reps */
-.chart-line.sets { stroke: var(--color-primary); } /* Weight line */
+.chart-line.reps { stroke: var(--color-green); } 
+.chart-line.sets { stroke: var(--color-primary); } 
 .chart-line.vol { stroke: var(--color-red); }
 .chart-line.wpr { stroke: var(--color-yellow); }
 
-/* Dots - HARDCODED VISIBILITY (No opacity transition) */
+/* Dots */
 .chart-point {
-  fill: var(--color-bg); /* Hollow look */
+  fill: var(--color-bg); 
   stroke-width: 2px;
   r: 4px;
-  opacity: 1 !important; /* Force visible */
+  opacity: 1 !important; 
 }
-.chart-point.hidden-dot { opacity: 0 !important; } /* Explicit hide class */
-
 .chart-point.active {
-  fill: #fff !important; /* Solid bright center */
+  fill: #fff !important; 
   stroke-width: 3px;
   r: 6px; 
 }
@@ -381,25 +381,16 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 #touchLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; cursor: crosshair; touch-action: none; }
 
 /* 3. FOOTER CONTROLS */
-.chart-footer-controls {
-  margin-top: 1rem;
-  padding: 0 1rem;
-}
+.chart-footer-controls { margin-top: 1rem; padding: 0 1rem; }
 .pill-group {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  padding: 4px;
-  border-radius: 20px;
-  display: flex; gap: 4px;
-  justify-content: center;
-  margin-bottom: 1rem;
-  max-width: 300px;
-  margin-left: auto; margin-right: auto;
+  padding: 4px; border-radius: 20px;
+  display: flex; gap: 4px; justify-content: center;
+  margin-bottom: 1rem; max-width: 300px; margin-left: auto; margin-right: auto;
 }
 .filter-btn.small { padding: 4px 12px; font-size: 0.75rem; }
-.metric-toggles-minimal {
-  display: flex; justify-content: center; gap: 1.5rem;
-}
+.metric-toggles-minimal { display: flex; justify-content: center; gap: 1.5rem; }
 .toggle-text {
   background: none; border: none; color: var(--color-text-muted);
   font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
