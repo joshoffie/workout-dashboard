@@ -803,18 +803,57 @@ function updateBallToLen(len) {
     }
 }
 function updateDataByIndex(idx) {
+    // 1. Safety Check
     if (idx === -1 || !spiralState.visibleHistory[idx]) return;
+
     const curr = spiralState.visibleHistory[idx];
     const prev = idx > 0 ? spiralState.visibleHistory[idx-1] : { sets:0, reps:0, volume:0, wpr:0 };
+
+    // 2. Highlight Spiral Marker
     document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
-    if (spiralState.markersGroup.children[idx]) spiralState.markersGroup.children[idx].classList.add('active');
+    if (spiralState.markersGroup.children[idx]) {
+        spiralState.markersGroup.children[idx].classList.add('active');
+    }
+
+    // 3. Update Date Text
     const d = new Date(curr.timestamp);
     const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
     spiralState.dateDisplay.textContent = dateStr;
-    updateStatUI('sets', curr.sets, prev.sets);
-    updateStatUI('reps', curr.reps, prev.reps);
-    updateStatUI('volume', curr.volume, prev.volume);
-    updateStatUI('wpr', curr.wpr, prev.wpr);
+
+    // 4. Update Stats & Collect Statuses (Increase/Decrease/Neutral)
+    const stats = [];
+    stats.push(updateStatUI('sets', curr.sets, prev.sets));
+    stats.push(updateStatUI('reps', curr.reps, prev.reps));
+    stats.push(updateStatUI('volume', curr.volume, prev.volume));
+    stats.push(updateStatUI('wpr', curr.wpr, prev.wpr));
+
+    // 5. CALCULATE MOOD COLOR
+    // Count the wins
+    let green = 0, red = 0, yellow = 0;
+    stats.forEach(s => {
+        if (s === 'increase') green++;
+        else if (s === 'decrease') red++;
+        else yellow++;
+    });
+
+    // Determine Winner
+    let finalColor = '#ffffff'; // Default White
+    if (green > red && green >= yellow) {
+        finalColor = '#34c759'; // Green
+    } else if (red > green && red >= yellow) {
+        finalColor = '#ff3b30'; // Red
+    } else if (yellow > green && yellow > red) {
+        finalColor = '#ffcc00'; // Yellow
+    } else {
+        // Tie-breaker: Prefer Green, then Red
+        if (green > 0 && green >= red) finalColor = '#34c759';
+        else if (red > 0) finalColor = '#ff3b30';
+    }
+
+    // 6. Apply Color & Glow
+    spiralState.timeBall.style.fill = finalColor;
+    // Add a matching glow
+    spiralState.timeBall.style.filter = `drop-shadow(0 0 6px ${finalColor})`;
 }
 
 const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
