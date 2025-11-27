@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Updated viewport for full mobile immersion -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Workout Tracker</title>
   
@@ -18,9 +17,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  
-  <!-- Plotly -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
 
@@ -142,7 +138,7 @@
 
       <div class="sets-content-wrapper">
         
-        <!-- 1. DATA BANNER (Moved to Top) -->
+        <!-- 1. DATA BANNER -->
         <div id="comparisonBanner" class="comparison-banner hidden">
           <!-- SETS -->
           <div class="stat-comparison">
@@ -174,7 +170,7 @@
           </div>
         </div>
 
-        <!-- 2. SPIRAL WIDGET (Moved to Middle) -->
+        <!-- 2. SPIRAL WIDGET -->
         <div class="spiral-container">
             <div class="spiral-controls">
                 <button class="filter-btn" id="range4w">4w</button>
@@ -198,10 +194,9 @@
                 <path id="hitPath" d="" />
                 <circle id="timeBall" cx="0" cy="0" />
             </svg>
-            <input type="range" id="spiralSlider" min="0" max="1000" value="1000" class="spiral-slider">
         </div>
 
-        <!-- 3. DATA TABLE (Moved to Bottom) -->
+        <!-- 3. DATA TABLE -->
         <div class="table-container">
           <table id="setsTable">
             <thead>
@@ -217,7 +212,7 @@
       </div>
     </section>
 
-    <!-- Graph -->
+    <!-- GRAPH SCREEN (Updated Layout) -->
     <section class="screen hidden" id="graphContainer">
       <div class="card-header">
         <button id="backToSetsFromGraphBtn" class="btn-back">
@@ -225,59 +220,55 @@
         </button>
         <h3 id="graphTitle" class="animated-title">Progress</h3>
       </div>
-    
+
       <div class="chart-wrapper">
-        <div class="chart-controls">
+        <!-- 1. DATA DISPLAY (Top, Setgraph Style) -->
+        <div class="chart-data-header">
+           <div class="data-primary">
+               <span id="headerReps" class="big-stat reps">--</span>
+               <span class="unit">rep</span>
+               <span id="headerWeight" class="big-stat weight">--</span>
+               <span class="unit">lb</span>
+           </div>
+           <div class="data-secondary">
+               <span id="headerDate">Select a point</span>
+           </div>
+        </div>
+
+        <!-- 2. SVG CHART (Middle) -->
+        <div class="svg-stage" id="chartStage">
+           <svg id="mainChartSvg" width="100%" height="100%" preserveAspectRatio="none">
+               <g id="chartGrid"></g>
+               <!-- Connecting Lines -->
+               <path id="pathVol" class="chart-line vol" d="" />
+               <path id="pathSets" class="chart-line sets" d="" />
+               <path id="pathReps" class="chart-line reps" d="" />
+               <path id="pathWpr" class="chart-line wpr" d="" />
+               <!-- Connecting Circles -->
+               <g id="chartPoints"></g>
+               <!-- Interaction Line -->
+               <line id="cursorLine" x1="0" y1="0" x2="0" y2="100%" class="cursor-line hidden" />
+           </svg>
+           <div id="touchLayer"></div>
+        </div>
+
+        <!-- 3. CONTROLS (Bottom) -->
+        <div class="chart-footer-controls">
+           <!-- Range Pills -->
            <div class="pill-group">
              <button class="filter-btn small" id="gRange4w">4W</button>
              <button class="filter-btn small" id="gRange8w">8W</button>
              <button class="filter-btn small active" id="gRange12w">12W</button>
              <button class="filter-btn small" id="gRangeAll">ALL</button>
            </div>
-        </div>
-    
-        <div class="svg-stage" id="chartStage">
-           <svg id="mainChartSvg" width="100%" height="100%" preserveAspectRatio="none">
-               <g id="chartGrid"></g>
-               <path id="pathVol" class="chart-line vol" d="" />
-               <path id="pathSets" class="chart-line sets" d="" />
-               <path id="pathReps" class="chart-line reps" d="" />
-               <path id="pathWpr" class="chart-line wpr" d="" />
-               <g id="chartPoints"></g>
-               <line id="cursorLine" x1="0" y1="0" x2="0" y2="100%" class="cursor-line hidden" />
-           </svg>
-           <div id="touchLayer"></div>
-        </div>
-    
-        <div class="metric-toggles-minimal">
-           <button class="toggle-text active" data-metric="wpr" style="--accent: var(--color-green)">Avg W/R</button>
-           <button class="toggle-text active" data-metric="reps" style="--accent: var(--color-primary)">Reps</button>
-           <button class="toggle-text" data-metric="volume" style="--accent: var(--color-red)">Volume</button>
-           <button class="toggle-text" data-metric="sets" style="--accent: var(--color-yellow)">Sets</button>
-        </div>
-    
-        <div id="chartDetailPanel" class="chart-detail-panel hidden">
-            <div class="detail-row header">
-                <span id="dDate" class="detail-date">Select a point</span>
-            </div>
-            <div class="detail-stats-grid">
-                <div class="d-stat">
-                    <span class="label">REPS</span>
-                    <span id="dReps" class="val" style="color: var(--color-primary)">-</span>
-                </div>
-                <div class="d-stat">
-                    <span class="label">AVG W/R</span>
-                    <span id="dWpr" class="val" style="color: var(--color-green)">-</span>
-                </div>
-                <div class="d-stat">
-                    <span class="label">VOL</span>
-                    <span id="dVol" class="val" style="color: var(--color-red)">-</span>
-                </div>
-                <div class="d-stat">
-                    <span class="label">SETS</span>
-                    <span id="dSets" class="val" style="color: var(--color-yellow)">-</span>
-                </div>
-            </div>
+           
+           <!-- Metric Toggles -->
+           <div class="metric-toggles-minimal">
+             <button class="toggle-text active" data-metric="reps" style="--accent: var(--color-green)">Reps</button>
+             <button class="toggle-text active" data-metric="sets" style="--accent: var(--color-primary)">Weight</button>
+             <button class="toggle-text" data-metric="volume" style="--accent: var(--color-red)">Vol</button>
+             <button class="toggle-text" data-metric="wpr" style="--accent: var(--color-yellow)">W/R</button>
+           </div>
         </div>
       </div>
     </section>
