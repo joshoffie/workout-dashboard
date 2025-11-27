@@ -322,7 +322,15 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 .seg-decrease { stroke: var(--color-red); }
 .seg-neutral { stroke: var(--color-yellow); }
 .track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
-#hitPath { fill: none; stroke: transparent; stroke-width: 60px; cursor: grab; touch-action: none; }
+#timeBall {
+    fill: #ffffff;
+    stroke: #1c1c1c;
+    stroke-width: 2px;
+    r: 8px;
+    pointer-events: none;
+    /* ADD "fill 0.3s ease" below */
+    transition: cx 0.05s linear, cy 0.05s linear, fill 0.3s ease;
+}
 #timeBall { fill: #ffffff; stroke: #1c1c1c; stroke-width: 2px; r: 8px; pointer-events: none; transition: cx 0.05s linear, cy 0.05s linear; }
 .workout-marker { fill: #444444; stroke: #8a8a8e; stroke-width: 1px; r: 4px; opacity: 1 !important; visibility: visible !important; pointer-events: none; transition: r 0.1s linear, fill 0.1s linear; }
 .workout-marker.active { fill: #ffffff !important; stroke: var(--color-primary) !important; r: 6px !important; opacity: 1 !important; }
