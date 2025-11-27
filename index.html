@@ -3,12 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- PWA / Mobile Status Bar Settings -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1c1c1c">
+
   <title>Workout Tracker</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css">
+
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -99,7 +108,6 @@
             <div class="spiral-controls"><button class="filter-btn" id="range4w">4w</button><button class="filter-btn" id="range8w">8w</button><button class="filter-btn" id="range12w">12w</button><button class="filter-btn active" id="rangeAll">All</button></div>
             <div class="spiral-date-label"><span id="spiralDateDisplay">History</span></div>
             <svg id="spiralCanvas" viewBox="0 0 500 500"><path id="bgTrack1" class="track-bg" d="" /><path id="bgTrack2" class="track-bg" d="" /><path id="bgTrack3" class="track-bg" d="" /><path id="bgTrack4" class="track-bg" d="" /><g id="spiralSegments"></g><g id="markersGroup"></g><path id="hitPath" d="" /><circle id="timeBall" cx="0" cy="0" /></svg>
-            
             <!-- RESTORED SLIDER -->
             <div class="spiral-slider-container">
                 <input type="range" id="spiralSlider" min="0" max="100" value="100" step="0.1">
