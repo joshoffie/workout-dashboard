@@ -471,3 +471,158 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
     border-radius: 50%;
     background: #ffffff;
 }
+
+/* ===== CUSTOM MINIMAL CHART ===== */
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Controls */
+.chart-controls {
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
+.pill-group {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  padding: 4px;
+  border-radius: 20px;
+  display: flex; gap: 4px;
+}
+.filter-btn.small {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+}
+
+/* SVG Stage */
+.svg-stage {
+  flex-grow: 1;
+  width: 100%;
+  position: relative;
+  margin: 1rem 0;
+  /* Minimal margins on sides */
+  padding: 0 10px; 
+}
+
+#mainChartSvg {
+  overflow: visible;
+}
+
+/* Grid */
+.chart-grid-line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4; /* Dashed line */
+  opacity: 0.5;
+}
+
+/* Lines */
+.chart-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+  opacity: 0; /* Hidden by default */
+}
+.chart-line.active { opacity: 1; }
+
+.chart-line.reps { stroke: var(--color-primary); }
+.chart-line.wpr { stroke: var(--color-green); }
+.chart-line.vol { stroke: var(--color-red); }
+.chart-line.sets { stroke: var(--color-yellow); }
+
+/* Interaction Cursor */
+.cursor-line {
+  stroke: var(--color-text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 1;
+}
+
+/* Data Points */
+.chart-point {
+  fill: var(--color-bg);
+  stroke-width: 2;
+  r: 4;
+  opacity: 0; /* Hidden unless active */
+  transition: r 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.chart-point.visible { opacity: 1; }
+.chart-point.active { r: 7; stroke-width: 3; fill: var(--color-card); }
+
+.chart-point.reps { stroke: var(--color-primary); }
+.chart-point.wpr { stroke: var(--color-green); }
+.chart-point.vol { stroke: var(--color-red); }
+.chart-point.sets { stroke: var(--color-yellow); }
+
+/* Touch Layer (Invisible Overlay) */
+#touchLayer {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 20;
+  cursor: crosshair;
+  /* Touch action fix */
+  touch-action: none; 
+}
+
+/* Bottom Toggles */
+.metric-toggles-minimal {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0 1rem 1rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.toggle-text {
+  background: none; border: none;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 4px 0;
+  position: relative;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.toggle-text.active {
+  opacity: 1;
+  color: var(--accent);
+}
+.toggle-text.active::after {
+  content: ''; position: absolute; bottom: 0; left: 0; width: 100%;
+  height: 2px; background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* Detail Panel */
+.chart-detail-panel {
+  background: var(--color-card);
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  min-height: 120px;
+}
+.detail-row.header {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.detail-date {
+  font-family: 'Fredoka', sans-serif;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
+.detail-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  text-align: center;
+}
+.d-stat { display: flex; flex-direction: column; gap: 4px; }
+.d-stat .label { font-size: 0.7rem; color: var(--color-text-muted); }
+.d-stat .val { font-size: 1.1rem; font-weight: 700; }
