@@ -314,6 +314,23 @@ svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visibl
 .spiral-date-label { position: absolute; top: 1rem; left: 1rem; pointer-events: none; }
 .spiral-date-label span { background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; color: var(--color-text); font-weight: 600; font-family: 'Fredoka', sans-serif; }
 
+/* === RESTORED SLIDER STYLES === */
+.spiral-slider-container {
+    position: absolute; bottom: 20px; width: 80%; z-index: 10;
+    background: rgba(0, 0, 0, 0.6); padding: 5px; border-radius: 15px;
+}
+input[type=range] {
+    -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%; height: 6px; background: #444; border-radius: 3px;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
+    background: var(--color-primary); margin-top: -6px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
 /* ===== COMPARISON BANNER STYLES ===== */
 .comparison-banner {
   display: flex; flex-direction: column; gap: 1rem; background-color: var(--color-card);
