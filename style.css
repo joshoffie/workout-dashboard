@@ -297,55 +297,15 @@ td .btn-delete { position: relative; right: 0; top: 0; transform: scale(0.5); pa
 .char:nth-child(10) { --char-index: 10; } .char:nth-child(11) { --char-index: 11; } .char:nth-child(12) { --char-index: 12; }
 
 
-/* =========================================
-   SPIRAL WIDGET STYLES
-   ========================================= */
-.spiral-container {
-    margin: 0 1rem 1rem 1rem; background: var(--color-card); border: 1px solid var(--color-border);
-    border-radius: var(--radius-md); height: 400px; position: relative; display: flex;
-    align-items: center; justify-content: center; overflow: hidden; 
-}
-.spiral-controls {
-    position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 4px;
-    background: rgba(0,0,0,0.5); padding: 4px; border-radius: 8px;
-}
-.filter-btn {
-    background: transparent; border: none; color: var(--color-text-muted); font-size: 0.7rem;
-    padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s;
-}
-.filter-btn.active { background: var(--color-primary); color: white; }
-svg#spiralCanvas { width: 100%; height: 100%; max-width: 600px; overflow: visible; }
-.spiral-segment {
-    fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; 
-}
-.seg-increase { stroke: var(--color-green); }
-.seg-decrease { stroke: var(--color-red); }
-.seg-neutral { stroke: var(--color-yellow); }
-.track-bg { fill: none; stroke: var(--color-border); stroke-width: 1; opacity: 0.3; }
-#timeBall {
-    fill: #ffffff;
-    stroke: #1c1c1c;
-    stroke-width: 2px;
-    r: 8px;
-    pointer-events: none;
-    /* ADD "fill 0.3s ease" below */
-    transition: cx 0.05s linear, cy 0.05s linear, fill 0.3s ease;
-}
-#timeBall { fill: #ffffff; stroke: #1c1c1c; stroke-width: 2px; r: 8px; pointer-events: none; transition: cx 0.05s linear, cy 0.05s linear; }
-.workout-marker { fill: #444444; stroke: #8a8a8e; stroke-width: 1px; r: 4px; opacity: 1 !important; visibility: visible !important; pointer-events: none; transition: r 0.1s linear, fill 0.1s linear; }
-.workout-marker.active { fill: #ffffff !important; stroke: var(--color-primary) !important; r: 6px !important; opacity: 1 !important; }
-.spiral-date-label { position: absolute; top: 1rem; left: 1rem; pointer-events: none; }
-.spiral-date-label span { background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; color: var(--color-text); font-weight: 600; font-family: 'Fredoka', sans-serif; }
-
-/* === UPDATED TOUCH-FRIENDLY SLIDER === */
+/* === UPDATED SLIDER STYLES (Fat Finger Friendly) === */
 .spiral-slider-container {
     position: absolute;
-    bottom: 20px; /* Lifted slightly for thumb clearance */
+    bottom: 20px;       /* Lifted up slightly */
     left: 50%;
     transform: translateX(-50%);
-    width: 85%; /* Wider for easier precision */
-    height: 50px; /* Tall hit area */
-    z-index: 20; /* Ensure it sits on top of everything */
+    width: 85%;         /* Wider for better precision */
+    height: 60px;       /* Tall hit area for touch */
+    z-index: 20;
     background: transparent;
     display: flex;
     align-items: center;
@@ -356,32 +316,41 @@ input[type=range] {
     -webkit-appearance: none;
     width: 100%;
     background: transparent;
-    height: 40px; /* Massive touch target */
+    height: 100%;       /* Full height of container */
     cursor: pointer;
 }
 
-/* The Track */
+/* The Track line */
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
-    height: 8px; /* Thicker track */
-    background: #333333; 
+    height: 8px;        /* Thicker track */
+    background: #333;   /* Dark grey track */
     border-radius: 4px;
-    border: 1px solid #444;
+    border: 1px solid #555;
+    transition: background 0.2s;
 }
 
-/* The Thumb (Handle) */
+/* The Drag Handle (Thumb) */
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 32px; /* Very large handle (easy to grab) */
-    width: 32px;
+    height: 34px;       /* Big, easy to grab handle */
+    width: 34px;
     border-radius: 50%;
-    background: var(--color-primary);
-    margin-top: -13px; /* Center it: (8 - 32) / 2 */
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-    border: 2px solid white; /* White ring for contrast */
-    transition: transform 0.1s;
+    
+    /* DYNAMIC COLOR: Uses variable, defaults to Blue */
+    background: var(--thumb-color, #007aff); 
+    
+    margin-top: -14px;  /* Center it: (8px track - 34px thumb) / 2 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+    border: 3px solid #fff; /* Thick white border for visibility */
+    
+    /* Smooth color change gradient */
+    transition: background 0.3s ease, transform 0.1s; 
 }
 
+input[type=range]:active::-webkit-slider-thumb {
+    transform: scale(1.15); /* Grow when touching */
+}
 input[type=range]:active::-webkit-slider-thumb {
     transform: scale(1.1);
 }
