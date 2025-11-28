@@ -130,6 +130,10 @@ auth.onAuthStateChanged(async (user) => {
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
+    
+    // ADD THIS LINE BELOW:
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
     await auth.signInWithPopup(provider);
   } catch (err) {
     alert("Login failed: " + err.message);
