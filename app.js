@@ -803,58 +803,57 @@ function updateBallToLen(len) {
     }
 }
 function updateDataByIndex(idx) {
+    // 1. Safety Check
     if (idx === -1 || !spiralState.visibleHistory[idx]) return;
 
     const curr = spiralState.visibleHistory[idx];
     const prev = idx > 0 ? spiralState.visibleHistory[idx-1] : { sets:0, reps:0, volume:0, wpr:0 };
 
-    // 1. Highlight the spiral marker (Standard logic)
+    // 2. Highlight Spiral Marker
     document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
     if (spiralState.markersGroup.children[idx]) {
         spiralState.markersGroup.children[idx].classList.add('active');
     }
 
-    // 2. Update Date (Standard logic)
+    // 3. Update Date Text
     const d = new Date(curr.timestamp);
     const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
     spiralState.dateDisplay.textContent = dateStr;
 
-    // 3. Update Text Stats and COLLECT RESULT (Modified)
-    // We store the result ('increase', 'decrease', 'neutral') in an array
-    const results = [];
-    results.push(updateStatUI('sets', curr.sets, prev.sets));
-    results.push(updateStatUI('reps', curr.reps, prev.reps));
-    results.push(updateStatUI('volume', curr.volume, prev.volume));
-    results.push(updateStatUI('wpr', curr.wpr, prev.wpr));
+    // 4. Update Stats & Collect Statuses (Increase/Decrease/Neutral)
+    const stats = [];
+    stats.push(updateStatUI('sets', curr.sets, prev.sets));
+    stats.push(updateStatUI('reps', curr.reps, prev.reps));
+    stats.push(updateStatUI('volume', curr.volume, prev.volume));
+    stats.push(updateStatUI('wpr', curr.wpr, prev.wpr));
 
-    // 4. Calculate Majority Color for the SLIDER THUMB
+    // 5. CALCULATE MOOD COLOR
+    // Count the wins
     let green = 0, red = 0, yellow = 0;
-    results.forEach(status => {
-        if (status === 'increase') green++;
-        else if (status === 'decrease') red++;
+    stats.forEach(s => {
+        if (s === 'increase') green++;
+        else if (s === 'decrease') red++;
         else yellow++;
     });
 
-    // Default to Primary Blue if no clear data
-    let moodColor = '#007aff'; 
-
+    // Determine Winner
+    let finalColor = '#ffffff'; // Default White
     if (green > red && green >= yellow) {
-        moodColor = '#34c759'; // Green
+        finalColor = '#34c759'; // Green
     } else if (red > green && red >= yellow) {
-        moodColor = '#ff3b30'; // Red
+        finalColor = '#ff3b30'; // Red
     } else if (yellow > green && yellow > red) {
-        moodColor = '#ffcc00'; // Yellow
+        finalColor = '#ffcc00'; // Yellow
     } else {
-        // Mixed/Tie-breaker
-        if (green >= red) moodColor = '#34c759';
-        else moodColor = '#ff3b30';
+        // Tie-breaker: Prefer Green, then Red
+        if (green > 0 && green >= red) finalColor = '#34c759';
+        else if (red > 0) finalColor = '#ff3b30';
     }
 
-    // 5. Apply Color to Slider Thumb (via CSS Variable)
-    const slider = document.getElementById('spiralSlider');
-    if (slider) {
-        slider.style.setProperty('--thumb-color', moodColor);
-    }
+    // 6. Apply Color & Glow
+    spiralState.timeBall.style.fill = finalColor;
+    // Add a matching glow
+    spiralState.timeBall.style.filter = `drop-shadow(0 0 6px ${finalColor})`;
 }
 
 const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
