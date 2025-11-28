@@ -2,16 +2,21 @@
 .app-header {
   background-color: var(--color-card); 
   
-  /* UPDATED: Add dynamic top padding for iOS Safe Area */
+  /* This ensures the content starts BELOW the status bar (time/battery) */
+  padding-top: env(safe-area-inset-top);
+  
+  /* Add a little extra space if the safe area is 0 (non-notch phones) */
   padding-top: max(1rem, env(safe-area-inset-top));
+  
   padding-bottom: 1rem;
   padding-left: 1.5rem; 
   padding-right: 1.5rem;
   
   border-bottom: 1px solid var(--color-border); 
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; 
+  top: 0; 
+  z-index: 100;
 }
-/* ... rest of style.css (Keep everything else the same) ... */
 
 /* ===== GLOBAL RESET & DARK MODE VARIABLES ===== */
 :root {
@@ -94,10 +99,6 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .btn-group { display: flex; gap: 0.5rem; }
 
 /* ===== HEADER ===== */
-.app-header {
-  background-color: var(--color-card); padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100;
-}
 .header-content { display: flex; justify-content: space-between; align-items: center; margin: 0 auto; }
 .app-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--color-text); overflow: hidden; }
 .auth-controls { display: flex; align-items: center; gap: 0.75rem; }
