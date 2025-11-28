@@ -820,7 +820,7 @@ function updateDataByIndex(idx) {
     const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
     spiralState.dateDisplay.textContent = dateStr;
 
-    // 4. Update Stats & Collect Statuses (Increase/Decrease/Neutral)
+    // 4. Update Stats & Collect Statuses
     const stats = [];
     stats.push(updateStatUI('sets', curr.sets, prev.sets));
     stats.push(updateStatUI('reps', curr.reps, prev.reps));
@@ -828,7 +828,6 @@ function updateDataByIndex(idx) {
     stats.push(updateStatUI('wpr', curr.wpr, prev.wpr));
 
     // 5. CALCULATE MOOD COLOR
-    // Count the wins
     let green = 0, red = 0, yellow = 0;
     stats.forEach(s => {
         if (s === 'increase') green++;
@@ -836,26 +835,27 @@ function updateDataByIndex(idx) {
         else yellow++;
     });
 
-    // Determine Winner
-    let finalColor = '#ffffff'; // Default White
+    let finalColor = 'var(--color-primary)'; // Default Blue
     if (green > red && green >= yellow) {
-        finalColor = '#34c759'; // Green
+        finalColor = 'var(--color-green)';
     } else if (red > green && red >= yellow) {
-        finalColor = '#ff3b30'; // Red
+        finalColor = 'var(--color-red)';
     } else if (yellow > green && yellow > red) {
-        finalColor = '#ffcc00'; // Yellow
+        finalColor = 'var(--color-yellow)';
     } else {
-        // Tie-breaker: Prefer Green, then Red
-        if (green > 0 && green >= red) finalColor = '#34c759';
-        else if (red > 0) finalColor = '#ff3b30';
+        if (green > 0 && green >= red) finalColor = 'var(--color-green)';
+        else if (red > 0) finalColor = 'var(--color-red)';
     }
 
-    // 6. Apply Color & Glow
-    spiralState.timeBall.style.fill = finalColor;
-    // Add a matching glow
-    spiralState.timeBall.style.filter = `drop-shadow(0 0 6px ${finalColor})`;
+    // 6. APPLY COLOR TO SLIDER (Corrected)
+    if (spiralState.slider) {
+        spiralState.slider.style.setProperty('--thumb-color', finalColor);
+    }
+    
+    // 7. ENSURE TIME BALL IS WHITE (Reset)
+    spiralState.timeBall.style.fill = '#ffffff';
+    spiralState.timeBall.style.filter = 'none';
 }
-
 const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
 const handleSpiralMove = (e) => { if(!spiralState.isDragging) return; e.preventDefault(); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
 const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralState.isDragging = false; spiralState.hitPath.releasePointerCapture(e.pointerId); }
