@@ -7,7 +7,6 @@ const firebaseConfig = {
   messagingSenderId: "797968203224",
   appId: "1:797968203224:web:0409faf864741f9e5c86ad",
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -26,7 +25,6 @@ const ANIMATION_CLASSES = {
   sad: ['sad-1', 'sad-2', 'sad-3'],
   calm: ['calm-1', 'calm-2', 'calm-3'],
 };
-
 function getRandomAnimationClass(mood) {
   const classes = ANIMATION_CLASSES[mood] || ANIMATION_CLASSES.calm;
   return classes[Math.floor(Math.random() * classes.length)];
@@ -41,28 +39,27 @@ const SCREENS = {
   SETS: 'setsDiv',
   GRAPH: 'graphContainer'
 };
-
 let currentScreen = SCREENS.CLIENTS;
 
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
-  
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
-    case SCREENS.SESSIONS: renderSessions(); break;
+    case SCREENS.SESSIONS: renderSessions();
+    break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
   }
 
-  const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
+  const enterClass = (direction === 'forward') ?
+  'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   targetScreen.classList.add(enterClass);
-
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   currentScreenEl.classList.add(exitClass);
 
@@ -72,7 +69,6 @@ function navigateTo(targetScreenId, direction = 'forward') {
     currentScreenEl.classList.add('hidden');
     currentScreenEl.classList.remove(exitClass);
   }, { once: true });
-
   targetScreen.addEventListener('animationend', () => {
     targetScreen.classList.remove(enterClass);
   }, { once: true });
@@ -80,12 +76,14 @@ function navigateTo(targetScreenId, direction = 'forward') {
 
 // --- Wire up Back Buttons ---
 document.getElementById('backToClientsBtn').onclick = () => {
-  selectedClient = null; selectedSession = null; selectedExercise = null;
+  selectedClient = null; selectedSession = null;
+  selectedExercise = null;
   renderClients(); navigateTo(SCREENS.CLIENTS, 'back');
 };
 document.getElementById('backToSessionsBtn').onclick = () => {
   selectedSession = null; selectedExercise = null;
-  renderSessions(); navigateTo(SCREENS.SESSIONS, 'back');
+  renderSessions();
+  navigateTo(SCREENS.SESSIONS, 'back');
 };
 document.getElementById('backToExercisesBtn').onclick = () => {
   selectedExercise = null;
@@ -126,12 +124,10 @@ auth.onAuthStateChanged(async (user) => {
     hideAllDetails();
   }
 });
-
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
-    
-    // ADD THIS LINE BELOW:
+    // Force account selection even if logged in previously
     provider.setCustomParameters({ prompt: 'select_account' });
     
     await auth.signInWithPopup(provider);
@@ -139,7 +135,6 @@ modalLoginBtn.onclick = async () => {
     alert("Login failed: " + err.message);
   }
 };
-
 logoutBtn.onclick = async () => { await auth.signOut(); };
 
 function showDeleteConfirm(message, onConfirm) {
@@ -150,14 +145,14 @@ function showDeleteConfirm(message, onConfirm) {
 }
 function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
-
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
   const uid = auth.currentUser.uid;
   const docRef = db.collection("clients").doc(uid);
   const docSnap = await docRef.get();
   if (docSnap.exists) clientsData = docSnap.data();
-  else { clientsData = {}; await docRef.set(clientsData); }
+  else { clientsData = {}; await docRef.set(clientsData);
+  }
 }
 
 async function saveUserJson() {
@@ -190,12 +185,13 @@ function applyTitleStyling(element, text, colorData) {
   setTextAsChars(element, text);
 
   const parentTitle = element.closest('.animated-title');
-  const targetElement = parentTitle || element;
+  const targetElement = parentTitle ||
+  element;
   
   const allClasses = [...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm, 'happy', 'sad', 'calm'];
   targetElement.classList.remove(...allClasses);
 
-  let mood = 'calm'; 
+  let mood = 'calm';
   if (colorData && colorData.total > 0) {
     const { red, green, yellow } = colorData;
     if (green > red && green > yellow) mood = 'happy';
@@ -205,7 +201,6 @@ function applyTitleStyling(element, text, colorData) {
 
   const animClass = getRandomAnimationClass(mood);
   targetElement.classList.add(mood);
-  
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -223,7 +218,6 @@ function applyTitleStyling(element, text, colorData) {
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
   let yellowCount = Math.round((yellow / total) * numChars);
-
   while (greenCount + redCount + yellowCount < numChars) {
       if (green >= red && green >= yellow) greenCount++;
       else if (red >= green && red >= yellow) redCount++;
@@ -244,7 +238,6 @@ function applyTitleStyling(element, text, colorData) {
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
-
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
@@ -263,7 +256,6 @@ function applyTitleStyling(element, text, colorData) {
 function setupListTextAnimation(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
-
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -274,7 +266,6 @@ function setupListTextAnimation(element, text, colorData) {
   const { red, green, yellow, total } = colorData;
   const chars = element.querySelectorAll('.char');
   const numChars = chars.length;
-  
   const colors = [];
   let greenCount = Math.round((green / total) * numChars);
   let redCount = Math.round((red / total) * numChars);
@@ -300,7 +291,6 @@ function setupListTextAnimation(element, text, colorData) {
   for (let i = 0; i < greenCount; i++) colors.push('var(--color-green)');
   for (let i = 0; i < redCount; i++) colors.push('var(--color-red)');
   for (let i = 0; i < yellowCount; i++) colors.push('var(--color-yellow)');
-
   for (let i = colors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colors[i], colors[j]] = [colors[j], colors[i]];
@@ -311,12 +301,11 @@ function setupListTextAnimation(element, text, colorData) {
     if (colors[i] === 'var(--color-green)') char.dataset.moveDirection = 'up'; 
     else if (colors[i] === 'var(--color-red)') char.dataset.moveDirection = 'down';
   });
-
   runAnimationLoop(element);
 }
 
 function runAnimationLoop(element) {
-    const delay = 3000; 
+    const delay = 3000;
     setTimeout(() => {
         if (!document.body.contains(element)) return;
         const chars = element.querySelectorAll('.char');
@@ -326,6 +315,7 @@ function runAnimationLoop(element) {
             if (dir === 'down') char.classList.add('animate-down');
         });
         setTimeout(() => {
+  
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
                 char.classList.remove('animate-up', 'animate-down');
@@ -341,7 +331,6 @@ function getExerciseColorData(exercise) {
   const mostRecentDate = new Date(allSets[0].timestamp);
   const currentDaySets = allSets.filter(set => isSameDay(new Date(set.timestamp), mostRecentDate));
   const previousWorkoutSet = allSets.find(set => !isSameDay(new Date(set.timestamp), mostRecentDate));
-
   if (!previousWorkoutSet) return { red: 0, green: 0, yellow: 0, total: 0 };
 
   const previousWorkoutDate = new Date(previousWorkoutSet.timestamp);
@@ -378,7 +367,6 @@ function renderClients() {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
     const nameSpan = document.createElement("span");
-    
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
     const sessions = clientsData[name].sessions || [];
     sessions.forEach(session => {
@@ -389,6 +377,7 @@ function renderClients() {
             clientColorData.green += cData.green;
             clientColorData.yellow += cData.yellow;
             clientColorData.total += cData.total;
+    
         });
     });
     
@@ -400,7 +389,8 @@ function renderClients() {
     setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
-      if (editMode) { e.stopPropagation(); return; }
+      if (editMode) { e.stopPropagation();
+      return; }
       selectClient(name);
     };
 
@@ -430,7 +420,6 @@ document.getElementById("addClientBtn").onclick = () => {
   clientsData[name] = { client_name: name, sessions: [] };
   saveUserJson(); renderClients();
 };
-
 function selectClient(name) {
   selectedClient = name; selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
@@ -449,14 +438,14 @@ function getSortedSessions(sessionsArray) {
 }
 
 document.getElementById("addSessionBtn").onclick = () => {
-  if (!selectedClient) { alert("Select a client first"); return; }
+  if (!selectedClient) { alert("Select a client first"); return;
+  }
   const name = prompt("Enter session name:");
   if (!name) return;
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
   clientsData[selectedClient].sessions.push(session);
   saveUserJson(); renderSessions();
 };
-
 function renderSessions() {
   sessionList.innerHTML = "";
   if (!selectedClient) return;
@@ -476,6 +465,7 @@ function renderSessions() {
         const cData = getExerciseColorData(ex);
         sessionColorData.red += cData.red;
         sessionColorData.green += cData.green;
+       
         sessionColorData.yellow += cData.yellow;
         sessionColorData.total += cData.total;
     });
@@ -510,13 +500,15 @@ function renderSessions() {
 }
 
 function selectSession(sessionObject) {
-  selectedSession = sessionObject; selectedExercise = null;
+  selectedSession = sessionObject;
+  selectedExercise = null;
   renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
 }
 
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
-  if (!selectedSession) { alert("Select a session first"); return; }
+  if (!selectedSession) { alert("Select a session first"); return;
+  }
   const name = prompt("Enter exercise name:");
   if (!name) return;
   const ex = { exercise: name, sets: [] };
@@ -543,7 +535,8 @@ function renderExercises() {
     li.style.cursor = "pointer";
     const nameSpan = document.createElement("span");
     nameSpan.textContent = ex.exercise;
-    li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } selectExercise(idx); };
+    li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } 
+    selectExercise(idx); };
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-delete';
     deleteBtn.innerHTML = '&times;';
@@ -577,7 +570,6 @@ const spiralState = {
     RADIAL_PITCH: 45, TURNS: 3.8,
     slider: null
 };
-
 function initSpiralElements() {
     if (spiralState.svg) return;
     spiralState.svg = document.getElementById('spiralCanvas');
@@ -618,6 +610,7 @@ function processSetsForSpiral(sets) {
             currentSession = { dayStr: dayStr, timestamp: d.getTime(), sets: 0, reps: 0, volume: 0, rawSets: [] };
         }
         currentSession.sets++;
+    
         currentSession.reps += (parseInt(set.reps) || 0);
         currentSession.volume += (parseFloat(set.volume) || 0);
         currentSession.rawSets.push(set);
@@ -637,7 +630,7 @@ function getSpiralPoint(t, offset) {
 
 function getSegmentD(tStart, tEnd, offset) {
     let d = "";
-    const steps = 150; 
+    const steps = 150;
     for(let i=0; i<=steps; i++) {
         const t = tStart + (i/steps) * (tEnd - tStart);
         const p = getSpiralPoint(t, offset);
@@ -668,10 +661,10 @@ function setSpiralRange(range) {
     if(range === '4w') days = 28;
     if(range === '8w') days = 56;
     if(range === '12w') days = 84;
-    
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     spiralState.visibleHistory = spiralState.fullHistory.filter(w => w.timestamp >= cutoff);
-    if (range === 'all') { spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.2; } 
+    if (range === 'all') { spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.2;
+    } 
     else {
         spiralState.RADIAL_PITCH = 90;
         if (range === '4w') spiralState.TURNS = 1.3;
@@ -701,7 +694,8 @@ function redrawSpiral() {
         spiralState.hitPathLookup.push({ len: l, x: pt.x, y: pt.y });
     }
 
-    if (!spiralState.visibleHistory || spiralState.visibleHistory.length === 0) { updateBallToLen(0); return; }
+    if (!spiralState.visibleHistory || spiralState.visibleHistory.length === 0) { updateBallToLen(0); return;
+    }
 
     const oldestTime = spiralState.visibleHistory[0].timestamp;
     const newestTime = spiralState.visibleHistory[spiralState.visibleHistory.length-1].timestamp;
@@ -710,7 +704,6 @@ function redrawSpiral() {
     const totalSegments = spiralState.visibleHistory.length;
     const baseUnit = 3.5 / (totalSegments || 1);
     const tracks = { sets: [], reps: [], vol: [], wpr: [] };
-
     spiralState.visibleHistory.forEach((curr, i) => {
         const t = (curr.timestamp - oldestTime) / timeSpan;
         const p = getSpiralPoint(t, 0);
@@ -718,6 +711,7 @@ function redrawSpiral() {
         for(let lp of spiralState.hitPathLookup) {
             const d = (lp.x - p.x)**2 + (lp.y - p.y)**2;
             if(d < minWpDist) { minWpDist = d; bestWpLen = lp.len; }
+ 
         }
         spiralState.workoutVisualPoints.push({ x: p.x, y: p.y, len: bestWpLen, index: i, data: curr });
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -727,6 +721,7 @@ function redrawSpiral() {
         if(i === spiralState.visibleHistory.length - 1) return;
         const next = spiralState.visibleHistory[i+1];
         const tEnd = (next.timestamp - oldestTime) / timeSpan;
+  
         tracks.sets.push(createSeg(curr.sets, next.sets, t, tEnd, spiralState.OFFSETS.sets, baseUnit));
         tracks.reps.push(createSeg(curr.reps, next.reps, t, tEnd, spiralState.OFFSETS.reps, baseUnit));
         tracks.vol.push(createSeg(curr.volume, next.volume, t, tEnd, spiralState.OFFSETS.vol, baseUnit));
@@ -741,8 +736,10 @@ function createSeg(v1, v2, t1, t2, offset, baseUnit) {
     path.setAttribute('d', getSegmentD(t1, t2, offset));
     path.setAttribute('class', 'spiral-segment');
     const epsilon = 0.01; let speedFactor = 1.0;
-    if (v2 > v1 + epsilon) { path.classList.add('seg-increase'); speedFactor = 0.4; }
-    else if (v2 < v1 - epsilon) { path.classList.add('seg-decrease'); speedFactor = 2.5; }
+    if (v2 > v1 + epsilon) { path.classList.add('seg-increase');
+    speedFactor = 0.4; }
+    else if (v2 < v1 - epsilon) { path.classList.add('seg-decrease'); speedFactor = 2.5;
+    }
     else { path.classList.add('seg-neutral'); speedFactor = 1.0; }
     path.style.opacity = '0';
     spiralState.segmentsGroup.appendChild(path);
@@ -793,7 +790,6 @@ function updateBallToLen(len) {
     const pt = spiralState.hitPath.getPointAtLength(len);
     spiralState.timeBall.style.display = 'block'; 
     spiralState.timeBall.setAttribute('cx', pt.x); spiralState.timeBall.setAttribute('cy', pt.y);
-    
     // SYNC SLIDER
     if(spiralState.slider && spiralState.totalLen > 0) {
         // Map length 0..totalLen -> 0..100
@@ -809,10 +805,8 @@ function updateBallToLen(len) {
 function updateDataByIndex(idx) {
     // 1. Safety Check
     if (idx === -1 || !spiralState.visibleHistory[idx]) return;
-
     const curr = spiralState.visibleHistory[idx];
     const prev = idx > 0 ? spiralState.visibleHistory[idx-1] : { sets:0, reps:0, volume:0, wpr:0 };
-
     // 2. Highlight Spiral Marker
     document.querySelectorAll('.workout-marker').forEach(m => m.classList.remove('active'));
     if (spiralState.markersGroup.children[idx]) {
@@ -823,7 +817,6 @@ function updateDataByIndex(idx) {
     const d = new Date(curr.timestamp);
     const dateStr = d.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
     spiralState.dateDisplay.textContent = dateStr;
-
     // 4. Update Stats & Collect Statuses
     const stats = [];
     stats.push(updateStatUI('sets', curr.sets, prev.sets));
@@ -838,7 +831,6 @@ function updateDataByIndex(idx) {
         else if (s === 'decrease') red++;
         else yellow++;
     });
-
     let finalColor = 'var(--color-primary)'; // Default Blue
     if (green > red && green >= yellow) {
         finalColor = 'var(--color-green)';
@@ -860,9 +852,12 @@ function updateDataByIndex(idx) {
     spiralState.timeBall.style.fill = '#ffffff';
     spiralState.timeBall.style.filter = 'none';
 }
-const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
-const handleSpiralMove = (e) => { if(!spiralState.isDragging) return; e.preventDefault(); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y)); }
-const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralState.isDragging = false; spiralState.hitPath.releasePointerCapture(e.pointerId); }
+const handleSpiralStart = (e) => { spiralState.isDragging = true; spiralState.hitPath.setPointerCapture(e.pointerId); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y));
+}
+const handleSpiralMove = (e) => { if(!spiralState.isDragging) return; e.preventDefault(); const c = getSVGC(e); updateBallToLen(getClosestLen(c.x, c.y));
+}
+const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralState.isDragging = false; spiralState.hitPath.releasePointerCapture(e.pointerId);
+}
 
 // NEW SLIDER HANDLER
 const handleSliderMove = (e) => {
@@ -874,7 +869,6 @@ const handleSliderMove = (e) => {
 
 // ------------------ SETS ------------------
 const setsTable = document.querySelector("#setsTable tbody");
-
 function getLastSet() {
     if (!selectedExercise || !selectedExercise.sets || selectedExercise.sets.length === 0) return null;
     const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -899,7 +893,6 @@ document.getElementById("addSetBtn").onclick = () => {
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
 };
-
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
@@ -925,6 +918,7 @@ function renderSets() {
       tr.innerHTML = `<td>${setIdx + 1}</td><td>${s.reps}</td><td>${s.weight}</td><td>${s.volume}</td><td>${s.notes}</td><td>${new Date(s.timestamp).toLocaleString()}</td>`;
       const deleteTd = document.createElement('td');
       const deleteBtn = document.createElement('button');
+    
       deleteBtn.className = 'btn-delete';
       deleteBtn.innerHTML = '&times;';
       deleteBtn.onclick = (e) => {
@@ -951,7 +945,6 @@ const chartState = {
     dataPoints: [],
     width: 0, height: 0
 };
-
 document.getElementById("showGraphBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
   const sets = selectedExercise.sets;
@@ -978,7 +971,6 @@ function getChartData() {
     if(chartState.range === '8w') days = 56;
     if(chartState.range === '12w') days = 84;
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
-    
     // Group sets by Day
     const dayMap = {};
     selectedExercise.sets.forEach(s => {
@@ -990,25 +982,23 @@ function getChartData() {
             dayMap[dateKey] = { timestamp: time, reps: 0, vol: 0, sets: 0 };
         }
         dayMap[dateKey].reps += (parseInt(s.reps) || 0);
+ 
         dayMap[dateKey].vol += (parseFloat(s.volume) || 0);
         dayMap[dateKey].sets += 1;
     });
-
     const points = Object.values(dayMap).map(d => {
         const wpr = d.reps > 0 ? d.vol / d.reps : 0;
         return { timestamp: d.timestamp, vol: d.vol, reps: d.reps, sets: d.sets, wpr: wpr };
     }).sort((a,b) => a.timestamp - b.timestamp);
-
     if(points.length === 0) return [];
 
-    let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0; 
+    let maxReps = 0, maxVol = 0, maxWpr = 0, maxSets = 0;
     points.forEach(p => {
         if(p.reps > maxReps) maxReps = p.reps;
         if(p.vol > maxVol) maxVol = p.vol;
         if(p.wpr > maxWpr) maxWpr = p.wpr;
         if(p.sets > maxSets) maxSets = p.sets;
     });
-
     maxReps *= 1.1; maxVol *= 1.1; maxWpr *= 1.1; maxSets *= 1.1;
     const startTime = points[0].timestamp;
     const endTime = points[points.length-1].timestamp;
@@ -1020,7 +1010,8 @@ function getChartData() {
         return {
             x: x,
             yReps: maxReps ? chartState.height - ((p.reps / maxReps) * chartState.height) : chartState.height,
-            yVol: maxVol ? chartState.height - ((p.vol / maxVol) * chartState.height) : chartState.height,
+            yVol: maxVol ? chartState.height 
+            - ((p.vol / maxVol) * chartState.height) : chartState.height,
             yWpr: maxWpr ? chartState.height - ((p.wpr / maxWpr) * chartState.height) : chartState.height,
             ySets: maxSets ? chartState.height - ((p.sets / maxSets) * chartState.height) : chartState.height,
             data: p
@@ -1028,8 +1019,11 @@ function getChartData() {
     });
 }
 
-// UPDATED: Added Sprint Animation Logic
+// UPDATED: Added Sprint Animation Logic + Leaf Spawner Hook
 function drawChart() {
+    // 1. STOP OLD LEAVES when redrawing
+    stopLeafSpawner(); 
+
     chartState.dataPoints = getChartData();
     const points = chartState.dataPoints;
     const pointsGroup = document.getElementById('chartPoints');
@@ -1064,6 +1058,7 @@ function drawChart() {
                 circle.setAttribute("class", `chart-point ${colorClass}`);
                 circle.dataset.idx = idx; 
                 pointsGroup.appendChild(circle);
+     
             });
             
             // TRIGGER SPRINT ANIMATION (SLOWER)
@@ -1075,11 +1070,10 @@ function drawChart() {
                 { strokeDashoffset: len },
                 { strokeDashoffset: 0 }
             ], {
-                duration: 2000, // Changed to 2000ms
-                easing: 'cubic-bezier(0.25, 1, 0.5, 1)', // Fast sprint start, ease out
+                duration: 2000, 
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)', 
                 fill: 'forwards'
             });
-
         } else {
             el.classList.remove('active');
         }
@@ -1088,12 +1082,18 @@ function drawChart() {
     updateLine('pathWpr', 'yWpr', 'wpr', 'wpr');
     updateLine('pathVol', 'yVol', 'volume', 'vol');
     updateLine('pathSets', 'ySets', 'sets', 'sets');
-
     if (points.length > 0) updateDetailView(points.length - 1);
+
+    // 2. START LEAVES AFTER DELAY
+    setTimeout(() => {
+        // Only start if we are still on the graph screen
+        if (currentScreen === SCREENS.GRAPH) {
+             startLeafSpawner();
+        }
+    }, 2200);
 }
 
 const touchLayer = document.getElementById('touchLayer');
-
 const handleInteraction = (clientX) => {
     const rect = touchLayer.getBoundingClientRect();
     const x = clientX - rect.left;
@@ -1109,23 +1109,21 @@ const handleInteraction = (clientX) => {
 touchLayer.addEventListener('mousemove', (e) => handleInteraction(e.clientX));
 touchLayer.addEventListener('touchmove', (e) => { e.preventDefault(); handleInteraction(e.touches[0].clientX); }, { passive: false });
 touchLayer.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e.touches[0].clientX); }, { passive: false });
-
 function updateDetailView(idx) {
     const p = chartState.dataPoints[idx];
     if(!p) return;
     const cursor = document.getElementById('cursorLine');
     cursor.classList.remove('hidden');
-    cursor.setAttribute('x1', p.x); cursor.setAttribute('x2', p.x);
+    cursor.setAttribute('x1', p.x);
+    cursor.setAttribute('x2', p.x);
     document.querySelectorAll('.chart-point').forEach(c => {
         c.classList.remove('active');
         if (parseInt(c.dataset.idx) === idx) c.classList.add('active');
     });
-
     const raw = p.data; 
     const dateStr = new Date(raw.timestamp).toLocaleDateString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric'
     });
-    
     document.getElementById('headerReps').textContent = raw.reps;
     document.getElementById('headerWpr').textContent = raw.wpr.toFixed(1);
     document.getElementById('headerSets').textContent = raw.sets;
@@ -1152,30 +1150,34 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
 window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
 
 function hideAllDetails() {
+  stopLeafSpawner(); // Stop leaves if user navigates away
   Object.values(SCREENS).forEach(screenId => { document.getElementById(screenId).classList.add('hidden'); });
   document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
   currentScreen = SCREENS.CLIENTS;
   document.getElementById("graphDiv").innerHTML = "";
 }
-function isSameDay(d1, d2) { return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate(); }
+function isSameDay(d1, d2) { return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+}
 function aggregateStats(setsArray) {
   if (!setsArray || setsArray.length === 0) return { sets: 0, reps: 0, volume: 0, wpr: 0 };
   const totalSets = setsArray.length;
   const totalReps = setsArray.reduce((sum, set) => sum + set.reps, 0);
   const totalVolume = setsArray.reduce((sum, set) => sum + set.volume, 0);
-  const avgWpr = totalReps > 0 ? (totalVolume / totalReps) : 0;
+  const avgWpr = totalReps > 0 ?
+  (totalVolume / totalReps) : 0;
   return { sets: totalSets, reps: totalReps, volume: totalVolume, wpr: avgWpr };
 }
-function formatNum(num) { if (num % 1 === 0) return num.toString(); return num.toFixed(1); }
+function formatNum(num) { if (num % 1 === 0) return num.toString(); return num.toFixed(1);
+}
 
 function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
-  const spiralEl = document.getElementById(statName + 'Spiral'); 
+  const spiralEl = document.getElementById(statName + 'Spiral');
   const dataEl = document.getElementById(statName + 'Data');
   if (!arrowEl || !dataEl) return 'neutral';
   const status = calculateStatStatus(currentValue, previousValue);
   let arrow = '—';
-  if (status === 'increase') arrow = '↑'; else if (status === 'decrease') arrow = '↓';
+  if (status === 'increase') arrow = ''; else if (status === 'decrease') arrow = '';
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
@@ -1193,7 +1195,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   const classesToRemove = ['increase', 'decrease', 'neutral'];
   arrowEl.innerHTML = arrow;
   arrowEl.classList.remove(...classesToRemove); arrowEl.classList.add(status);
-  if(spiralEl) { spiralEl.classList.remove(...classesToRemove); void spiralEl.offsetWidth; spiralEl.classList.add(status); }
+  if(spiralEl) { spiralEl.classList.remove(...classesToRemove); void spiralEl.offsetWidth; spiralEl.classList.add(status);
+  }
   dataEl.textContent = `${currentString} ${changeString}`;
   dataEl.classList.remove(...classesToRemove); dataEl.classList.add(status);
   return status;
@@ -1230,19 +1233,24 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
         if (originalIndex === -1) return;
     }
+ 
     switch(type) {
       case "Client":
         const data = clientsData[currentVal]; delete clientsData[currentVal]; data.client_name = newVal; clientsData[newVal] = data; if (selectedClient === currentVal) selectedClient = newVal; renderClients(); break;
       case "Session":
         const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal); if (sessionToEdit) sessionToEdit.session_name = newVal; renderSessions(); break;
       case "Exercise":
-        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal); if(exerciseToEdit) exerciseToEdit.exercise = newVal; renderExercises(); break;
+        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+        if(exerciseToEdit) exerciseToEdit.exercise = newVal; renderExercises(); break;
       case "SetReps":
-        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps; selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
+        selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
       case "SetWeight":
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight; selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) ||
+        selectedExercise.sets[originalIndex].weight; selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
       case "SetNotes":
-        selectedExercise.sets[originalIndex].notes = newVal; renderSets(); break;
+        selectedExercise.sets[originalIndex].notes = newVal;
+        renderSets(); break;
     }
     saveUserJson();
   });
@@ -1262,7 +1270,8 @@ function hookEditables(sortedSets = []) {
   });
 }
 let touchStartX = 0; let touchStartY = 0; let touchMoveX = 0; let touchMoveY = 0;
-const MIN_SWIPE_DISTANCE = 85; const MAX_START_EDGE = 150;
+const MIN_SWIPE_DISTANCE = 85;
+const MAX_START_EDGE = 150;
 document.body.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchMoveX = 0; touchMoveY = 0; }, { passive: true });
 document.body.addEventListener('touchmove', (e) => { touchMoveX = e.touches[0].clientX; touchMoveY = e.touches[0].clientY; }, { passive: true });
 document.body.addEventListener('touchend', () => {
@@ -1276,7 +1285,124 @@ document.body.addEventListener('touchend', () => {
         case SCREENS.SESSIONS: document.getElementById('backToClientsBtn').click(); break;
         case SCREENS.EXERCISES: document.getElementById('backToSessionsBtn').click(); break;
         case SCREENS.SETS: document.getElementById('backToExercisesBtn').click(); break;
+    
         case SCREENS.GRAPH: document.getElementById('backToSetsFromGraphBtn').click(); break;
     }
     touchStartX = 0; touchStartY = 0;
 });
+
+// ==========================================
+// LEAF ANIMATION SYSTEM
+// ==========================================
+
+let leafInterval = null;
+
+// Based on your sketch: Stem -> Outline -> Veins
+const LEAF_PATH_D = `
+  M 0 0 
+  Q 12 -15 0 -45 
+  Q -12 -15 0 0 
+  M 0 0 L 0 -45 
+  M 0 -12 L 8 -20 
+  M 0 -12 L -8 -20 
+  M 0 -25 L 6 -32 
+  M 0 -25 L -6 -32
+`;
+
+function startLeafSpawner() {
+  // Clear any existing spawner to prevent duplicates
+  if (leafInterval) clearInterval(leafInterval);
+
+  // Attempt to spawn a leaf every 800ms
+  leafInterval = setInterval(() => {
+    // 1. Limit to 5 active leaves
+    const activeLeaves = document.querySelectorAll('.leaf-group');
+    if (activeLeaves.length >= 5) return;
+
+    spawnRandomLeaf();
+  }, 800);
+}
+
+function stopLeafSpawner() {
+  if (leafInterval) clearInterval(leafInterval);
+  leafInterval = null;
+  // Optional: Remove existing leaves immediately when stopping
+  document.querySelectorAll('.leaf-group').forEach(el => el.remove());
+}
+
+function spawnRandomLeaf() {
+  const pointsGroup = document.getElementById('chartPoints'); // We'll append leaves here
+  if (!pointsGroup) return;
+
+  // 1. Find active graph lines
+  const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
+  if (activeLines.length === 0) return;
+
+  // 2. Pick a random line
+  const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
+  
+  // 3. Pick a random spot on that line
+  const len = targetLine.getTotalLength();
+  if (len === 0) return;
+  const randLen = Math.random() * len;
+  const pt = targetLine.getPointAtLength(randLen);
+
+  // 4. Get color from the line's class (reps, vol, etc)
+  const computedStyle = window.getComputedStyle(targetLine);
+  const strokeColor = computedStyle.stroke;
+
+  // 5. Create Leaf SVG Group
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("class", "leaf-group");
+  
+  // Randomize rotation slightly for organic look (-45 to +45 degrees)
+  const rotation = (Math.random() * 90) - 45;
+  const scale = 0.5 + (Math.random() * 0.5); // Random size 0.5x to 1.0x
+  
+  g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
+
+  // 6. Create the Leaf Path
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", LEAF_PATH_D);
+  path.setAttribute("class", "leaf-path");
+  path.style.stroke = strokeColor; // Match line color
+  
+  g.appendChild(path);
+  pointsGroup.appendChild(g);
+
+  // 7. Animate: Draw -> Wait -> Undraw
+  const pathLen = path.getTotalLength();
+  path.style.strokeDasharray = pathLen;
+  path.style.strokeDashoffset = pathLen; // Start hidden
+
+  // ANIMATION SEQUENCE
+  const animation = path.animate([
+    { strokeDashoffset: pathLen }, // Start hidden
+    { strokeDashoffset: 0 }        // Draw fully
+  ], {
+    duration: 1500,
+    easing: 'ease-out',
+    fill: 'forwards'
+  });
+
+  animation.onfinish = () => {
+    // Wait 5 seconds, then undraw
+    setTimeout(() => {
+        // Check if element still exists (user might have navigated away)
+        if (!document.body.contains(path)) return;
+
+        const undraw = path.animate([
+            { strokeDashoffset: 0 },
+            { strokeDashoffset: pathLen }
+        ], {
+            duration: 1000,
+            easing: 'ease-in',
+            fill: 'forwards'
+        });
+
+        undraw.onfinish = () => {
+            if (document.body.contains(g)) g.remove();
+        };
+    }, 5000);
+  };
+}
