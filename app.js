@@ -1468,36 +1468,56 @@ function spawnRandomLeaf() {
 }
 
 // ==========================================
-// RANDOM LOGO ANIMATION LOADER (FIXED)
+// RANDOM LOGO ANIMATION LOADER (AUTO-CYCLE)
 // ==========================================
 function initRandomLogo() {
   const logoSvg = document.getElementById('animated-logo');
   if (!logoSvg) return;
 
-  // 1. Use 'let' so we can update the state
-  let currentVariant = Math.floor(Math.random() * 15);
-
-  // 2. Define a helper to apply the styles
+  // Helper to apply a specific variant
   const applyVariant = (v) => {
-      // Clear existing classes (safe for SVG)
+      // 1. Clear all existing classes to reset
       logoSvg.removeAttribute('class');
+      
+      // 2. Force a reflow so the animation restarts from 0%
+      // (This trick ensures the new animation plays immediately)
+      void logoSvg.offsetWidth;
 
+      // 3. Apply new class
       if (v > 0) {
           logoSvg.classList.add('logo-variant');
           logoSvg.classList.add(`logo-v${v}`);
-          console.log(`Logo Animation: ${v}`);
+          console.log(`Logo Animation: V${v}`);
       } else {
           console.log('Logo Animation: Original');
       }
   };
 
-  // 3. Apply the initial random load
+  // Function to pick a NEW random number (different from current)
+  const pickNewVariant = (current) => {
+      let next;
+      do {
+          next = Math.floor(Math.random() * 20); // 0 to 19 (20 total)
+      } while (next === current); // Ensure we don't pick the same one twice in a row
+      return next;
+  };
+
+  // --- INITIAL LOAD ---
+  let currentVariant = Math.floor(Math.random() * 20);
   applyVariant(currentVariant);
-  
-  // 4. Update the click listener to increment the variable
+
+  // --- AUTOMATIC CYCLING TIMER ---
+  // The CSS animation is 10s total (approx 3s action + 7s float).
+  // We switch exactly when it finishes to keep it seamless.
+  setInterval(() => {
+      currentVariant = pickNewVariant(currentVariant);
+      applyVariant(currentVariant);
+  }, 10000); // 10,000ms = 10 seconds
+
+  // --- OPTIONAL CLICK INTERACTION ---
+  // (Still allows manual skipping if user gets bored)
   logoSvg.addEventListener('click', () => {
-      // Increment and wrap around 15
-      currentVariant = (currentVariant + 1) % 15;
+      currentVariant = pickNewVariant(currentVariant);
       applyVariant(currentVariant);
   });
 }
