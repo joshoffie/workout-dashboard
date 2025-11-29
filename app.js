@@ -1298,73 +1298,59 @@ let leafInterval = null;
 // 5 FIXED MINIMAL LEAF GEOMETRIES (FINAL)
 // ==========================================
 
+// ==========================================
+// 3 CLEAN MINIMAL LEAF GEOMETRIES
+// ==========================================
+
 function generateOrganicLeafPath() {
-    const style = Math.floor(Math.random() * 5);
+    // Randomly select one of the 3 stable styles
+    const style = Math.floor(Math.random() * 3);
     let d = "";
 
     switch (style) {
         case 0: // 1. THE CLASSIC (Beech)
-            // Balanced oval.
-            d += "M 0 0 Q 2 -32 0 -65 "; // Spine
-            d += "C 15 -45, 12 -15, 0 0 "; // Right Outline
-            d += "C -12 -15, -15 -45, 0 -65 "; // Left Outline
+            // Balanced oval with simple diagonal veins.
+            // Spine
+            d += "M 0 0 Q 2 -32 0 -65 ";
+            // Right Outline (Tip -> Base)
+            d += "C 15 -45, 12 -15, 0 0 ";
+            // Left Outline (Base -> Tip)
+            d += "C -12 -15, -15 -45, 0 -65 ";
             
+            // Veins (Simple diagonal)
             d += "M 0 -20 L 6 -25 ";  d += "M 0 -20 L -6 -25 ";
             d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
             d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
 
-        case 1: // 2. THE ROUNDED OAK (Fixed)
-            // Previously twisting. Now uses explicit curves to stay safe.
+        case 1: // 2. THE WILLOW (Lanceolate)
+            // Long, thin, elegant with steep veins.
             // Spine
-            d += "M 0 0 Q 2 -35 0 -65 ";
-            
-            // Right Side (Tip -> Base)
-            // Explicitly define both lobes to keep X positive
-            d += "Q 15 -50, 5 -35 ";  // Upper Lobe
-            d += "Q 10 -15, 0 0 ";    // Lower Lobe
-            
-            // Left Side (Base -> Tip)
-            // Explicitly define both lobes to keep X negative
-            d += "M 0 0 Q -10 -15, -5 -35 "; // Lower Lobe
-            d += "Q -15 -50, 0 -65 ";        // Upper Lobe
-
-            // Veins
-            d += "M 0 -25 L 6 -20 ";  d += "M 0 -25 L -6 -20 ";
-            d += "M 0 -45 L 6 -40 ";  d += "M 0 -45 L -6 -40 ";
-            break;
-
-        case 2: // 3. THE WILLOW (Lanceolate)
-            // Long and thin.
             d += "M 0 0 Q 1 -40 0 -75 ";
+            // Right Outline (Tip -> Base)
             d += "C 6 -55, 4 -15, 0 0 ";
+            // Left Outline (Base -> Tip)
             d += "C -4 -15, -6 -55, 0 -75 ";
             
+            // Veins (Steep angle)
             d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
             d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
             d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
             break;
 
-        case 3: // 4. THE HEART (Cordate)
-            // Wide base.
+        case 2: // 3. THE HEART (Cordate)
+            // Wide base, arched veins.
+            // Spine
             d += "M 0 0 L 0 -60 ";
+            // Right Outline (Tip -> Base)
             d += "C 15 -50, 25 -25, 0 0 ";
+            // Left Outline (Base -> Tip)
             d += "C -25 -25, -15 -50, 0 -60 ";
             
+            // Veins (Arched)
             d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
             d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
             d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
-            break;
-
-        case 4: // 5. THE TEAR (Obovate)
-            // Wide top.
-            d += "M 0 0 Q 0 -30 0 -60 ";
-            d += "C 20 -45, 5 -10, 0 0 ";
-            d += "C -5 -10, -20 -45, 0 -60 ";
-            
-            d += "M 0 -20 L 4 -25 ";  d += "M 0 -20 L -4 -25 ";
-            d += "M 0 -35 L 6 -40 ";  d += "M 0 -35 L -6 -40 ";
-            d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
     }
 
