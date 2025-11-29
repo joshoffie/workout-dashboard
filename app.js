@@ -1468,39 +1468,37 @@ function spawnRandomLeaf() {
 }
 
 // ==========================================
-// RANDOM LOGO ANIMATION LOADER (Updated)
+// RANDOM LOGO ANIMATION LOADER (FIXED)
 // ==========================================
 function initRandomLogo() {
   const logoSvg = document.getElementById('animated-logo');
   if (!logoSvg) return;
 
-  // Now selecting between 0 (Original) and 14 (New variations)
-  // Total 15 possibilities
-  const variant = Math.floor(Math.random() * 15);
+  // 1. Use 'let' so we can update the state
+  let currentVariant = Math.floor(Math.random() * 15);
 
-  if (variant > 0) {
-    logoSvg.classList.add('logo-variant');
-    logoSvg.classList.add(`logo-v${variant}`);
-    console.log(`Loaded Logo Variant: ${variant}`);
-  } else {
-    console.log('Loaded Logo Variant: Original');
-  }
-  
-  // Click listener updated for 15 variants
-  logoSvg.addEventListener('click', () => {
-      logoSvg.className = ''; // Clear current
-      let next = (variant + 1) % 15;
-      if (next === 0) {
-           console.log("Switched to Original");
+  // 2. Define a helper to apply the styles
+  const applyVariant = (v) => {
+      // Clear existing classes (safe for SVG)
+      logoSvg.removeAttribute('class');
+
+      if (v > 0) {
+          logoSvg.classList.add('logo-variant');
+          logoSvg.classList.add(`logo-v${v}`);
+          console.log(`Logo Animation: ${v}`);
       } else {
-           logoSvg.classList.add('logo-variant', `logo-v${next}`);
-           console.log(`Switched to Variant: ${next}`);
+          console.log('Logo Animation: Original');
       }
-      // Update variant variable for next click
-      // Note: In strict mode/modules you'd need a closure, 
-      // but for this simple script, re-running logic or using a let above works.
-      // For this specific implementation, we just restart the cycle next reload
-      // or rely on the visual change.
+  };
+
+  // 3. Apply the initial random load
+  applyVariant(currentVariant);
+  
+  // 4. Update the click listener to increment the variable
+  logoSvg.addEventListener('click', () => {
+      // Increment and wrap around 15
+      currentVariant = (currentVariant + 1) % 15;
+      applyVariant(currentVariant);
   });
 }
 
