@@ -1297,53 +1297,34 @@ document.body.addEventListener('touchend', () => {
 
 let leafInterval = null;
 
-// New: Generate a unique procedural path every time
 // ==========================================
-// ORGANIC LEAF ANIMATION SYSTEM
-// ==========================================
-
-// ==========================================
-// MINIMAL OAK LEAF GENERATOR
+// CLEAN MINIMAL LEAF GENERATOR
 // ==========================================
 
 function generateOrganicLeafPath() {
+    // Based on the "Simple Leaf" reference image.
+    // Origin (0,0) is the stem base. Tip is at (0, -60).
+    
     let d = "";
 
-    // 1. CENTRAL SPINE
-    // A single straight line from base (0,0) to tip (0,-60)
-    // This creates a strong vertical axis for the leaf.
-    d += "M 0 0 L 0 -60 ";
+    // 1. CENTRAL SPINE (The Vein)
+    // Draws from the base (0,0) up to the tip (0, -60).
+    // Using a Quadratic bezier (Q) for a very subtle, natural curve 
+    // rather than a rigid straight line.
+    d += "M 0 0 Q 2 -30 0 -60 ";
 
-    // 2. OUTLINE (Stylized 2-Tier Oak Shape)
-    // We use Quadratic Beziers (Q) for controlled, subtle curves.
-    
-    // -- Right Side --
-    d += "M 0 0 ";
-    // Bottom Lobe: Curves wide out to x=12, then tucks in to x=6
-    d += "Q 12 -15, 6 -30 ";   
-    // Top Lobe: Curves out again to x=12, then meets the tip at 0
-    d += "Q 12 -45, 0 -60 ";   
+    // 2. RIGHT OUTLINE
+    // Curves from the Tip back down to the Base.
+    // We use Cubic beziers (C) to create a "belly" that is wide at the top 
+    // and tapers nicely near the stem.
+    // Control points: (20, -45) gives width, (8, -15) tapers it in.
+    d += "C 20 -45, 8 -15, 0 0 ";
 
-    // -- Left Side (Mirror) --
-    // We trace backwards from the tip down to the base
-    // Top Lobe: Curves out to x=-12, tucks in to x=-6
-    d += "M 0 -60 ";           
-    d += "Q -12 -45, -6 -30 "; 
-    // Bottom Lobe: Curves out to x=-12, meets base at 0
-    d += "Q -12 -15, 0 0 ";    
-
-    // 3. INNER VEINS
-    // Short, simple geometric lines.
-    // Coordinates are calculated to stay strictly within the 
-    // 6px narrow waist and 12px wide lobes defined above.
-
-    // Lower Pair
-    d += "M 0 -15 L 5 -20 ";   // Right
-    d += "M 0 -15 L -5 -20 ";  // Left
-
-    // Upper Pair
-    d += "M 0 -45 L 4 -50 ";   // Right
-    d += "M 0 -45 L -4 -50 ";  // Left
+    // 3. LEFT OUTLINE
+    // Curves from the Base back up to the Tip to close the shape.
+    // Mirroring the control points of the right side.
+    // Control points: (-8, -15) starts the taper, (-20, -45) gives width.
+    d += "C -8 -15, -20 -45, 0 -60 ";
 
     return d;
 }
