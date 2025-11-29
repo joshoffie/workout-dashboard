@@ -1301,30 +1301,45 @@ let leafInterval = null;
 // CLEAN MINIMAL LEAF GENERATOR
 // ==========================================
 
+// ==========================================
+// VARIED MINIMAL LEAF GENERATOR
+// ==========================================
+
 function generateOrganicLeafPath() {
-    // Based on the "Simple Leaf" reference image.
-    // Origin (0,0) is the stem base. Tip is at (0, -60).
-    
+    // Randomly select one of 3 minimal styles
+    const style = Math.floor(Math.random() * 3);
     let d = "";
 
-    // 1. CENTRAL SPINE (The Vein)
-    // Draws from the base (0,0) up to the tip (0, -60).
-    // Using a Quadratic bezier (Q) for a very subtle, natural curve 
-    // rather than a rigid straight line.
-    d += "M 0 0 Q 2 -30 0 -60 ";
-
-    // 2. RIGHT OUTLINE
-    // Curves from the Tip back down to the Base.
-    // We use Cubic beziers (C) to create a "belly" that is wide at the top 
-    // and tapers nicely near the stem.
-    // Control points: (20, -45) gives width, (8, -15) tapers it in.
-    d += "C 20 -45, 8 -15, 0 0 ";
-
-    // 3. LEFT OUTLINE
-    // Curves from the Base back up to the Tip to close the shape.
-    // Mirroring the control points of the right side.
-    // Control points: (-8, -15) starts the taper, (-20, -45) gives width.
-    d += "C -8 -15, -20 -45, 0 -60 ";
+    if (style === 0) {
+        // STYLE 1: THE CLASSIC (Balanced Teardrop)
+        // Smooth, symmetrical, standard leaf shape.
+        // Spine
+        d += "M 0 0 Q 2 -30 0 -60 ";
+        // Right Outline
+        d += "C 15 -40, 8 -15, 0 0 ";
+        // Left Outline
+        d += "C -8 -15, -15 -40, 0 -60 ";
+    } 
+    else if (style === 1) {
+        // STYLE 2: THE WILLOW (Long & Slender)
+        // Narrower width, longer visual feel.
+        // Spine
+        d += "M 0 0 Q 1 -30 0 -60 ";
+        // Right Outline (Control points kept close to center)
+        d += "C 8 -35, 4 -10, 0 0 ";
+        // Left Outline
+        d += "C -4 -10, -8 -35, 0 -60 ";
+    } 
+    else {
+        // STYLE 3: THE POPLAR (Wide Base)
+        // Wider at the bottom, tapering sharply to the tip.
+        // Spine
+        d += "M 0 0 Q 0 -30 0 -60 ";
+        // Right Outline (Control point pushed out at y=-15)
+        d += "C 20 -25, 12 -5, 0 0 ";
+        // Left Outline
+        d += "C -12 -5, -20 -25, 0 -60 ";
+    }
 
     return d;
 }
