@@ -1193,10 +1193,11 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
 window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
 
 function hideAllDetails() {
+  stopLeafSpawner(); // <--- ADD THIS LINE
   Object.values(SCREENS).forEach(screenId => { document.getElementById(screenId).classList.add('hidden'); });
-document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
+  document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
   currentScreen = SCREENS.CLIENTS;
-  document.getElementById("graphDiv").innerHTML = "";
+  document.getElementById("graphDiv").innerHTML = ""; // Note: This ID "graphDiv" might not exist in your HTML, double check it matches your container ID if errors persist.
 }
 function isSameDay(d1, d2) { return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 }
