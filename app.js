@@ -1466,3 +1466,43 @@ function spawnRandomLeaf() {
     }, 5000);
   };
 }
+
+// ==========================================
+// RANDOM LOGO ANIMATION LOADER
+// ==========================================
+function initRandomLogo() {
+  const logoSvg = document.getElementById('animated-logo');
+  if (!logoSvg) return;
+
+  // We have 9 new variations + 1 original (default)
+  // Generating a number between 0 and 9.
+  // 0 = Original (Do nothing)
+  // 1-9 = New variations
+  const variant = Math.floor(Math.random() * 10);
+
+  if (variant > 0) {
+    // Add the base class and the specific variant class
+    logoSvg.classList.add('logo-variant');
+    logoSvg.classList.add(`logo-v${variant}`);
+    console.log(`Loaded Logo Variant: ${variant}`);
+  } else {
+    console.log('Loaded Logo Variant: Original');
+  }
+  
+  // Optional: Click logo to cycle through animations for fun
+  logoSvg.addEventListener('click', () => {
+      // Clear current
+      logoSvg.className = ''; 
+      // Pick new random that isn't the current one (simple shift)
+      let next = (variant + 1) % 10;
+      if (next === 0) {
+           console.log("Switched to Original");
+      } else {
+           logoSvg.classList.add('logo-variant', `logo-v${next}`);
+           console.log(`Switched to Variant: ${next}`);
+      }
+  });
+}
+
+// Call on load
+initRandomLogo();
