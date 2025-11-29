@@ -1295,87 +1295,96 @@ document.body.addEventListener('touchend', () => {
 let leafInterval = null;
 
 
+// ==========================================
+// 5 FIXED MINIMAL LEAF GEOMETRIES
+// ==========================================
+
 function generateOrganicLeafPath() {
     const style = Math.floor(Math.random() * 5);
     let d = "";
 
+    // All leaves follow this sequence to ensure they close properly:
+    // 1. Spine (Base -> Tip)
+    // 2. Right Outline (Tip -> Base)
+    // 3. Left Outline (Base -> Tip)
+
     switch (style) {
-        case 0: // 1. THE CLASSIC (Beech-style)
-            // A balanced oval with regular, straight veins.
-            // Spine
-            d += "M 0 0 Q 2 -30 0 -65 ";
-            // Right Outline (Smooth Curve)
-            d += "C 20 -40, 10 -10, 0 0 ";
-            // Left Outline (Smooth Curve)
-            d += "C -10 -10, -20 -40, 0 -65 ";
+        case 0: // 1. THE CLASSIC (Beech)
+            // Tip at -65
+            // 1. Spine
+            d += "M 0 0 Q 2 -32 0 -65 ";
+            // 2. Right Outline (Tip -> Base)
+            d += "C 15 -45, 12 -15, 0 0 ";
+            // 3. Left Outline (Base -> Tip)
+            d += "C -12 -15, -15 -45, 0 -65 ";
             
-            // Veins (3 pairs, evenly spaced)
-            d += "M 0 -20 L 8 -25 ";  d += "M 0 -20 L -8 -25 ";
-            d += "M 0 -35 L 10 -40 "; d += "M 0 -35 L -10 -40 ";
-            d += "M 0 -50 L 6 -55 ";  d += "M 0 -50 L -6 -55 ";
+            // Veins (Simple diagonal lines)
+            d += "M 0 -20 L 6 -25 ";  d += "M 0 -20 L -6 -25 ";
+            d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
+            d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
 
         case 1: // 2. THE ROUNDED OAK (Lobed)
-            // Bubbly lobes, completely smooth, no sharp points.
-            // Spine
-            d += "M 0 0 Q 0 -35 0 -65 ";
-            // Right Side (2 Lobes)
-            d += "Q 15 -15, 5 -25 ";   // Lobe 1
-            d += "Q 18 -40, 0 -65 ";   // Lobe 2 to tip
-            // Left Side (Mirror)
-            d += "M 0 -65 ";
-            d += "Q -18 -40, -5 -25 "; // Lobe 2
-            d += "Q -15 -15, 0 0 ";    // Lobe 1 to base
-            
-            // Veins (Directing into the lobes)
-            d += "M 0 -25 L 8 -20 ";  d += "M 0 -25 L -8 -20 ";
-            d += "M 0 -45 L 8 -40 ";  d += "M 0 -45 L -8 -40 ";
+            // Tip at -65
+            // 1. Spine
+            d += "M 0 0 Q 1 -35 0 -65 ";
+            // 2. Right Outline (Tip -> Base)
+            // Wave 1 (Tip to Mid), Wave 2 (Mid to Base)
+            d += "Q 15 -50, 5 -35 T 0 0 "; 
+            // 3. Left Outline (Base -> Tip)
+            // Wave 1 (Base to Mid), Wave 2 (Mid to Tip)
+            d += "M 0 0 Q -15 -20, -5 -35 T 0 -65 ";
+
+            // Veins (Into the lobes)
+            d += "M 0 -25 L 6 -20 ";  d += "M 0 -25 L -6 -20 ";
+            d += "M 0 -45 L 6 -40 ";  d += "M 0 -45 L -6 -40 ";
             break;
 
-        case 2: // 3. THE WILLOW (Long & Thin)
-            // Slender shape with steep, upward-angled veins.
-            // Spine
+        case 2: // 3. THE WILLOW (Lanceolate)
+            // Tip at -75
+            // 1. Spine
             d += "M 0 0 Q 1 -40 0 -75 ";
-            // Right Outline
-            d += "C 8 -50, 5 -10, 0 0 ";
-            // Left Outline
-            d += "C -5 -10, -8 -50, 0 -75 ";
+            // 2. Right Outline (Tip -> Base)
+            d += "C 6 -55, 4 -15, 0 0 ";
+            // 3. Left Outline (Base -> Tip)
+            d += "C -4 -15, -6 -55, 0 -75 ";
             
-            // Veins (4 pairs, steep angle)
+            // Veins (Steep angle)
             d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
             d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
             d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
-            d += "M 0 -62 L 2 -68 "; d += "M 0 -62 L -2 -68 ";
             break;
 
-        case 3: // 4. THE HEART (Cordate/Lilac)
-            // Wide bottom, tapering to a smooth point. Curved veins.
-            // Spine
+        case 3: // 4. THE HEART (Cordate)
+            // Tip at -60
+            // 1. Spine
             d += "M 0 0 L 0 -60 ";
-            // Right Outline (Wide base)
-            d += "C 25 -25, 10 -50, 0 -60 ";
-            // Left Outline
-            d += "C -10 -50, -25 -25, 0 0 ";
+            // 2. Right Outline (Tip -> Base)
+            // Previously broken. Now targets 0,0 correctly.
+            d += "C 15 -50, 25 -25, 0 0 ";
+            // 3. Left Outline (Base -> Tip)
+            d += "C -25 -25, -15 -50, 0 -60 ";
             
-            // Veins (Curved arches)
-            d += "M 0 -15 Q 10 -20, 12 -25 "; d += "M 0 -15 Q -10 -20, -12 -25 ";
-            d += "M 0 -30 Q 8 -35, 10 -40 ";  d += "M 0 -30 Q -8 -35, -10 -40 ";
-            d += "M 0 -45 Q 4 -50, 5 -52 ";   d += "M 0 -45 Q -4 -50, -5 -52 ";
+            // Veins (Arched)
+            d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
+            d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
+            d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
             break;
 
         case 4: // 5. THE TEAR (Obovate)
-            // Narrow at base, wider at top. Inverted logic.
-            // Spine
+            // Tip at -60. Narrow base, wide top.
+            // 1. Spine
             d += "M 0 0 Q 0 -30 0 -60 ";
-            // Right Outline
-            d += "C 5 -10, 20 -40, 0 -60 ";
-            // Left Outline
-            d += "C -20 -40, -5 -10, 0 0 ";
+            // 2. Right Outline (Tip -> Base)
+            // Previously broken. Now targets 0,0.
+            d += "C 20 -45, 5 -10, 0 0 ";
+            // 3. Left Outline (Base -> Tip)
+            d += "C -5 -10, -20 -45, 0 -60 ";
             
-            // Veins (Fanning out at the top)
+            // Veins (Fanning up)
             d += "M 0 -20 L 4 -25 ";  d += "M 0 -20 L -4 -25 ";
-            d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
-            d += "M 0 -48 L 8 -52 ";  d += "M 0 -48 L -8 -52 ";
+            d += "M 0 -35 L 6 -40 ";  d += "M 0 -35 L -6 -40 ";
+            d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
     }
 
