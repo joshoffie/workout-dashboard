@@ -1019,23 +1019,76 @@ const timeSpan = endTime - startTime || 1;
     });
 }
 
-// UPDATED: Added Sprint Animation Logic
 function drawChart() {
+    // 1. STOP OLD LEAVES (Add this line)
+    stopLeafSpawner();
+
     chartState.dataPoints = getChartData();
     const points = chartState.dataPoints;
-const pointsGroup = document.getElementById('chartPoints');
+    const pointsGroup = document.getElementById('chartPoints');
     pointsGroup.innerHTML = '';
     document.getElementById('chartGrid').innerHTML = '';
     if (points.length < 1) return;
 
     const gridGroup = document.getElementById('chartGrid');
-for(let i=1; i<5; i++) {
+    for(let i=1; i<5; i++) {
         const x = (chartState.width / 5) * i;
-const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", x); line.setAttribute("y1", 0);
         line.setAttribute("x2", x); line.setAttribute("y2", chartState.height);
         line.setAttribute("class", "chart-grid-line");
         gridGroup.appendChild(line);
+    }
+
+    const buildPath = (key) => {
+        return points.map((p, i) => {
+            return (i === 0 ? 'M' : 'L') + ` ${p.x},${p[key]}`;
+        }).join(' ');
+    };
+
+    const updateLine = (id, key, metricKey, colorClass) => {
+        const el = document.getElementById(id);
+        if (chartState.metrics[metricKey]) {
+            el.setAttribute('d', buildPath(key));
+            el.classList.add('active');
+            points.forEach((p, idx) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", p.x); circle.setAttribute("cy", p[key]);
+                circle.setAttribute("class", `chart-point ${colorClass}`);
+                circle.dataset.idx = idx; 
+                pointsGroup.appendChild(circle);
+            });
+            
+            // TRIGGER SPRINT ANIMATION (SLOWER)
+            const len = el.getTotalLength();
+            el.style.strokeDasharray = len;
+            el.style.strokeDashoffset = len;
+            // Using WAAPI for smooth JS control
+            el.animate([
+                { strokeDashoffset: len },
+                { strokeDashoffset: 0 }
+            ], {
+                duration: 2000, 
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)', 
+                fill: 'forwards'
+            });
+        } else {
+            el.classList.remove('active');
+        }
+    };
+    updateLine('pathReps', 'yReps', 'reps', 'reps');
+    updateLine('pathWpr', 'yWpr', 'wpr', 'wpr');
+    updateLine('pathVol', 'yVol', 'volume', 'vol');
+    updateLine('pathSets', 'ySets', 'sets', 'sets');
+    
+    if (points.length > 0) updateDetailView(points.length - 1);
+
+    // 2. START LEAVES AFTER DELAY (Add this block)
+    setTimeout(() => {
+        if (currentScreen === SCREENS.GRAPH) {
+             startLeafSpawner();
+        }
+    }, 2200);
 }
 
     const buildPath = (key) => {
