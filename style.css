@@ -659,16 +659,14 @@ input[type=range]:active::-webkit-slider-thumb {
 }
 
 /* =========================================
-   UPDATED LOGO ANIMATIONS (15 Variations)
+   UPDATED LOGO ANIMATIONS (DEBUGGED & FIXED)
    ========================================= */
 
-/* 1. GLOBAL SETTINGS & TIMING FIX */
+/* 1. GLOBAL SETTINGS */
+/* Added !important to override the ID-based original settings */
 .logo-variant text, 
 .logo-variant .logo-text text {
   transform-box: view-box;
-  /* Increased to 10s total. 
-     0% to 30% = Action (3 seconds)
-     30% to 100% = Floating Neutral State (7 seconds) */
   animation-duration: 10s !important; 
   animation-iteration-count: infinite !important;
   animation-timing-function: ease-in-out !important;
@@ -679,13 +677,12 @@ input[type=range]:active::-webkit-slider-thumb {
   0% { transform: rotate(0deg) translateY(0); }
   10% { transform: rotate(360deg) translateY(-15px); }
   25% { transform: rotate(720deg) translateY(0); }
-  /* Float Loop */
   45% { transform: rotate(720deg) translate(0, -2px); }
   65% { transform: rotate(720deg) translate(0, 2px); }
   85% { transform: rotate(720deg) translate(0, -2px); }
   100% { transform: rotate(720deg) translateY(0); }
 }
-.logo-v1 text { animation-name: v1-jump-roll; }
+.logo-v1 text { animation-name: v1-jump-roll !important; }
 
 /* --- V2: THE ELASTIC SNAP --- */
 @keyframes v2-elastic {
@@ -693,12 +690,11 @@ input[type=range]:active::-webkit-slider-thumb {
   8% { transform: rotate(-90deg); } 
   20% { transform: rotate(400deg); } 
   30% { transform: rotate(360deg); }
-  /* Float Loop */
   50% { transform: rotate(360deg) translate(0, -2px); }
   75% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg) translate(0, 0); }
 }
-.logo-v2 text { animation-name: v2-elastic; }
+.logo-v2 text { animation-name: v2-elastic !important; }
 
 /* --- V3: THE GEAR GRIND --- */
 @keyframes v3-cw { 
@@ -709,20 +705,21 @@ input[type=range]:active::-webkit-slider-thumb {
   0% { transform: rotate(0deg); } 25% { transform: rotate(-360deg); }
   50% { transform: rotate(-360deg) translate(0, -2px); } 75% { transform: rotate(-360deg) translate(0, 2px); } 100% { transform: rotate(-360deg); }
 }
-.logo-v3 #logo-t, .logo-v3 #logo-u, .logo-v3 #logo-k { animation-name: v3-cw; }
-.logo-v3 #logo-r, .logo-v3 #logo-n { animation-name: v3-ccw; }
+.logo-v3 #logo-t, .logo-v3 #logo-u, .logo-v3 #logo-k { animation-name: v3-cw !important; }
+.logo-v3 #logo-r, .logo-v3 #logo-n { animation-name: v3-ccw !important; }
 
 /* --- V4: THE WAVE --- */
 @keyframes v4-basic-spin {
   0% { transform: rotate(0deg); } 25% { transform: rotate(360deg); }
   50% { transform: rotate(360deg) translate(0, -2px); } 75% { transform: rotate(360deg) translate(0, 2px); } 100% { transform: rotate(360deg); }
 }
-.logo-v4 text { animation-name: v4-basic-spin; }
-.logo-v4 #logo-t { animation-delay: 0s; }
-.logo-v4 #logo-r { animation-delay: 0.15s; }
-.logo-v4 #logo-u { animation-delay: 0.3s; }
-.logo-v4 #logo-n { animation-delay: 0.45s; }
-.logo-v4 #logo-k { animation-delay: 0.6s; }
+.logo-v4 text { animation-name: v4-basic-spin !important; }
+/* Delays don't need !important as they aren't set on the original ID, but good for safety */
+.logo-v4 #logo-t { animation-delay: 0s !important; }
+.logo-v4 #logo-r { animation-delay: 0.15s !important; }
+.logo-v4 #logo-u { animation-delay: 0.3s !important; }
+.logo-v4 #logo-n { animation-delay: 0.45s !important; }
+.logo-v4 #logo-k { animation-delay: 0.6s !important; }
 
 /* --- V5: THE BARREL ROLL --- */
 @keyframes v5-barrel {
@@ -733,7 +730,7 @@ input[type=range]:active::-webkit-slider-thumb {
   80% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg) translateX(0); }
 }
-.logo-v5 text { animation-name: v5-barrel; }
+.logo-v5 text { animation-name: v5-barrel !important; }
 
 /* --- V6: THE YO-YO --- */
 @keyframes v6-yoyo {
@@ -744,7 +741,7 @@ input[type=range]:active::-webkit-slider-thumb {
   80% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg) translateY(0); }
 }
-.logo-v6 text { animation-name: v6-yoyo; }
+.logo-v6 text { animation-name: v6-yoyo !important; }
 
 /* --- V7: THE CONFUSED --- */
 @keyframes v7-confused {
@@ -756,7 +753,7 @@ input[type=range]:active::-webkit-slider-thumb {
   80% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg); }
 }
-.logo-v7 text { animation-name: v7-confused; }
+.logo-v7 text { animation-name: v7-confused !important; }
 
 /* --- V8: THE SQUASH --- */
 @keyframes v8-squash {
@@ -768,7 +765,7 @@ input[type=range]:active::-webkit-slider-thumb {
   80% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg); }
 }
-.logo-v8 text { animation-name: v8-squash; }
+.logo-v8 text { animation-name: v8-squash !important; }
 
 /* --- V9: THE CHAOS --- */
 @keyframes v9-chaos {
@@ -779,97 +776,98 @@ input[type=range]:active::-webkit-slider-thumb {
   75% { transform: rotate(360deg) translate(0, 2px); }
   100% { transform: rotate(360deg); }
 }
-.logo-v9 text { animation-name: v9-chaos; }
+.logo-v9 text { animation-name: v9-chaos !important; }
+.logo-v9 #logo-t { animation-duration: 7s !important; }
+.logo-v9 #logo-r { animation-duration: 7.5s !important; }
+.logo-v9 #logo-u { animation-duration: 6.5s !important; }
+.logo-v9 #logo-n { animation-duration: 8s !important; }
+.logo-v9 #logo-k { animation-duration: 7.2s !important; }
 
-/* === NEW ANIMATIONS (V10 - V14) === */
-
-/* --- V10: THE CRASH (Letters run in from left, hit wall) --- */
+/* --- V10: THE CRASH --- */
 @keyframes v10-crash {
   0% { transform: translateX(-150px) rotate(-180deg); opacity: 0; }
-  15% { transform: translateX(5px) rotate(10deg) scaleX(0.8); opacity: 1; } /* Hit Wall & Squash */
-  20% { transform: translateX(0) rotate(-5deg) scaleX(1.1); } /* Rebound */
-  30% { transform: translateX(0) rotate(0deg) scaleX(1); } /* Settle */
-  /* Float */
+  15% { transform: translateX(5px) rotate(10deg) scaleX(0.8); opacity: 1; }
+  20% { transform: translateX(0) rotate(-5deg) scaleX(1.1); }
+  30% { transform: translateX(0) rotate(0deg) scaleX(1); }
   60% { transform: translate(0, -2px); }
   80% { transform: translate(0, 2px); }
   100% { transform: translate(0, 0); }
 }
-.logo-v10 text { animation-name: v10-crash; animation-fill-mode: backwards; }
-/* Stagger the crash so they pile up */
-.logo-v10 #logo-t { animation-delay: 0s; }
-.logo-v10 #logo-r { animation-delay: 0.1s; }
-.logo-v10 #logo-u { animation-delay: 0.2s; }
-.logo-v10 #logo-n { animation-delay: 0.3s; }
-.logo-v10 #logo-k { animation-delay: 0.4s; }
+.logo-v10 text { animation-name: v10-crash !important; animation-fill-mode: backwards !important; }
+.logo-v10 #logo-t { animation-delay: 0s !important; }
+.logo-v10 #logo-r { animation-delay: 0.1s !important; }
+.logo-v10 #logo-u { animation-delay: 0.2s !important; }
+.logo-v10 #logo-n { animation-delay: 0.3s !important; }
+.logo-v10 #logo-k { animation-delay: 0.4s !important; }
 
-/* --- V11: THE STAIRCASE (Climb up steps) --- */
+/* --- V11: THE STAIRCASE --- */
 @keyframes v11-staircase {
   0% { transform: translateY(40px) rotate(-45deg); opacity: 0; }
-  10% { transform: translateY(20px) rotate(45deg); opacity: 1; } /* Step 1 */
-  20% { transform: translateY(0px) rotate(-10deg); } /* Step 2 (Arrival) */
+  10% { transform: translateY(20px) rotate(45deg); opacity: 1; }
+  20% { transform: translateY(0px) rotate(-10deg); }
   30% { transform: translateY(0px) rotate(0deg); }
-  /* Float */
   60% { transform: translate(0, -2px); }
   80% { transform: translate(0, 2px); }
   100% { transform: translate(0, 0); }
 }
-.logo-v11 text { animation-name: v11-staircase; animation-fill-mode: backwards; }
-.logo-v11 #logo-t { animation-delay: 0s; }
-.logo-v11 #logo-r { animation-delay: 0.2s; }
-.logo-v11 #logo-u { animation-delay: 0.4s; }
-.logo-v11 #logo-n { animation-delay: 0.6s; }
-.logo-v11 #logo-k { animation-delay: 0.8s; }
+.logo-v11 text { animation-name: v11-staircase !important; animation-fill-mode: backwards !important; }
+.logo-v11 #logo-t { animation-delay: 0s !important; }
+.logo-v11 #logo-r { animation-delay: 0.2s !important; }
+.logo-v11 #logo-u { animation-delay: 0.4s !important; }
+.logo-v11 #logo-n { animation-delay: 0.6s !important; }
+.logo-v11 #logo-k { animation-delay: 0.8s !important; }
 
-/* --- V12: THE LOOP-DE-LOOP (Circle entry) --- */
+/* --- V12: THE LOOP-DE-LOOP --- */
 @keyframes v12-circle-in {
   0% { transform: scale(0) rotate(-540deg) translate(-50px, -50px); opacity: 0; }
-  15% { transform: scale(1) rotate(20deg) translate(0, 0); opacity: 1; } /* Overshoot spin */
-  25% { transform: scale(1) rotate(-10deg); } /* Correction */
+  15% { transform: scale(1) rotate(20deg) translate(0, 0); opacity: 1; }
+  25% { transform: scale(1) rotate(-10deg); }
   30% { transform: rotate(0deg); }
-  /* Float */
   60% { transform: translate(0, -2px); }
   80% { transform: translate(0, 2px); }
   100% { transform: translate(0, 0); }
 }
-.logo-v12 text { animation-name: v12-circle-in; animation-fill-mode: backwards; }
-.logo-v12 #logo-t { animation-delay: 0s; }
-.logo-v12 #logo-r { animation-delay: 0.1s; }
-.logo-v12 #logo-u { animation-delay: 0.2s; }
-.logo-v12 #logo-n { animation-delay: 0.3s; }
-.logo-v12 #logo-k { animation-delay: 0.4s; }
+.logo-v12 text { animation-name: v12-circle-in !important; animation-fill-mode: backwards !important; }
+.logo-v12 #logo-t { animation-delay: 0s !important; }
+.logo-v12 #logo-r { animation-delay: 0.1s !important; }
+.logo-v12 #logo-u { animation-delay: 0.2s !important; }
+.logo-v12 #logo-n { animation-delay: 0.3s !important; }
+.logo-v12 #logo-k { animation-delay: 0.4s !important; }
 
-/* --- V13: THE SPROUT (Grow from bottom like a plant) --- */
+/* --- V13: THE SPROUT --- */
 @keyframes v13-sprout {
   0% { transform: scaleY(0) translateY(20px); opacity: 0; }
-  15% { transform: scaleY(1.3) translateY(0px); opacity: 1; } /* Grow tall */
-  22% { transform: scaleY(0.9) rotate(5deg); } /* Wind sway */
+  15% { transform: scaleY(1.3) translateY(0px); opacity: 1; }
+  22% { transform: scaleY(0.9) rotate(5deg); }
   30% { transform: scaleY(1) rotate(0deg); }
-  /* Float */
   60% { transform: translate(0, -2px); }
   80% { transform: translate(0, 2px); }
   100% { transform: translate(0, 0); }
 }
-.logo-v13 text { animation-name: v13-sprout; transform-origin: bottom center; animation-fill-mode: backwards; }
-.logo-v13 #logo-t { animation-delay: 0s; }
-.logo-v13 #logo-r { animation-delay: 0.15s; }
-.logo-v13 #logo-u { animation-delay: 0.30s; }
-.logo-v13 #logo-n { animation-delay: 0.45s; }
-.logo-v13 #logo-k { animation-delay: 0.60s; }
+.logo-v13 text { 
+  animation-name: v13-sprout !important; 
+  transform-origin: bottom center !important; 
+  animation-fill-mode: backwards !important; 
+}
+.logo-v13 #logo-t { animation-delay: 0s !important; }
+.logo-v13 #logo-r { animation-delay: 0.15s !important; }
+.logo-v13 #logo-u { animation-delay: 0.30s !important; }
+.logo-v13 #logo-n { animation-delay: 0.45s !important; }
+.logo-v13 #logo-k { animation-delay: 0.60s !important; }
 
-/* --- V14: THE FALLING LEAF (Drift down with curves) --- */
+/* --- V14: THE FALLING LEAF --- */
 @keyframes v14-leaf {
   0% { transform: translateY(-60px) rotate(45deg); opacity: 0; }
-  10% { transform: translateY(-30px) rotate(-30deg); opacity: 1; } /* Drift Left */
-  20% { transform: translateY(-10px) rotate(15deg); } /* Drift Right */
-  30% { transform: translateY(0) rotate(0deg); } /* Land */
-  /* Float */
+  10% { transform: translateY(-30px) rotate(-30deg); opacity: 1; }
+  20% { transform: translateY(-10px) rotate(15deg); }
+  30% { transform: translateY(0) rotate(0deg); }
   60% { transform: translate(0, -2px); }
   80% { transform: translate(0, 2px); }
   100% { transform: translate(0, 0); }
 }
-.logo-v14 text { animation-name: v14-leaf; animation-fill-mode: backwards; }
-.logo-v14 #logo-t { animation-delay: 0s; }
-.logo-v14 #logo-r { animation-delay: 0.2s; }
-.logo-v14 #logo-u { animation-delay: 0.4s; }
-.logo-v14 #logo-n { animation-delay: 0.6s; }
-.logo-v14 #logo-k { animation-delay: 0.8s; }
+.logo-v14 text { animation-name: v14-leaf !important; animation-fill-mode: backwards !important; }
+.logo-v14 #logo-t { animation-delay: 0s !important; }
+.logo-v14 #logo-r { animation-delay: 0.2s !important; }
+.logo-v14 #logo-u { animation-delay: 0.4s !important; }
+.logo-v14 #logo-n { animation-delay: 0.6s !important; }
+.logo-v14 #logo-k { animation-delay: 0.8s !important; }
