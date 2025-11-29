@@ -1356,9 +1356,14 @@ function generateOrganicLeafPath() {
 
     return d;
 }
+
+let leafInterval = null;
+let activeLeafSpots = []; // New: Tracks x/y coordinates of all active leaves
+
 function startLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = setInterval(() => {
+    // Keep the hard limit of 5 leaves for performance
     const activeLeaves = document.querySelectorAll('.leaf-group');
     if (activeLeaves.length >= 5) return;
     spawnRandomLeaf();
@@ -1368,7 +1373,10 @@ function startLeafSpawner() {
 function stopLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = null;
+  // Clear all DOM elements
   document.querySelectorAll('.leaf-group').forEach(el => el.remove());
+  // Clear the position tracking array
+  activeLeafSpots = [];
 }
 
 function spawnRandomLeaf() {
@@ -1378,25 +1386,53 @@ function spawnRandomLeaf() {
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
-  // 1. Pick random line & point
-  const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
-  const len = targetLine.getTotalLength();
-  if (len === 0) return;
-  const randLen = Math.random() * len;
-  const pt = targetLine.getPointAtLength(randLen);
+  // 1. COLLISION DETECTION
+  // Try up to 10 times to find a spot that isn't crowded
+  let pt = null;
+  let targetLine = null;
+  let validSpot = false;
+
+  for (let i = 0; i < 10; i++) {
+      targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
+      const len = targetLine.getTotalLength();
+      if (len === 0) continue;
+
+      const randLen = Math.random() * len;
+      const candidate = targetLine.getPointAtLength(randLen);
+
+      // Check distance against all current leaves (threshold: 60px)
+      const isTooClose = activeLeafSpots.some(spot => {
+          const dx = candidate.x - spot.x;
+          const dy = candidate.y - spot.y;
+          return (dx * dx + dy * dy) < 3600; // 60^2 = 3600
+      });
+
+      if (!isTooClose) {
+          pt = candidate;
+          validSpot = true;
+          break;
+      }
+  }
+
+  // If we couldn't find a free spot after 10 tries, skip this frame.
+  if (!validSpot || !pt) return;
+
+  // 2. REGISTER SPOT
+  // Store this position so future leaves respect it
+  const spotRef = { x: pt.x, y: pt.y };
+  activeLeafSpots.push(spotRef);
 
   const computedStyle = window.getComputedStyle(targetLine);
   const strokeColor = computedStyle.stroke;
 
-  // 2. Create Parent Group (Position/Rotate)
+  // 3. CREATE LEAF ELEMENTS
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "leaf-group");
   
   const rotation = (Math.random() * 90) - 45;
-  const scale = 0.5 + (Math.random() * 0.5); 
+  const scale = 0.5 + (Math.random() * 0.5);
   g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
 
-  // 3. Create Inner Wrapper (Handles Sway Animation)
   const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
   gInner.setAttribute("class", "leaf-inner");
   
@@ -1405,7 +1441,6 @@ function spawnRandomLeaf() {
       gInner.classList.add('leaf-sway');
   }
 
-  // 4. Create Procedural Path
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", generateOrganicLeafPath());
   path.setAttribute("class", "leaf-path");
@@ -1415,11 +1450,11 @@ function spawnRandomLeaf() {
   g.appendChild(gInner);
   pointsGroup.appendChild(g);
 
-  // 5. Animate Drawing
+  // 4. ANIMATE DRAWING
   const pathLen = path.getTotalLength();
   path.style.strokeDasharray = pathLen;
-  path.style.strokeDashoffset = pathLen; 
-
+  path.style.strokeDashoffset = pathLen;
+  
   const animation = path.animate([
     { strokeDashoffset: pathLen }, 
     { strokeDashoffset: 0 }        
@@ -1429,9 +1464,16 @@ function spawnRandomLeaf() {
     fill: 'forwards'
   });
 
+  // 5. CLEANUP
   animation.onfinish = () => {
     setTimeout(() => {
-        if (!document.body.contains(path)) return;
+        // If the graph was cleared while we were waiting, stop here
+        if (!document.body.contains(path)) {
+             const idx = activeLeafSpots.indexOf(spotRef);
+             if (idx > -1) activeLeafSpots.splice(idx, 1);
+             return;
+        }
+
         const undraw = path.animate([
             { strokeDashoffset: 0 },
             { strokeDashoffset: pathLen }
@@ -1440,9 +1482,13 @@ function spawnRandomLeaf() {
             easing: 'ease-in',
             fill: 'forwards'
         });
+
         undraw.onfinish = () => {
             if (document.body.contains(g)) g.remove();
+            // Remove this spot from the tracker so space is freed up
+            const idx = activeLeafSpots.indexOf(spotRef);
+            if (idx > -1) activeLeafSpots.splice(idx, 1);
         };
-    }, 5000);
+    }, 5000); // Leaf stays visible for 5 seconds
   };
 }
