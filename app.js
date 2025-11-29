@@ -1,7 +1,7 @@
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
-  authDomain: "trunktracker.app",
+  authDomain: "free-workout-tracker.firebaseapp.com",
   projectId: "free-workout-tracker",
   storageBucket: "free-workout-tracker.firebasestorage.app",
   messagingSenderId: "797968203224",
