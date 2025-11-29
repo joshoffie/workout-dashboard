@@ -657,3 +657,145 @@ input[type=range]:active::-webkit-slider-thumb {
   animation: leafSway 3s ease-in-out infinite;
   transform-origin: 0 0; /* Pivot at the stem base */
 }
+
+/* =========================================
+   NEW LOGO ANIMATION VARIATIONS (Step 1)
+   ========================================= */
+
+/* Base settings for all variations */
+.logo-variant text {
+  transform-box: view-box;
+  /* Keep the duration long to allow for the float phase */
+  animation-duration: 8s !important; 
+  animation-iteration-count: infinite !important;
+  animation-timing-function: ease-in-out !important;
+}
+
+/* --- V1: THE JUMP ROLL (Letters jump up while spinning) --- */
+@keyframes v1-jump-roll {
+  0% { transform: rotate(0deg) translateY(0); }
+  15% { transform: rotate(360deg) translateY(-15px); } /* Jump Peak */
+  25% { transform: rotate(720deg) translateY(0); } /* Land */
+  /* Float Phase */
+  40% { transform: rotate(720deg) translate(0, -2px); }
+  60% { transform: rotate(720deg) translate(0, 2px); }
+  80% { transform: rotate(720deg) translate(0, -2px); }
+  100% { transform: rotate(720deg) translateY(0); }
+}
+.logo-v1 text { animation-name: v1-jump-roll; }
+
+/* --- V2: THE ELASTIC SNAP (Wind up backwards, then snap forward) --- */
+@keyframes v2-elastic {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(-90deg); } /* Wind up */
+  25% { transform: rotate(400deg); } /* Overshoot */
+  30% { transform: rotate(360deg); } /* Settle */
+  /* Float Phase */
+  50% { transform: rotate(360deg) translate(0, -2px); }
+  75% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg) translate(0, 0); }
+}
+.logo-v2 text { animation-name: v2-elastic; }
+
+/* --- V3: THE GEAR GRIND (Alternating Directions) --- */
+@keyframes v3-cw { /* Clockwise */
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(360deg); }
+  /* Float Phase */
+  50% { transform: rotate(360deg) translate(0, -2px); }
+  75% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes v3-ccw { /* Counter-Clockwise */
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-360deg); }
+  /* Float Phase */
+  50% { transform: rotate(-360deg) translate(0, -2px); }
+  75% { transform: rotate(-360deg) translate(0, 2px); }
+  100% { transform: rotate(-360deg); }
+}
+.logo-v3 #logo-t, .logo-v3 #logo-u, .logo-v3 #logo-k { animation-name: v3-cw; }
+.logo-v3 #logo-r, .logo-v3 #logo-n { animation-name: v3-ccw; }
+
+/* --- V4: THE WAVE (Staggered Spin) --- */
+@keyframes v4-basic-spin {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(360deg); }
+  /* Float Phase */
+  50% { transform: rotate(360deg) translate(0, -2px); }
+  75% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg); }
+}
+.logo-v4 text { animation-name: v4-basic-spin; }
+.logo-v4 #logo-t { animation-delay: 0s; }
+.logo-v4 #logo-r { animation-delay: 0.1s; }
+.logo-v4 #logo-u { animation-delay: 0.2s; }
+.logo-v4 #logo-n { animation-delay: 0.3s; }
+.logo-v4 #logo-k { animation-delay: 0.4s; }
+
+/* --- V5: THE BARREL ROLL (Rolls right then left) --- */
+@keyframes v5-barrel {
+  0% { transform: rotate(0deg) translateX(0); }
+  15% { transform: rotate(180deg) translateX(10px); }
+  30% { transform: rotate(360deg) translateX(0); }
+  /* Float Phase */
+  60% { transform: rotate(360deg) translate(0, -2px); }
+  80% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg) translateX(0); }
+}
+.logo-v5 text { animation-name: v5-barrel; }
+
+/* --- V6: THE YO-YO (Drop down, spin up) --- */
+@keyframes v6-yoyo {
+  0% { transform: rotate(0deg) translateY(0); }
+  10% { transform: rotate(90deg) translateY(8px); } /* Drop */
+  25% { transform: rotate(360deg) translateY(0); } /* Snap Up */
+  /* Float Phase */
+  55% { transform: rotate(360deg) translate(0, -2px); }
+  80% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg) translateY(0); }
+}
+.logo-v6 text { animation-name: v6-yoyo; }
+
+/* --- V7: THE CONFUSED (Pause in middle) --- */
+@keyframes v7-confused {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(180deg); }
+  18% { transform: rotate(160deg); } /* Hesitate back */
+  30% { transform: rotate(360deg); }
+  /* Float Phase */
+  60% { transform: rotate(360deg) translate(0, -2px); }
+  80% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg); }
+}
+.logo-v7 text { animation-name: v7-confused; }
+
+/* --- V8: THE SQUASH (Flatten while spinning) --- */
+@keyframes v8-squash {
+  0% { transform: rotate(0deg) scaleY(1); }
+  10% { transform: rotate(180deg) scaleY(0.5); }
+  25% { transform: rotate(360deg) scaleY(1.2); } /* Pop */
+  30% { transform: rotate(360deg) scaleY(1); }
+  /* Float Phase */
+  60% { transform: rotate(360deg) translate(0, -2px); }
+  80% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg); }
+}
+.logo-v8 text { animation-name: v8-squash; }
+
+/* --- V9: THE CHAOS (Random speeds) --- */
+@keyframes v9-chaos {
+  0% { transform: rotate(0deg); }
+  5% { transform: rotate(-50deg); }
+  25% { transform: rotate(360deg); }
+  /* Float Phase */
+  50% { transform: rotate(360deg) translate(0, -2px); }
+  75% { transform: rotate(360deg) translate(0, 2px); }
+  100% { transform: rotate(360deg); }
+}
+.logo-v9 text { animation-name: v9-chaos; }
+.logo-v9 #logo-t { animation-duration: 7s !important; }
+.logo-v9 #logo-r { animation-duration: 7.5s !important; }
+.logo-v9 #logo-u { animation-duration: 6.5s !important; }
+.logo-v9 #logo-n { animation-duration: 8s !important; }
+.logo-v9 #logo-k { animation-duration: 7.2s !important; }
