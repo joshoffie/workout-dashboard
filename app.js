@@ -1357,9 +1357,51 @@ function generateOrganicLeafPath() {
     return d;
 }
 
-let leafInterval = null;
-let activeLeafSpots = []; // New: Tracks x/y coordinates of all active leaves
+// ==========================================
+// ORGANIC LEAF ANIMATION SYSTEM
+// ==========================================
 
+let leafInterval = null;
+let activeLeafSpots = []; // Tracks x/y coordinates to prevent overlapping
+
+// 1. LEAF GEOMETRY GENERATOR (Restored)
+function generateOrganicLeafPath() {
+    // Randomly select one of the 3 stable styles
+    const style = Math.floor(Math.random() * 3);
+    let d = "";
+
+    switch (style) {
+        case 0: // 1. THE CLASSIC (Beech)
+            d += "M 0 0 Q 2 -32 0 -65 ";
+            d += "C 15 -45, 12 -15, 0 0 ";
+            d += "C -12 -15, -15 -45, 0 -65 ";
+            d += "M 0 -20 L 6 -25 ";  d += "M 0 -20 L -6 -25 ";
+            d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
+            d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
+            break;
+
+        case 1: // 2. THE WILLOW (Lanceolate)
+            d += "M 0 0 Q 1 -40 0 -75 ";
+            d += "C 6 -55, 4 -15, 0 0 ";
+            d += "C -4 -15, -6 -55, 0 -75 ";
+            d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
+            d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
+            d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
+            break;
+
+        case 2: // 3. THE HEART (Cordate)
+            d += "M 0 0 L 0 -60 ";
+            d += "C 15 -50, 25 -25, 0 0 ";
+            d += "C -25 -25, -15 -50, 0 -60 ";
+            d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
+            d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
+            d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
+            break;
+    }
+    return d;
+}
+
+// 2. SPAWNER CONTROLS
 function startLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = setInterval(() => {
@@ -1379,6 +1421,7 @@ function stopLeafSpawner() {
   activeLeafSpots = [];
 }
 
+// 3. SPAWN LOGIC (With Collision Detection)
 function spawnRandomLeaf() {
   const pointsGroup = document.getElementById('chartPoints'); 
   if (!pointsGroup) return;
@@ -1386,7 +1429,7 @@ function spawnRandomLeaf() {
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
-  // 1. COLLISION DETECTION
+  // COLLISION DETECTION LOOP
   // Try up to 10 times to find a spot that isn't crowded
   let pt = null;
   let targetLine = null;
@@ -1417,15 +1460,14 @@ function spawnRandomLeaf() {
   // If we couldn't find a free spot after 10 tries, skip this frame.
   if (!validSpot || !pt) return;
 
-  // 2. REGISTER SPOT
-  // Store this position so future leaves respect it
+  // REGISTER SPOT
   const spotRef = { x: pt.x, y: pt.y };
   activeLeafSpots.push(spotRef);
 
   const computedStyle = window.getComputedStyle(targetLine);
   const strokeColor = computedStyle.stroke;
 
-  // 3. CREATE LEAF ELEMENTS
+  // CREATE ELEMENTS
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "leaf-group");
   
@@ -1450,7 +1492,7 @@ function spawnRandomLeaf() {
   g.appendChild(gInner);
   pointsGroup.appendChild(g);
 
-  // 4. ANIMATE DRAWING
+  // ANIMATE
   const pathLen = path.getTotalLength();
   path.style.strokeDasharray = pathLen;
   path.style.strokeDashoffset = pathLen;
@@ -1464,10 +1506,9 @@ function spawnRandomLeaf() {
     fill: 'forwards'
   });
 
-  // 5. CLEANUP
+  // CLEANUP
   animation.onfinish = () => {
     setTimeout(() => {
-        // If the graph was cleared while we were waiting, stop here
         if (!document.body.contains(path)) {
              const idx = activeLeafSpots.indexOf(spotRef);
              if (idx > -1) activeLeafSpots.splice(idx, 1);
@@ -1485,10 +1526,9 @@ function spawnRandomLeaf() {
 
         undraw.onfinish = () => {
             if (document.body.contains(g)) g.remove();
-            // Remove this spot from the tracker so space is freed up
             const idx = activeLeafSpots.indexOf(spotRef);
             if (idx > -1) activeLeafSpots.splice(idx, 1);
         };
-    }, 5000); // Leaf stays visible for 5 seconds
+    }, 5000);
   };
 }
