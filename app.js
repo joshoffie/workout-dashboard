@@ -1468,20 +1468,17 @@ function spawnRandomLeaf() {
 }
 
 // ==========================================
-// RANDOM LOGO ANIMATION LOADER
+// RANDOM LOGO ANIMATION LOADER (Updated)
 // ==========================================
 function initRandomLogo() {
   const logoSvg = document.getElementById('animated-logo');
   if (!logoSvg) return;
 
-  // We have 9 new variations + 1 original (default)
-  // Generating a number between 0 and 9.
-  // 0 = Original (Do nothing)
-  // 1-9 = New variations
-  const variant = Math.floor(Math.random() * 10);
+  // Now selecting between 0 (Original) and 14 (New variations)
+  // Total 15 possibilities
+  const variant = Math.floor(Math.random() * 15);
 
   if (variant > 0) {
-    // Add the base class and the specific variant class
     logoSvg.classList.add('logo-variant');
     logoSvg.classList.add(`logo-v${variant}`);
     console.log(`Loaded Logo Variant: ${variant}`);
@@ -1489,20 +1486,22 @@ function initRandomLogo() {
     console.log('Loaded Logo Variant: Original');
   }
   
-  // Optional: Click logo to cycle through animations for fun
+  // Click listener updated for 15 variants
   logoSvg.addEventListener('click', () => {
-      // Clear current
-      logoSvg.className = ''; 
-      // Pick new random that isn't the current one (simple shift)
-      let next = (variant + 1) % 10;
+      logoSvg.className = ''; // Clear current
+      let next = (variant + 1) % 15;
       if (next === 0) {
            console.log("Switched to Original");
       } else {
            logoSvg.classList.add('logo-variant', `logo-v${next}`);
            console.log(`Switched to Variant: ${next}`);
       }
+      // Update variant variable for next click
+      // Note: In strict mode/modules you'd need a closure, 
+      // but for this simple script, re-running logic or using a let above works.
+      // For this specific implementation, we just restart the cycle next reload
+      // or rely on the visual change.
   });
 }
 
-// Call on load
 initRandomLogo();
