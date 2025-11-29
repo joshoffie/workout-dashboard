@@ -640,27 +640,20 @@ input[type=range]:active::-webkit-slider-thumb {
 
 /* ===== LEAF ANIMATION STYLES ===== */
 .leaf-path {
-  fill: var(--color-bg); /* Fills with background color to hide graph lines behind it */
+  fill: none;
   stroke-width: 2px;
   stroke-linecap: round;
   stroke-linejoin: round;
-  vector-effect: non-scaling-stroke; /* Keeps lines sharp even when scaled */
+  /* Color will be set inline via JS to match the graph line */
 }
 
-/* ORGANIC SWAY ANIMATION 
-   Combines Rotation (swinging) with Skew (bending) to mimic flexibility.
-*/
-@keyframes leafSwayOrganic {
-  0% { transform: rotate(0deg) skewX(0deg); }
-  25% { transform: rotate(5deg) skewX(3deg); }  /* Swing right + bend */
-  50% { transform: rotate(0deg) skewX(0deg); }  /* Center */
-  75% { transform: rotate(-3deg) skewX(-2deg); } /* Swing left + bend */
-  100% { transform: rotate(0deg) skewX(0deg); }
+/* Wind / Sway Animation */
+@keyframes leafSway {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(6deg); }
+  100% { transform: rotate(0deg); }
 }
-
 .leaf-sway {
-  animation-name: leafSwayOrganic;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-  transform-origin: 0 0; /* Important: Pivot exactly at the stem */
+  animation: leafSway 3s ease-in-out infinite;
+  transform-origin: 0 0; /* Pivot at the stem base */
 }
