@@ -1299,46 +1299,49 @@ let leafInterval = null;
 
 // New: Generate a unique procedural path every time
 function generateOrganicLeafPath() {
-    // Random variations for organic feel
-    const scale = 1; 
-    const tipX = (Math.random() * 10) - 5; // Slight lean left/right
-    const tipY = -45 - (Math.random() * 10); // Random height 45-55
-    const width = 15 + (Math.random() * 6); // Random width
+    // Fixed oak leaf geometry to match the uploaded image style
+    // Origin (0,0) is the base of the stem. Leaf grows upwards (negative Y).
     
-    // Control points for tear-drop shape (image style)
-    const cp1x = -width; 
-    const cp1y = tipY * 0.4;
-    const cp2x = -width * 0.2;
-    const cp2y = tipY * 0.8;
+    // 1. Outline: Drawing the lobed shape
+    // We use Bezier curves (C and S) to create the characteristic rounded lobes.
     
-    const cp3x = width;
-    const cp3y = tipY * 0.4;
-    const cp4x = width * 0.2;
-    const cp4y = tipY * 0.8;
+    let d = `M 0 0`; 
+    
+    // --- Right Side ---
+    // Curve out to bottom-right lobe
+    d += ` C 8 -5, 16 -12, 10 -22`; 
+    // Curve to middle-right lobe
+    d += ` S 16 -32, 6 -40`; 
+    // Curve to leaf apex (tip)
+    d += ` S 4 -50, 0 -60`;
 
-    // 1. Stem/Main Vein
-    let d = `M 0 0 Q ${tipX/2} ${tipY/2} ${tipX} ${tipY}`; 
+    // --- Left Side (Mirroring down) ---
+    // Curve down from apex to middle-left lobe
+    d += ` C -4 -50, -16 -32, -6 -40`; 
+    // Curve to bottom-left lobe
+    d += ` S -16 -12, -10 -22`;
+    // Curve back to base
+    d += ` S -8 -5, 0 0`;
+
+    // 2. Central Midrib (Vein)
+    // A single stroke from base to just below the tip
+    d += ` M 0 0 Q 2 -30 0 -56`;
+
+    // 3. Branching Veins
+    // Explicitly placed lines that reach INTO the lobes but stay inside the outline
     
-    // 2. Outline (Base -> Left -> Tip -> Right -> Base)
-    // We move back to 0,0 to start the outline
-    d += ` M 0 0 C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tipX} ${tipY}`; // Left side
-    d += ` C ${cp4x} ${cp4y}, ${cp3x} ${cp3y}, 0 0`; // Right side
+    // Lower Veins
+    d += ` M 0 -15 L 8 -18`;  // Right
+    d += ` M 0 -15 L -8 -18`; // Left
     
-    // 3. Veins (3 pairs, organic jitter)
-    for(let i=1; i<=3; i++) {
-        const t = i/4; // Position along stem
-        const vx = tipX * t;
-        const vy = tipY * t;
-        
-        // Random vein length/angle
-        const veinX = 6 + Math.random() * 3;
-        const veinY = -4 - Math.random() * 3;
-        
-        // Append simple linear veins
-        d += ` M ${vx} ${vy} l ${-veinX} ${veinY}`;
-        d += ` M ${vx} ${vy} l ${veinX} ${veinY}`;
-    }
+    // Middle Veins
+    d += ` M 0 -35 L 6 -38`;  // Right
+    d += ` M 0 -35 L -6 -38`; // Left
     
+    // Upper Veins (Smaller)
+    d += ` M 0 -48 L 3 -52`;  // Right
+    d += ` M 0 -48 L -3 -52`; // Left
+
     return d;
 }
 
