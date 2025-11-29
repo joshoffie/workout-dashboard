@@ -1281,44 +1281,37 @@ document.body.addEventListener('touchend', () => {
 });
 
 // ==========================================
-// ORGANIC OAK LEAF ANIMATION SYSTEM
+// OAK LEAF ANIMATION SYSTEM
 // ==========================================
 
 let leafInterval = null;
 
-// Exact tracing of the Oak Leaf style (Stem -> Outline -> Veins)
-// M=Move, C=Curve, L=Line. Coordinates are relative to a ~60px height.
+// Hand-crafted path to match your Oak Leaf image (Stem -> Spine -> Outline -> Veins)
+// Coordinates are relative to 0,0 (the stem attachment point)
 const OAK_LEAF_D = `
-  M 0 0 
-  C 2 -5 2 -10 0 -15 
-  M 0 0 
-  C -10 -5 -18 -20 -8 -30 
-  C -20 -32 -22 -45 -10 -52 
-  C -12 -60 -5 -68 0 -75 
-  C 5 -68 12 -60 10 -52 
-  C 22 -45 20 -32 8 -30 
-  C 18 -20 10 -5 0 0 
-  M 0 -15 L 0 -70 
-  M 0 -25 L -8 -32 
-  M 0 -25 L 8 -32 
-  M 0 -45 L -6 -50 
-  M 0 -45 L 6 -50
+  M 0 0 L 0 -10 
+  M 0 -10 Q 0 -60 0 -65 
+  M 0 -10 C 12 -15 15 -25 5 -35 S 10 -50 0 -65 
+  M 0 -10 C -12 -15 -15 -25 -5 -35 S -10 -50 0 -65 
+  M 0 -25 L 8 -30 
+  M 0 -25 L -8 -30 
+  M 0 -45 L 6 -50 
+  M 0 -45 L -6 -50
 `;
 
 function startLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
-  // Spawn slightly faster to ensure we see them (600ms)
+  // Spawn every 800ms
   leafInterval = setInterval(() => {
-    // Safety check: Don't spawn if graph isn't visible
+    // Safety: Stop if graph is hidden
     if(document.getElementById('graphContainer').classList.contains('hidden')) {
         stopLeafSpawner();
         return;
     }
-    
     const activeLeaves = document.querySelectorAll('.leaf-group');
-    if (activeLeaves.length >= 6) return; // Increased limit slightly
+    if (activeLeaves.length >= 6) return; 
     spawnRandomLeaf();
-  }, 600);
+  }, 800);
 }
 
 function stopLeafSpawner() {
@@ -1334,86 +1327,83 @@ function spawnRandomLeaf() {
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
-  try {
-      // 1. Pick random line & point
-      const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
-      const len = targetLine.getTotalLength();
-      if (!len || len === 0) return;
-      
-      const randLen = Math.random() * len;
-      const pt = targetLine.getPointAtLength(randLen);
+  // 1. Pick random line & point
+  const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
+  const len = targetLine.getTotalLength();
+  if (!len || len === 0) return;
+  const randLen = Math.random() * len;
+  const pt = targetLine.getPointAtLength(randLen);
 
-      // Get color
-      const computedStyle = window.getComputedStyle(targetLine);
-      const strokeColor = computedStyle.stroke;
+  // Get color from the graph line
+  const computedStyle = window.getComputedStyle(targetLine);
+  const strokeColor = computedStyle.stroke;
 
-      // 2. Create Parent Group (Position & Static Rotation)
-      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      g.setAttribute("class", "leaf-group");
-      
-      // Random rotation (-60 to +60 degrees)
-      const rotation = (Math.random() * 120) - 60;
-      // Random scale (0.4 to 0.8) - Keep them slightly smaller for elegance
-      const scale = 0.4 + (Math.random() * 0.4); 
-      
-      g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
+  // 2. Create Group
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("class", "leaf-group");
+  
+  // Randomize rotation (-45 to +45 degrees) and scale
+  const rotation = (Math.random() * 90) - 45;
+  const scale = 0.5 + (Math.random() * 0.5); // 0.5x to 1.0x size
+  
+  // Apply position and scale to the Group
+  g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) scale(${scale})`);
 
-      // 3. Create Inner Wrapper (Handles Wind Sway)
-      const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      gInner.setAttribute("class", "leaf-inner");
-      
-      // 45% chance to sway in the wind
-      if (Math.random() < 0.45) {
-          gInner.classList.add('leaf-sway');
-          // Randomize wind speed (3s to 6s)
-          const duration = 3 + Math.random() * 3;
-          gInner.style.animationDuration = `${duration}s`;
-      }
-
-      // 4. Create The Leaf Path
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", OAK_LEAF_D);
-      path.setAttribute("class", "leaf-path");
-      path.style.stroke = strokeColor;
-      path.style.fill = "var(--color-bg)"; // Hide grid lines behind the leaf
-      
-      gInner.appendChild(path);
-      g.appendChild(gInner);
-      pointsGroup.appendChild(g);
-
-      // 5. Animate Drawing
-      const pathLen = 300; // Approximate length for optimization
-      path.style.strokeDasharray = pathLen;
-      path.style.strokeDashoffset = pathLen; 
-
-      const animation = path.animate([
-        { strokeDashoffset: pathLen }, 
-        { strokeDashoffset: 0 }        
-      ], {
-        duration: 1200,
-        easing: 'ease-out',
-        fill: 'forwards'
-      });
-
-      animation.onfinish = () => {
-        // Wait 4-6 seconds, then undraw
-        const waitTime = 4000 + (Math.random() * 2000);
-        setTimeout(() => {
-            if (!document.body.contains(path)) return;
-            const undraw = path.animate([
-                { strokeDashoffset: 0 },
-                { strokeDashoffset: pathLen }
-            ], {
-                duration: 800,
-                easing: 'ease-in',
-                fill: 'forwards'
-            });
-            undraw.onfinish = () => {
-                if (document.body.contains(g)) g.remove();
-            };
-        }, waitTime);
-      };
-  } catch (e) {
-      console.log("Leaf spawn error:", e);
+  // 3. Create an Inner Wrapper for Rotation & Sway
+  // This separates the static rotation from the sway animation so they don't conflict
+  const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  innerG.style.transform = `rotate(${rotation}deg)`; // Initial random angle
+  
+  // 45% chance to add "Blowing in the Wind" animation
+  if (Math.random() < 0.45) {
+      innerG.classList.add('leaf-sway');
+      // Randomize animation speed slightly (3s to 5s)
+      innerG.style.animationDuration = (3 + Math.random() * 2) + 's';
   }
+
+  // 4. Create the Leaf Path
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", OAK_LEAF_D);
+  path.setAttribute("class", "leaf-path");
+  path.style.stroke = strokeColor;
+  path.style.fill = "var(--color-bg)"; // Fill with background color
+  
+  innerG.appendChild(path);
+  g.appendChild(innerG);
+  pointsGroup.appendChild(g);
+
+  // 5. Animate Drawing (Standard dashoffset trick)
+  const pathLen = 300; // Approximate length is enough
+  path.style.strokeDasharray = pathLen;
+  path.style.strokeDashoffset = pathLen; 
+
+  // Draw
+  const animation = path.animate([
+    { strokeDashoffset: pathLen }, 
+    { strokeDashoffset: 0 }        
+  ], {
+    duration: 1500,
+    easing: 'ease-out',
+    fill: 'forwards'
+  });
+
+  // Undraw after delay
+  animation.onfinish = () => {
+    // Wait 4-6 seconds
+    const waitTime = 4000 + (Math.random() * 2000);
+    setTimeout(() => {
+        if (!document.body.contains(path)) return;
+        const undraw = path.animate([
+            { strokeDashoffset: 0 },
+            { strokeDashoffset: pathLen }
+        ], {
+            duration: 1000,
+            easing: 'ease-in',
+            fill: 'forwards'
+        });
+        undraw.onfinish = () => {
+            if (document.body.contains(g)) g.remove();
+        };
+    }, waitTime);
+  };
 }
