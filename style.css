@@ -640,23 +640,32 @@ input[type=range]:active::-webkit-slider-thumb {
 
 /* ===== LEAF ANIMATION STYLES ===== */
 .leaf-path {
-  fill: none;
+  fill: var(--color-bg); /* Filled with background color to cover graph lines behind it */
   stroke-width: 2px;
   stroke-linecap: round;
   stroke-linejoin: round;
-  /* Color will be set inline via JS to match the graph line */
+  vector-effect: non-scaling-stroke; /* Keeps line thickness consistent even when scaled */
 }
 
-/* More organic wind: combines rotation with slight skew for bending effect */
+/* ORGANIC WIND ANIMATION 
+   Combines Rotation (swinging) with Skew (bending) and Scale (stretching)
+   to make the leaf feel flexible like soft tissue.
+*/
 @keyframes leafSwayOrganic {
-  0% { transform: rotate(0deg) skewX(0deg); animation-timing-function: ease-in-out; }
-  33% { transform: rotate(8deg) skewX(2deg); animation-timing-function: ease-in-out; }
-  66% { transform: rotate(4deg) skewX(1deg); animation-timing-function: ease-in-out; }
-  100% { transform: rotate(0deg) skewX(0deg); animation-timing-function: ease-in-out; }
+  0% { transform: rotate(0deg) skewX(0deg) scaleY(1); }
+  25% { transform: rotate(5deg) skewX(4deg) scaleY(1.02); } /* Bend right */
+  50% { transform: rotate(0deg) skewX(0deg) scaleY(1); }    /* Return */
+  75% { transform: rotate(-4deg) skewX(-2deg) scaleY(0.98); } /* Bend left */
+  100% { transform: rotate(0deg) skewX(0deg) scaleY(1); }
+}
+
+.leaf-inner {
+  transform-origin: 0 0; /* Pivot exactly at the stem connection */
 }
 
 .leaf-sway {
-  /* Slower, more complex timing */
-  animation: leafSwayOrganic 4s infinite;
-  transform-origin: 0 5px; /* Move pivot slightly below the actual start point for better bend feel */
+  /* Random durations will be applied in JS to desynchronize them */
+  animation-name: leafSwayOrganic;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
 }
