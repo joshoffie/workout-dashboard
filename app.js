@@ -1305,45 +1305,126 @@ let leafInterval = null;
 // VARIED MINIMAL LEAF GENERATOR
 // ==========================================
 
+// ==========================================
+// 15 VARIATIONS OF MINIMAL LEAVES
+// ==========================================
+
 function generateOrganicLeafPath() {
-    // Randomly select one of 3 minimal styles
-    const style = Math.floor(Math.random() * 3);
+    // Selects one of 15 distinct minimal leaf geometries.
+    // All paths start at (0,0) [Base] and mostly aim for (0,-60) [Tip].
+    
+    const style = Math.floor(Math.random() * 15);
     let d = "";
 
-    if (style === 0) {
-        // STYLE 1: THE CLASSIC (Balanced Teardrop)
-        // Smooth, symmetrical, standard leaf shape.
-        // Spine
-        d += "M 0 0 Q 2 -30 0 -60 ";
-        // Right Outline
-        d += "C 15 -40, 8 -15, 0 0 ";
-        // Left Outline
-        d += "C -8 -15, -15 -40, 0 -60 ";
-    } 
-    else if (style === 1) {
-        // STYLE 2: THE WILLOW (Long & Slender)
-        // Narrower width, longer visual feel.
-        // Spine
-        d += "M 0 0 Q 1 -30 0 -60 ";
-        // Right Outline (Control points kept close to center)
-        d += "C 8 -35, 4 -10, 0 0 ";
-        // Left Outline
-        d += "C -4 -10, -8 -35, 0 -60 ";
-    } 
-    else {
-        // STYLE 3: THE POPLAR (Wide Base)
-        // Wider at the bottom, tapering sharply to the tip.
-        // Spine
-        d += "M 0 0 Q 0 -30 0 -60 ";
-        // Right Outline (Control point pushed out at y=-15)
-        d += "C 20 -25, 12 -5, 0 0 ";
-        // Left Outline
-        d += "C -12 -5, -20 -25, 0 -60 ";
+    switch (style) {
+        case 0: // 1. THE CLASSIC (Elliptical)
+            // Balanced, standard leaf.
+            d += "M 0 0 Q 0 -30 0 -60 "; // Spine
+            d += "C 15 -45, 10 -15, 0 0 "; // Right
+            d += "C -10 -15, -15 -45, 0 -60 "; // Left
+            break;
+
+        case 1: // 2. THE WILLOW (Lanceolate)
+            // Long, very thin, elegant.
+            d += "M 0 0 Q 1 -35 0 -70 "; // Longer spine
+            d += "C 6 -40, 3 -10, 0 0 ";
+            d += "C -3 -10, -6 -40, 0 -70 ";
+            break;
+
+        case 2: // 3. THE POPLAR (Deltoid)
+            // Triangular, wide base, sharp taper.
+            d += "M 0 0 L 0 -60 ";
+            d += "C 20 -20, 15 -10, 0 0 ";
+            d += "C -15 -10, -20 -20, 0 -60 ";
+            break;
+
+        case 3: // 4. THE PADDLE (Obovate)
+            // Narrow base, wide rounded top (like a spoon).
+            d += "M 0 0 L 0 -60 ";
+            d += "C 15 -60, 12 -20, 0 0 ";
+            d += "C -12 -20, -15 -60, 0 -60 ";
+            break;
+
+        case 4: // 5. THE HEART (Cordate)
+            // Very wide base that curves in deeply.
+            d += "M 0 0 L 0 -55 ";
+            d += "C 25 -30, 25 -10, 0 0 ";
+            d += "C -25 -10, -25 -30, 0 -55 ";
+            break;
+
+        case 5: // 6. THE DIAMOND (Rhomboid)
+            // Angular, geometric feel.
+            d += "M 0 0 L 0 -60 ";
+            d += "L 15 -30 L 0 0 "; // Sharp lines
+            d += "M 0 0 L -15 -30 L 0 -60 ";
+            break;
+
+        case 6: // 7. THE NEEDLE (Linear)
+            // Extremely thin, almost grass-like.
+            d += "M 0 0 L 0 -60 ";
+            d += "Q 3 -30 0 0 ";
+            d += "Q -3 -30 0 -60 ";
+            break;
+
+        case 7: // 8. THE ORB (Orbicular)
+            // Almost a perfect circle/coin.
+            d += "M 0 0 L 0 -50 ";
+            d += "C 25 -40, 25 -10, 0 0 ";
+            d += "C -25 -10, -25 -40, 0 -50 ";
+            break;
+
+        case 8: // 9. THE FLAME (Wavy)
+            // Subtle S-curves on the edges.
+            d += "M 0 0 Q 2 -30 0 -65 ";
+            d += "Q 10 -40, 5 -20 T 0 0 "; // S-curve right
+            d += "M 0 0 Q -5 -20, -10 -40 T 0 -65 "; // S-curve left
+            break;
+
+        case 9: // 10. THE SICKLE (Asymmetric Curve)
+            // The whole leaf curves to the right.
+            d += "M 0 0 Q 15 -30 20 -60 "; // Curved Spine
+            d += "Q 25 -40, 10 -10, 0 0 "; // Inner curve
+            d += "Q 5 -20, 10 -50, 20 -60 "; // Outer curve
+            break;
+
+        case 10: // 11. THE ARROW (Hastate)
+            // Sharp flares at the bottom, straight sides.
+            d += "M 0 0 L 0 -60 ";
+            d += "L 12 -15 L 0 0 ";
+            d += "M 0 0 L -12 -15 L 0 -60 ";
+            break;
+
+        case 11: // 12. THE WIND-BLOWN (Asymmetric Width)
+            // Left side is fat, right side is flat.
+            d += "M 0 0 Q 2 -30 0 -60 ";
+            d += "Q 5 -30 0 0 "; // Flat right side
+            d += "C -15 -15, -20 -45, 0 -60 "; // Bulging left side
+            break;
+
+        case 12: // 13. THE DROP (Inverted Tear)
+            // Fat bottom, concave taper to tip.
+            d += "M 0 0 L 0 -60 ";
+            d += "C 5 -40, 15 -10, 0 0 ";
+            d += "C -15 -10, -5 -40, 0 -60 ";
+            break;
+
+        case 13: // 14. THE BULB (Acuminate)
+            // Round middle, very sharp, long tip.
+            d += "M 0 0 L 0 -65 ";
+            d += "C 15 -30, 15 -10, 0 0 "; // Bulbous bottom
+            d += "M 0 0 C -15 -10, -15 -30, 0 -65 ";
+            break;
+
+        case 14: // 15. THE FERN (Subtle Lobes)
+            // Minimal wavy edge without being messy.
+            d += "M 0 0 L 0 -60 ";
+            d += "Q 8 -15, 4 -30 T 0 -60 "; // Double wave right
+            d += "M 0 -60 Q -4 -45, -8 -30 T 0 0 "; // Double wave left
+            break;
     }
 
     return d;
 }
-
 function startLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = setInterval(() => {
