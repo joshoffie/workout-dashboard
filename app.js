@@ -1292,33 +1292,61 @@ document.body.addEventListener('touchend', () => {
 });
 
 // ==========================================
-// LEAF ANIMATION SYSTEM
+// ORGANIC LEAF ANIMATION SYSTEM
 // ==========================================
 
 let leafInterval = null;
 
-// Based on your sketch: Stem -> Outline -> Veins
-const LEAF_PATH_D = `
-  M 0 0 
-  Q 12 -15 0 -45 
-  Q -12 -15 0 0 
-  M 0 0 L 0 -45 
-  M 0 -12 L 8 -20 
-  M 0 -12 L -8 -20 
-  M 0 -25 L 6 -32 
-  M 0 -25 L -6 -32
-`;
+// New: Generate a unique procedural path every time
+function generateOrganicLeafPath() {
+    // Random variations for organic feel
+    const scale = 1; 
+    const tipX = (Math.random() * 10) - 5; // Slight lean left/right
+    const tipY = -45 - (Math.random() * 10); // Random height 45-55
+    const width = 15 + (Math.random() * 6); // Random width
+    
+    // Control points for tear-drop shape (image style)
+    const cp1x = -width; 
+    const cp1y = tipY * 0.4;
+    const cp2x = -width * 0.2;
+    const cp2y = tipY * 0.8;
+    
+    const cp3x = width;
+    const cp3y = tipY * 0.4;
+    const cp4x = width * 0.2;
+    const cp4y = tipY * 0.8;
+
+    // 1. Stem/Main Vein
+    let d = `M 0 0 Q ${tipX/2} ${tipY/2} ${tipX} ${tipY}`; 
+    
+    // 2. Outline (Base -> Left -> Tip -> Right -> Base)
+    // We move back to 0,0 to start the outline
+    d += ` M 0 0 C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tipX} ${tipY}`; // Left side
+    d += ` C ${cp4x} ${cp4y}, ${cp3x} ${cp3y}, 0 0`; // Right side
+    
+    // 3. Veins (3 pairs, organic jitter)
+    for(let i=1; i<=3; i++) {
+        const t = i/4; // Position along stem
+        const vx = tipX * t;
+        const vy = tipY * t;
+        
+        // Random vein length/angle
+        const veinX = 6 + Math.random() * 3;
+        const veinY = -4 - Math.random() * 3;
+        
+        // Append simple linear veins
+        d += ` M ${vx} ${vy} l ${-veinX} ${veinY}`;
+        d += ` M ${vx} ${vy} l ${veinX} ${veinY}`;
+    }
+    
+    return d;
+}
 
 function startLeafSpawner() {
-  // Clear any existing spawner to prevent duplicates
   if (leafInterval) clearInterval(leafInterval);
-
-  // Attempt to spawn a leaf every 800ms
   leafInterval = setInterval(() => {
-    // 1. Limit to 5 active leaves
     const activeLeaves = document.querySelectorAll('.leaf-group');
     if (activeLeaves.length >= 5) return;
-
     spawnRandomLeaf();
   }, 800);
 }
@@ -1326,59 +1354,61 @@ function startLeafSpawner() {
 function stopLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = null;
-  // Optional: Remove existing leaves immediately when stopping
   document.querySelectorAll('.leaf-group').forEach(el => el.remove());
 }
 
 function spawnRandomLeaf() {
-  const pointsGroup = document.getElementById('chartPoints'); // We'll append leaves here
+  const pointsGroup = document.getElementById('chartPoints'); 
   if (!pointsGroup) return;
 
-  // 1. Find active graph lines
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
-  // 2. Pick a random line
+  // 1. Pick random line & point
   const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
-  
-  // 3. Pick a random spot on that line
   const len = targetLine.getTotalLength();
   if (len === 0) return;
   const randLen = Math.random() * len;
   const pt = targetLine.getPointAtLength(randLen);
 
-  // 4. Get color from the line's class (reps, vol, etc)
   const computedStyle = window.getComputedStyle(targetLine);
   const strokeColor = computedStyle.stroke;
 
-  // 5. Create Leaf SVG Group
+  // 2. Create Parent Group (Position/Rotate)
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "leaf-group");
   
-  // Randomize rotation slightly for organic look (-45 to +45 degrees)
   const rotation = (Math.random() * 90) - 45;
-  const scale = 0.5 + (Math.random() * 0.5); // Random size 0.5x to 1.0x
-  
+  const scale = 0.5 + (Math.random() * 0.5); 
   g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
 
-  // 6. Create the Leaf Path
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", LEAF_PATH_D);
-  path.setAttribute("class", "leaf-path");
-  path.style.stroke = strokeColor; // Match line color
+  // 3. Create Inner Wrapper (Handles Sway Animation)
+  const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  gInner.setAttribute("class", "leaf-inner");
   
-  g.appendChild(path);
+  // 45% chance to sway
+  if (Math.random() < 0.45) {
+      gInner.classList.add('leaf-sway');
+  }
+
+  // 4. Create Procedural Path
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", generateOrganicLeafPath());
+  path.setAttribute("class", "leaf-path");
+  path.style.stroke = strokeColor;
+  
+  gInner.appendChild(path);
+  g.appendChild(gInner);
   pointsGroup.appendChild(g);
 
-  // 7. Animate: Draw -> Wait -> Undraw
+  // 5. Animate Drawing
   const pathLen = path.getTotalLength();
   path.style.strokeDasharray = pathLen;
-  path.style.strokeDashoffset = pathLen; // Start hidden
+  path.style.strokeDashoffset = pathLen; 
 
-  // ANIMATION SEQUENCE
   const animation = path.animate([
-    { strokeDashoffset: pathLen }, // Start hidden
-    { strokeDashoffset: 0 }        // Draw fully
+    { strokeDashoffset: pathLen }, 
+    { strokeDashoffset: 0 }        
   ], {
     duration: 1500,
     easing: 'ease-out',
@@ -1386,11 +1416,8 @@ function spawnRandomLeaf() {
   });
 
   animation.onfinish = () => {
-    // Wait 5 seconds, then undraw
     setTimeout(() => {
-        // Check if element still exists (user might have navigated away)
         if (!document.body.contains(path)) return;
-
         const undraw = path.animate([
             { strokeDashoffset: 0 },
             { strokeDashoffset: pathLen }
@@ -1399,7 +1426,6 @@ function spawnRandomLeaf() {
             easing: 'ease-in',
             fill: 'forwards'
         });
-
         undraw.onfinish = () => {
             if (document.body.contains(g)) g.remove();
         };
