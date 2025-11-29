@@ -646,3 +646,14 @@ input[type=range]:active::-webkit-slider-thumb {
   stroke-linejoin: round;
   /* Color will be set inline via JS to match the graph line */
 }
+
+/* Wind / Sway Animation */
+@keyframes leafSway {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(6deg); }
+  100% { transform: rotate(0deg); }
+}
+.leaf-sway {
+  animation: leafSway 3s ease-in-out infinite;
+  transform-origin: 0 0; /* Pivot at the stem base */
+}
