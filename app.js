@@ -1302,54 +1302,48 @@ let leafInterval = null;
 // ORGANIC LEAF ANIMATION SYSTEM
 // ==========================================
 
-function generateOrganicLeafPath() {
-    // Fixed path based on the "Oak Leaf" drawing uploaded.
-    // Origin (0,0) is the stem base. Leaf grows upwards (negative Y).
-    // Uses Bezier curves (C, S, Q) for smooth, non-jagged lobes.
+// ==========================================
+// MINIMAL OAK LEAF GENERATOR
+// ==========================================
 
+function generateOrganicLeafPath() {
     let d = "";
 
-    // 1. OUTLINE (The Lobes)
-    // Start at stem base
-    d += "M 0 0 "; 
+    // 1. CENTRAL SPINE
+    // A single straight line from base (0,0) to tip (0,-60)
+    // This creates a strong vertical axis for the leaf.
+    d += "M 0 0 L 0 -60 ";
+
+    // 2. OUTLINE (Stylized 2-Tier Oak Shape)
+    // We use Quadratic Beziers (Q) for controlled, subtle curves.
     
-    // --- Left Side ---
-    // Smooth curve out to Bottom-Left Lobe
-    d += "C -8 -10, -25 -15, -25 -30 "; 
-    // Dip inward (sinus)
-    d += "Q -15 -35, -8 -40 "; 
-    // Curve out to Top-Left Lobe
-    d += "C -22 -50, -20 -60, -5 -70 "; 
-    // Curve to Leaf Tip (Apex)
-    d += "Q 0 -80, 5 -70 ";
+    // -- Right Side --
+    d += "M 0 0 ";
+    // Bottom Lobe: Curves wide out to x=12, then tucks in to x=6
+    d += "Q 12 -15, 6 -30 ";   
+    // Top Lobe: Curves out again to x=12, then meets the tip at 0
+    d += "Q 12 -45, 0 -60 ";   
 
-    // --- Right Side (Mirroring down) ---
-    // Curve out to Top-Right Lobe
-    d += "C 20 -60, 22 -50, 8 -40 "; 
-    // Dip inward
-    d += "Q 15 -35, 25 -30 "; 
-    // Curve out to Bottom-Right Lobe
-    d += "C 25 -15, 8 -10, 0 0 "; 
-    // (Path automatically closes back to 0,0 here)
+    // -- Left Side (Mirror) --
+    // We trace backwards from the tip down to the base
+    // Top Lobe: Curves out to x=-12, tucks in to x=-6
+    d += "M 0 -60 ";           
+    d += "Q -12 -45, -6 -30 "; 
+    // Bottom Lobe: Curves out to x=-12, meets base at 0
+    d += "Q -12 -15, 0 0 ";    
 
-    // 2. MIDRIB (Central Vein)
-    // A single smooth curve from base to near the tip
-    d += "M 0 0 Q 2 -35 0 -72 ";
+    // 3. INNER VEINS
+    // Short, simple geometric lines.
+    // Coordinates are calculated to stay strictly within the 
+    // 6px narrow waist and 12px wide lobes defined above.
 
-    // 3. VEINS (Branching)
-    // Straight lines branching off the midrib, kept strictly inside the lobes.
-    
-    // Bottom Pair
-    d += "M 0 -20 L -15 -25 "; // Left
-    d += "M 0 -20 L 15 -25 ";  // Right
+    // Lower Pair
+    d += "M 0 -15 L 5 -20 ";   // Right
+    d += "M 0 -15 L -5 -20 ";  // Left
 
-    // Middle Pair
-    d += "M 0 -45 L -12 -52 "; // Left
-    d += "M 0 -45 L 12 -52 ";  // Right
-    
-    // Top Pair (Smaller)
-    d += "M 0 -60 L -4 -65 ";  // Left
-    d += "M 0 -60 L 4 -65 ";   // Right
+    // Upper Pair
+    d += "M 0 -45 L 4 -50 ";   // Right
+    d += "M 0 -45 L -4 -50 ";  // Left
 
     return d;
 }
