@@ -1291,135 +1291,91 @@ document.body.addEventListener('touchend', () => {
     touchStartX = 0; touchStartY = 0;
 });
 
-// ==========================================
-// ORGANIC LEAF ANIMATION SYSTEM
-// ==========================================
 
 let leafInterval = null;
 
-// ==========================================
-// CLEAN MINIMAL LEAF GENERATOR
-// ==========================================
-
-// ==========================================
-// VARIED MINIMAL LEAF GENERATOR
-// ==========================================
-
-// ==========================================
-// 15 VARIATIONS OF MINIMAL LEAVES
-// ==========================================
 
 function generateOrganicLeafPath() {
-    // Selects one of 15 distinct minimal leaf geometries.
-    // All paths start at (0,0) [Base] and mostly aim for (0,-60) [Tip].
-    
-    const style = Math.floor(Math.random() * 15);
+    const style = Math.floor(Math.random() * 5);
     let d = "";
 
     switch (style) {
-        case 0: // 1. THE CLASSIC (Elliptical)
-            // Balanced, standard leaf.
-            d += "M 0 0 Q 0 -30 0 -60 "; // Spine
-            d += "C 15 -45, 10 -15, 0 0 "; // Right
-            d += "C -10 -15, -15 -45, 0 -60 "; // Left
-            break;
-
-        case 1: // 2. THE WILLOW (Lanceolate)
-            // Long, very thin, elegant.
-            d += "M 0 0 Q 1 -35 0 -70 "; // Longer spine
-            d += "C 6 -40, 3 -10, 0 0 ";
-            d += "C -3 -10, -6 -40, 0 -70 ";
-            break;
-
-        case 2: // 3. THE POPLAR (Deltoid)
-            // Triangular, wide base, sharp taper.
-            d += "M 0 0 L 0 -60 ";
-            d += "C 20 -20, 15 -10, 0 0 ";
-            d += "C -15 -10, -20 -20, 0 -60 ";
-            break;
-
-        case 3: // 4. THE PADDLE (Obovate)
-            // Narrow base, wide rounded top (like a spoon).
-            d += "M 0 0 L 0 -60 ";
-            d += "C 15 -60, 12 -20, 0 0 ";
-            d += "C -12 -20, -15 -60, 0 -60 ";
-            break;
-
-        case 4: // 5. THE HEART (Cordate)
-            // Very wide base that curves in deeply.
-            d += "M 0 0 L 0 -55 ";
-            d += "C 25 -30, 25 -10, 0 0 ";
-            d += "C -25 -10, -25 -30, 0 -55 ";
-            break;
-
-        case 5: // 6. THE DIAMOND (Rhomboid)
-            // Angular, geometric feel.
-            d += "M 0 0 L 0 -60 ";
-            d += "L 15 -30 L 0 0 "; // Sharp lines
-            d += "M 0 0 L -15 -30 L 0 -60 ";
-            break;
-
-        case 6: // 7. THE NEEDLE (Linear)
-            // Extremely thin, almost grass-like.
-            d += "M 0 0 L 0 -60 ";
-            d += "Q 3 -30 0 0 ";
-            d += "Q -3 -30 0 -60 ";
-            break;
-
-        case 7: // 8. THE ORB (Orbicular)
-            // Almost a perfect circle/coin.
-            d += "M 0 0 L 0 -50 ";
-            d += "C 25 -40, 25 -10, 0 0 ";
-            d += "C -25 -10, -25 -40, 0 -50 ";
-            break;
-
-        case 8: // 9. THE FLAME (Wavy)
-            // Subtle S-curves on the edges.
+        case 0: // 1. THE CLASSIC (Beech-style)
+            // A balanced oval with regular, straight veins.
+            // Spine
             d += "M 0 0 Q 2 -30 0 -65 ";
-            d += "Q 10 -40, 5 -20 T 0 0 "; // S-curve right
-            d += "M 0 0 Q -5 -20, -10 -40 T 0 -65 "; // S-curve left
+            // Right Outline (Smooth Curve)
+            d += "C 20 -40, 10 -10, 0 0 ";
+            // Left Outline (Smooth Curve)
+            d += "C -10 -10, -20 -40, 0 -65 ";
+            
+            // Veins (3 pairs, evenly spaced)
+            d += "M 0 -20 L 8 -25 ";  d += "M 0 -20 L -8 -25 ";
+            d += "M 0 -35 L 10 -40 "; d += "M 0 -35 L -10 -40 ";
+            d += "M 0 -50 L 6 -55 ";  d += "M 0 -50 L -6 -55 ";
             break;
 
-        case 9: // 10. THE SICKLE (Asymmetric Curve)
-            // The whole leaf curves to the right.
-            d += "M 0 0 Q 15 -30 20 -60 "; // Curved Spine
-            d += "Q 25 -40, 10 -10, 0 0 "; // Inner curve
-            d += "Q 5 -20, 10 -50, 20 -60 "; // Outer curve
+        case 1: // 2. THE ROUNDED OAK (Lobed)
+            // Bubbly lobes, completely smooth, no sharp points.
+            // Spine
+            d += "M 0 0 Q 0 -35 0 -65 ";
+            // Right Side (2 Lobes)
+            d += "Q 15 -15, 5 -25 ";   // Lobe 1
+            d += "Q 18 -40, 0 -65 ";   // Lobe 2 to tip
+            // Left Side (Mirror)
+            d += "M 0 -65 ";
+            d += "Q -18 -40, -5 -25 "; // Lobe 2
+            d += "Q -15 -15, 0 0 ";    // Lobe 1 to base
+            
+            // Veins (Directing into the lobes)
+            d += "M 0 -25 L 8 -20 ";  d += "M 0 -25 L -8 -20 ";
+            d += "M 0 -45 L 8 -40 ";  d += "M 0 -45 L -8 -40 ";
             break;
 
-        case 10: // 11. THE ARROW (Hastate)
-            // Sharp flares at the bottom, straight sides.
+        case 2: // 3. THE WILLOW (Long & Thin)
+            // Slender shape with steep, upward-angled veins.
+            // Spine
+            d += "M 0 0 Q 1 -40 0 -75 ";
+            // Right Outline
+            d += "C 8 -50, 5 -10, 0 0 ";
+            // Left Outline
+            d += "C -5 -10, -8 -50, 0 -75 ";
+            
+            // Veins (4 pairs, steep angle)
+            d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
+            d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
+            d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
+            d += "M 0 -62 L 2 -68 "; d += "M 0 -62 L -2 -68 ";
+            break;
+
+        case 3: // 4. THE HEART (Cordate/Lilac)
+            // Wide bottom, tapering to a smooth point. Curved veins.
+            // Spine
             d += "M 0 0 L 0 -60 ";
-            d += "L 12 -15 L 0 0 ";
-            d += "M 0 0 L -12 -15 L 0 -60 ";
+            // Right Outline (Wide base)
+            d += "C 25 -25, 10 -50, 0 -60 ";
+            // Left Outline
+            d += "C -10 -50, -25 -25, 0 0 ";
+            
+            // Veins (Curved arches)
+            d += "M 0 -15 Q 10 -20, 12 -25 "; d += "M 0 -15 Q -10 -20, -12 -25 ";
+            d += "M 0 -30 Q 8 -35, 10 -40 ";  d += "M 0 -30 Q -8 -35, -10 -40 ";
+            d += "M 0 -45 Q 4 -50, 5 -52 ";   d += "M 0 -45 Q -4 -50, -5 -52 ";
             break;
 
-        case 11: // 12. THE WIND-BLOWN (Asymmetric Width)
-            // Left side is fat, right side is flat.
-            d += "M 0 0 Q 2 -30 0 -60 ";
-            d += "Q 5 -30 0 0 "; // Flat right side
-            d += "C -15 -15, -20 -45, 0 -60 "; // Bulging left side
-            break;
-
-        case 12: // 13. THE DROP (Inverted Tear)
-            // Fat bottom, concave taper to tip.
-            d += "M 0 0 L 0 -60 ";
-            d += "C 5 -40, 15 -10, 0 0 ";
-            d += "C -15 -10, -5 -40, 0 -60 ";
-            break;
-
-        case 13: // 14. THE BULB (Acuminate)
-            // Round middle, very sharp, long tip.
-            d += "M 0 0 L 0 -65 ";
-            d += "C 15 -30, 15 -10, 0 0 "; // Bulbous bottom
-            d += "M 0 0 C -15 -10, -15 -30, 0 -65 ";
-            break;
-
-        case 14: // 15. THE FERN (Subtle Lobes)
-            // Minimal wavy edge without being messy.
-            d += "M 0 0 L 0 -60 ";
-            d += "Q 8 -15, 4 -30 T 0 -60 "; // Double wave right
-            d += "M 0 -60 Q -4 -45, -8 -30 T 0 0 "; // Double wave left
+        case 4: // 5. THE TEAR (Obovate)
+            // Narrow at base, wider at top. Inverted logic.
+            // Spine
+            d += "M 0 0 Q 0 -30 0 -60 ";
+            // Right Outline
+            d += "C 5 -10, 20 -40, 0 -60 ";
+            // Left Outline
+            d += "C -20 -40, -5 -10, 0 0 ";
+            
+            // Veins (Fanning out at the top)
+            d += "M 0 -20 L 4 -25 ";  d += "M 0 -20 L -4 -25 ";
+            d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
+            d += "M 0 -48 L 8 -52 ";  d += "M 0 -48 L -8 -52 ";
             break;
     }
 
