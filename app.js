@@ -1298,114 +1298,81 @@ let leafInterval = null;
 // 5 FIXED MINIMAL LEAF GEOMETRIES (FINAL)
 // ==========================================
 
-// ==========================================
-// 3 CLEAN MINIMAL LEAF GEOMETRIES
-// ==========================================
-
 function generateOrganicLeafPath() {
-    // Randomly select one of the 3 stable styles
-    const style = Math.floor(Math.random() * 3);
+    const style = Math.floor(Math.random() * 5);
     let d = "";
 
     switch (style) {
         case 0: // 1. THE CLASSIC (Beech)
-            // Balanced oval with simple diagonal veins.
-            // Spine
-            d += "M 0 0 Q 2 -32 0 -65 ";
-            // Right Outline (Tip -> Base)
-            d += "C 15 -45, 12 -15, 0 0 ";
-            // Left Outline (Base -> Tip)
-            d += "C -12 -15, -15 -45, 0 -65 ";
+            // Balanced oval.
+            d += "M 0 0 Q 2 -32 0 -65 "; // Spine
+            d += "C 15 -45, 12 -15, 0 0 "; // Right Outline
+            d += "C -12 -15, -15 -45, 0 -65 "; // Left Outline
             
-            // Veins (Simple diagonal)
             d += "M 0 -20 L 6 -25 ";  d += "M 0 -20 L -6 -25 ";
             d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
             d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
 
-        case 1: // 2. THE WILLOW (Lanceolate)
-            // Long, thin, elegant with steep veins.
+        case 1: // 2. THE ROUNDED OAK (Fixed)
+            // Previously twisting. Now uses explicit curves to stay safe.
             // Spine
+            d += "M 0 0 Q 2 -35 0 -65 ";
+            
+            // Right Side (Tip -> Base)
+            // Explicitly define both lobes to keep X positive
+            d += "Q 15 -50, 5 -35 ";  // Upper Lobe
+            d += "Q 10 -15, 0 0 ";    // Lower Lobe
+            
+            // Left Side (Base -> Tip)
+            // Explicitly define both lobes to keep X negative
+            d += "M 0 0 Q -10 -15, -5 -35 "; // Lower Lobe
+            d += "Q -15 -50, 0 -65 ";        // Upper Lobe
+
+            // Veins
+            d += "M 0 -25 L 6 -20 ";  d += "M 0 -25 L -6 -20 ";
+            d += "M 0 -45 L 6 -40 ";  d += "M 0 -45 L -6 -40 ";
+            break;
+
+        case 2: // 3. THE WILLOW (Lanceolate)
+            // Long and thin.
             d += "M 0 0 Q 1 -40 0 -75 ";
-            // Right Outline (Tip -> Base)
             d += "C 6 -55, 4 -15, 0 0 ";
-            // Left Outline (Base -> Tip)
             d += "C -4 -15, -6 -55, 0 -75 ";
             
-            // Veins (Steep angle)
             d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
             d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
             d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
             break;
 
-        case 2: // 3. THE HEART (Cordate)
-            // Wide base, arched veins.
-            // Spine
+        case 3: // 4. THE HEART (Cordate)
+            // Wide base.
             d += "M 0 0 L 0 -60 ";
-            // Right Outline (Tip -> Base)
             d += "C 15 -50, 25 -25, 0 0 ";
-            // Left Outline (Base -> Tip)
             d += "C -25 -25, -15 -50, 0 -60 ";
             
-            // Veins (Arched)
             d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
             d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
             d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
             break;
-    }
 
-    return d;
-}
-
-// ==========================================
-// ORGANIC LEAF ANIMATION SYSTEM
-// ==========================================
-
-let leafInterval = null;
-let activeLeafSpots = []; // Tracks x/y coordinates to prevent overlapping
-
-// 1. LEAF GEOMETRY GENERATOR (Restored)
-function generateOrganicLeafPath() {
-    // Randomly select one of the 3 stable styles
-    const style = Math.floor(Math.random() * 3);
-    let d = "";
-
-    switch (style) {
-        case 0: // 1. THE CLASSIC (Beech)
-            d += "M 0 0 Q 2 -32 0 -65 ";
-            d += "C 15 -45, 12 -15, 0 0 ";
-            d += "C -12 -15, -15 -45, 0 -65 ";
-            d += "M 0 -20 L 6 -25 ";  d += "M 0 -20 L -6 -25 ";
-            d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
+        case 4: // 5. THE TEAR (Obovate)
+            // Wide top.
+            d += "M 0 0 Q 0 -30 0 -60 ";
+            d += "C 20 -45, 5 -10, 0 0 ";
+            d += "C -5 -10, -20 -45, 0 -60 ";
+            
+            d += "M 0 -20 L 4 -25 ";  d += "M 0 -20 L -4 -25 ";
+            d += "M 0 -35 L 6 -40 ";  d += "M 0 -35 L -6 -40 ";
             d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
-
-        case 1: // 2. THE WILLOW (Lanceolate)
-            d += "M 0 0 Q 1 -40 0 -75 ";
-            d += "C 6 -55, 4 -15, 0 0 ";
-            d += "C -4 -15, -6 -55, 0 -75 ";
-            d += "M 0 -20 L 3 -30 "; d += "M 0 -20 L -3 -30 ";
-            d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
-            d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
-            break;
-
-        case 2: // 3. THE HEART (Cordate)
-            d += "M 0 0 L 0 -60 ";
-            d += "C 15 -50, 25 -25, 0 0 ";
-            d += "C -25 -25, -15 -50, 0 -60 ";
-            d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
-            d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
-            d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
-            break;
     }
+
     return d;
 }
-
-// 2. SPAWNER CONTROLS
 function startLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = setInterval(() => {
-    // Keep the hard limit of 5 leaves for performance
     const activeLeaves = document.querySelectorAll('.leaf-group');
     if (activeLeaves.length >= 5) return;
     spawnRandomLeaf();
@@ -1415,13 +1382,9 @@ function startLeafSpawner() {
 function stopLeafSpawner() {
   if (leafInterval) clearInterval(leafInterval);
   leafInterval = null;
-  // Clear all DOM elements
   document.querySelectorAll('.leaf-group').forEach(el => el.remove());
-  // Clear the position tracking array
-  activeLeafSpots = [];
 }
 
-// 3. SPAWN LOGIC (With Collision Detection)
 function spawnRandomLeaf() {
   const pointsGroup = document.getElementById('chartPoints'); 
   if (!pointsGroup) return;
@@ -1429,52 +1392,25 @@ function spawnRandomLeaf() {
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
-  // COLLISION DETECTION LOOP
-  // Try up to 10 times to find a spot that isn't crowded
-  let pt = null;
-  let targetLine = null;
-  let validSpot = false;
-
-  for (let i = 0; i < 10; i++) {
-      targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
-      const len = targetLine.getTotalLength();
-      if (len === 0) continue;
-
-      const randLen = Math.random() * len;
-      const candidate = targetLine.getPointAtLength(randLen);
-
-      // Check distance against all current leaves (threshold: 60px)
-      const isTooClose = activeLeafSpots.some(spot => {
-          const dx = candidate.x - spot.x;
-          const dy = candidate.y - spot.y;
-          return (dx * dx + dy * dy) < 3600; // 60^2 = 3600
-      });
-
-      if (!isTooClose) {
-          pt = candidate;
-          validSpot = true;
-          break;
-      }
-  }
-
-  // If we couldn't find a free spot after 10 tries, skip this frame.
-  if (!validSpot || !pt) return;
-
-  // REGISTER SPOT
-  const spotRef = { x: pt.x, y: pt.y };
-  activeLeafSpots.push(spotRef);
+  // 1. Pick random line & point
+  const targetLine = activeLines[Math.floor(Math.random() * activeLines.length)];
+  const len = targetLine.getTotalLength();
+  if (len === 0) return;
+  const randLen = Math.random() * len;
+  const pt = targetLine.getPointAtLength(randLen);
 
   const computedStyle = window.getComputedStyle(targetLine);
   const strokeColor = computedStyle.stroke;
 
-  // CREATE ELEMENTS
+  // 2. Create Parent Group (Position/Rotate)
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "leaf-group");
   
   const rotation = (Math.random() * 90) - 45;
-  const scale = 0.5 + (Math.random() * 0.5);
+  const scale = 0.5 + (Math.random() * 0.5); 
   g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
 
+  // 3. Create Inner Wrapper (Handles Sway Animation)
   const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
   gInner.setAttribute("class", "leaf-inner");
   
@@ -1483,6 +1419,7 @@ function spawnRandomLeaf() {
       gInner.classList.add('leaf-sway');
   }
 
+  // 4. Create Procedural Path
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", generateOrganicLeafPath());
   path.setAttribute("class", "leaf-path");
@@ -1492,11 +1429,11 @@ function spawnRandomLeaf() {
   g.appendChild(gInner);
   pointsGroup.appendChild(g);
 
-  // ANIMATE
+  // 5. Animate Drawing
   const pathLen = path.getTotalLength();
   path.style.strokeDasharray = pathLen;
-  path.style.strokeDashoffset = pathLen;
-  
+  path.style.strokeDashoffset = pathLen; 
+
   const animation = path.animate([
     { strokeDashoffset: pathLen }, 
     { strokeDashoffset: 0 }        
@@ -1506,15 +1443,9 @@ function spawnRandomLeaf() {
     fill: 'forwards'
   });
 
-  // CLEANUP
   animation.onfinish = () => {
     setTimeout(() => {
-        if (!document.body.contains(path)) {
-             const idx = activeLeafSpots.indexOf(spotRef);
-             if (idx > -1) activeLeafSpots.splice(idx, 1);
-             return;
-        }
-
+        if (!document.body.contains(path)) return;
         const undraw = path.animate([
             { strokeDashoffset: 0 },
             { strokeDashoffset: pathLen }
@@ -1523,11 +1454,8 @@ function spawnRandomLeaf() {
             easing: 'ease-in',
             fill: 'forwards'
         });
-
         undraw.onfinish = () => {
             if (document.body.contains(g)) g.remove();
-            const idx = activeLeafSpots.indexOf(spotRef);
-            if (idx > -1) activeLeafSpots.splice(idx, 1);
         };
     }, 5000);
   };
