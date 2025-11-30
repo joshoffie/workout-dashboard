@@ -669,7 +669,7 @@ function setSpiralRange(range) {
         spiralState.RADIAL_PITCH = 90;
         if (range === '4w') spiralState.TURNS = 1.3;
         else if (range === '8w') spiralState.TURNS = 1.8;
-        else if (range === '12w') spiralState.TURNS = 2.2;
+        else if (range === '12w') spiralState.TURNS = 2.0;
     }
     redrawSpiral();
 }
