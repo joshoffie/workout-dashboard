@@ -978,17 +978,21 @@ input[type=range]:active::-webkit-slider-thumb {
 
 /* --- NEW DYNAMIC ARROW STYLES (TEXT VERSION) --- */
 .arrow-icon {
-  font-size: 1.5rem; /* Adjust size to match the ↓ arrow */
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-text-muted); /* Use color instead of fill */
-  margin-left: 10px;
+  color: var(--color-text-muted);
+  
+  /* FIX 1: Prevent the arrow from taking up 50% of the row */
+  flex: 0 0 auto !important; 
+  margin-left: auto; /* Force it to the far right */
+  
   transition: all 0.3s ease;
-  flex-shrink: 0;
-  display: inline-block; /* Required for animations to work on text */
+  display: inline-block;
   line-height: 1;
+  transform-origin: center; /* Ensure rotation happens in place */
 }
 
-/* Hide arrow in edit mode to make room for buttons */
+/* Hide arrow in edit mode */
 .edit-mode-active .arrow-icon {
   opacity: 0;
   pointer-events: none;
@@ -1010,15 +1014,16 @@ input[type=range]:active::-webkit-slider-thumb {
   animation: arrow-vibrate 0.2s infinite linear;
 }
 
-/* Keyframes (Unchanged) */
+/* Keyframes */
 @keyframes arrow-bounce {
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(5px); }
 }
 
+/* FIX 2: Tamed rotation from 45deg to 20deg to stop "wild" jumping */
 @keyframes arrow-tilt {
   0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(45deg); }
+  50% { transform: rotate(20deg); } 
 }
 
 @keyframes arrow-vibrate {
