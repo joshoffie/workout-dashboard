@@ -411,8 +411,7 @@ function moveItem(type, index, direction) {
         const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const targetIndex = index + direction;
         if (targetIndex < 0 || targetIndex >= sortedClients.length) return;
-
-        // Swap order values
+        
         const itemA = sortedClients[index];
         const itemB = sortedClients[targetIndex];
         const tempOrder = itemA.order ?? 0;
@@ -437,6 +436,22 @@ function moveItem(type, index, direction) {
         [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
         saveUserJson();
         renderExercises();
+    } else if (type === 'set') {
+        [cite_start]// [cite: 81] Sets Logic: Swap timestamps to persist order in a date-sorted list
+        const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= sortedSets.length) return;
+
+        const setA = sortedSets[index];
+        const setB = sortedSets[targetIndex];
+
+        // Swap timestamps
+        const tempTime = setA.timestamp;
+        setA.timestamp = setB.timestamp;
+        setB.timestamp = tempTime;
+
+        saveUserJson();
+        renderSets();
     }
 }
 
@@ -1045,7 +1060,10 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
+
+  [cite_start]// Sort sets by time [cite: 613]
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
   const setsByDay = new Map();
   sortedSets.forEach(set => {
     const setDate = new Date(set.timestamp);
@@ -1053,21 +1071,51 @@ function renderSets() {
     if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
     setsByDay.get(dayString).push(set);
   });
+
   const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
-  const renderedSetsInOrder = [];
+  
+  // We need a global index to track position for moveItem
+  let globalSetIndex = 0;
+
   sortedDays.forEach((dayString, dayIndex) => {
     const daySets = setsByDay.get(dayString);
     daySets.forEach((s, setIdx) => {
+      const currentGlobalIndex = globalSetIndex++; 
       const tr = document.createElement("tr");
+
       if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
         tr.classList.add("day-end-row");
       }
+      
       const originalIndex = selectedExercise.sets.indexOf(s);
+      
+      // Render Data Columns
       tr.innerHTML = `<td>${setIdx + 1}</td><td>${s.reps}</td><td>${s.weight}</td><td>${s.volume}</td><td>${s.notes}</td><td>${new Date(s.timestamp).toLocaleString()}</td>`;
-      const deleteTd = document.createElement('td');
+      
+      // --- Action Column with Arrows ---
+      const actionsTd = document.createElement('td');
+      
+      // UP BUTTON ( ↑ )
+      const upBtn = document.createElement('button');
+      upBtn.className = 'btn-icon btn-move';
+      upBtn.innerHTML = '↑';
+      upBtn.onclick = (e) => { 
+          e.stopPropagation(); 
+          moveItem('set', currentGlobalIndex, -1); 
+      };
+
+      // DOWN BUTTON ( ↓ )
+      const downBtn = document.createElement('button');
+      downBtn.className = 'btn-icon btn-move';
+      downBtn.innerHTML = '↓';
+      downBtn.onclick = (e) => { 
+          e.stopPropagation(); 
+          moveItem('set', currentGlobalIndex, 1); 
+      };
+
+      // DELETE BUTTON
       const deleteBtn = document.createElement('button');
-    
-      deleteBtn.className = 'btn-delete';
+      deleteBtn.className = 'btn-delete'; [cite_start]// [cite: 617]
       deleteBtn.innerHTML = '&times;';
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
@@ -1076,13 +1124,18 @@ function renderSets() {
           saveUserJson(); renderSets();
         });
       };
-      deleteTd.appendChild(deleteBtn);
-      tr.appendChild(deleteTd);
+      
+      actionsTd.appendChild(upBtn);
+      actionsTd.appendChild(downBtn);
+      actionsTd.appendChild(deleteBtn);
+      tr.appendChild(actionsTd);
+      
       setsTable.appendChild(tr);
-      renderedSetsInOrder.push(s);
     });
   });
-  hookEditables(renderedSetsInOrder);
+  
+  // Re-hook editables after rendering
+  hookEditables(sortedSets);
   runTitleOnlyLogic();
 }
 
