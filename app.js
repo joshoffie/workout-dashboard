@@ -1654,14 +1654,14 @@ function initOrganicSpiral() {
     }
 
     // 3. Create and Append the Path
-    // Remove old path if exists
     const oldPath = svg.querySelector('path');
     if(oldPath) oldPath.remove();
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d);
     path.setAttribute("class", "generated-spiral");
-    path.setAttribute("stroke", "url(#spiralGradient)"); // Apply the gradient
+    // REMOVED: path.setAttribute("stroke", "url(#spiralGradient)"); 
+    // We will let CSS handle the stroke color directly
     
     svg.appendChild(path);
 
