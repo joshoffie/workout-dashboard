@@ -360,42 +360,34 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
-// ------------------ NEW: DYNAMIC ARROW HELPER ------------------
+// ------------------ NEW: DYNAMIC ARROW HELPER (TEXT VERSION) ------------------
 function createDynamicArrow(colorData) {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("class", "arrow-icon");
-    // Path for Chevron Right (Standard Material Arrow)
-    const path = document.createElementNS(svgNS, "path");
-    path.setAttribute("d", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z");
-    svg.appendChild(path);
+    // Create a text span instead of SVG
+    const span = document.createElement("span");
+    span.className = "arrow-icon";
+    span.textContent = "→"; // The stylized arrow character matching your ↓
 
     if (!colorData || colorData.total === 0) {
-         return svg;
-    // Default grey
+         return span; // Default grey
     }
 
     const { red, green, yellow } = colorData;
-    // Logic matching the app's dominance logic:
-    // Happy -> Green -> Bounce
-    // Sad -> Red -> Tilt
-    // Calm -> Yellow -> Vibrate
     
+    // Logic matching the app's dominance logic:
     if (green > red && green >= yellow) {
-        svg.classList.add("arrow-green");
+        span.classList.add("arrow-green");
     } else if (red > green && red >= yellow) {
-        svg.classList.add("arrow-red");
+        span.classList.add("arrow-red");
     } else if (yellow > green && yellow > red) {
-        svg.classList.add("arrow-yellow");
+        span.classList.add("arrow-yellow");
     } else {
         // Tie-breaking defaults
-        if (green > 0) svg.classList.add("arrow-green");
-        else if (red > 0) svg.classList.add("arrow-red");
-        else if (yellow > 0) svg.classList.add("arrow-yellow");
+        if (green > 0) span.classList.add("arrow-green");
+        else if (red > 0) span.classList.add("arrow-red");
+        else if (yellow > 0) span.classList.add("arrow-yellow");
     }
     
-    return svg;
+    return span;
 }
 
 // --- REORDER HELPER ---
