@@ -48,14 +48,12 @@ function navigateTo(targetScreenId, direction = 'forward') {
 
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
-    case SCREENS.SESSIONS: renderSessions();
-    break;
+    case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
   }
 
-  const enterClass = (direction === 'forward') ?
-  'slide-in-right' : 'slide-in-left';
+  const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
@@ -191,8 +189,7 @@ function applyTitleStyling(element, text, colorData) {
   setTextAsChars(element, text);
 
   const parentTitle = element.closest('.animated-title');
-  const targetElement = parentTitle ||
-  element;
+  const targetElement = parentTitle || element;
   
   const allClasses = [...ANIMATION_CLASSES.happy, ...ANIMATION_CLASSES.sad, ...ANIMATION_CLASSES.calm, 'happy', 'sad', 'calm'];
   targetElement.classList.remove(...allClasses);
@@ -321,7 +318,6 @@ function runAnimationLoop(element) {
             if (dir === 'down') char.classList.add('animate-down');
         });
         setTimeout(() => {
-  
             if (!document.body.contains(element)) return;
             chars.forEach(char => {
                 char.classList.remove('animate-up', 'animate-down');
@@ -370,18 +366,17 @@ function createDynamicArrow(colorData) {
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("class", "arrow-icon");
-    
     // Path for Chevron Right (Standard Material Arrow)
     const path = document.createElementNS(svgNS, "path");
     path.setAttribute("d", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z");
     svg.appendChild(path);
 
     if (!colorData || colorData.total === 0) {
-         return svg; // Default grey
+         return svg;
+    // Default grey
     }
 
     const { red, green, yellow } = colorData;
-    
     // Logic matching the app's dominance logic:
     // Happy -> Green -> Bounce
     // Sad -> Red -> Tilt
@@ -403,7 +398,6 @@ function createDynamicArrow(colorData) {
     return svg;
 }
 
-
 // --- REORDER HELPER ---
 function moveItem(type, index, direction) {
     // direction: -1 (up), 1 (down)
@@ -411,7 +405,7 @@ function moveItem(type, index, direction) {
         const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const targetIndex = index + direction;
         if (targetIndex < 0 || targetIndex >= sortedClients.length) return;
-        
+        // Swap order values
         const itemA = sortedClients[index];
         const itemB = sortedClients[targetIndex];
         const tempOrder = itemA.order ?? 0;
@@ -436,22 +430,6 @@ function moveItem(type, index, direction) {
         [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
         saveUserJson();
         renderExercises();
-    } else if (type === 'set') {
-        [cite_start]// [cite: 81] Sets Logic: Swap timestamps to persist order in a date-sorted list
-        const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        const targetIndex = index + direction;
-        if (targetIndex < 0 || targetIndex >= sortedSets.length) return;
-
-        const setA = sortedSets[index];
-        const setB = sortedSets[targetIndex];
-
-        // Swap timestamps
-        const tempTime = setA.timestamp;
-        setA.timestamp = setB.timestamp;
-        setB.timestamp = tempTime;
-
-        saveUserJson();
-        renderSets();
     }
 }
 
@@ -460,10 +438,8 @@ const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-  
   // Sort by the new 'order' property
   const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
   sortedClients.forEach((clientObj, idx) => {
     const name = clientObj.client_name;
     const li = document.createElement("li");
@@ -490,7 +466,8 @@ function renderClients() {
     setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
-      if (editMode) { e.stopPropagation(); return; }
+      if (editMode) { e.stopPropagation();
+      return; }
       selectClient(name);
     };
 
@@ -500,12 +477,13 @@ function renderClients() {
     
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '';
-    upBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, -1); };
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation();
+    moveItem('client', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '';
+    downBtn.innerHTML = '↓';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -545,7 +523,8 @@ document.getElementById("addClientBtn").onclick = () => {
   saveUserJson(); renderClients();
 };
 function selectClient(name) {
-  selectedClient = name; selectedSession = null; selectedExercise = null;
+  selectedClient = name;
+  selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
 }
 
@@ -570,7 +549,6 @@ function renderSessions() {
   selectedSession = null;
   let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   const sessions = clientsData[selectedClient]?.sessions || [];
-  
   sessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
@@ -602,12 +580,13 @@ function renderSessions() {
 
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '';
-    upBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, -1); };
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation();
+    moveItem('session', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '';
+    downBtn.innerHTML = '↓';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -661,7 +640,6 @@ function renderExercises() {
   if (!selectedSession) { applyTitleStyling(sessionTitleElement, 'Exercises', null); return; }
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-  
   selectedSession.exercises.forEach((ex, idx) => {
     const colorData = getExerciseColorData(ex);
     ex.colorData = colorData; 
@@ -683,12 +661,12 @@ function renderExercises() {
 
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '';
+    upBtn.innerHTML = '↑';
     upBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '';
+    downBtn.innerHTML = '↓';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -900,7 +878,8 @@ function createSeg(v1, v2, t1, t2, offset, baseUnit) {
     path.setAttribute('class', 'spiral-segment');
     const epsilon = 0.01; let speedFactor = 1.0;
     if (v2 > v1 + epsilon) { path.classList.add('seg-increase');
-    speedFactor = 0.4; }
+    speedFactor = 0.4;
+    }
     else if (v2 < v1 - epsilon) { path.classList.add('seg-decrease'); speedFactor = 2.5;
     }
     else { path.classList.add('seg-neutral'); speedFactor = 1.0; }
@@ -1060,10 +1039,7 @@ function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
-
-  [cite_start]// Sort sets by time [cite: 613]
   const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  
   const setsByDay = new Map();
   sortedSets.forEach(set => {
     const setDate = new Date(set.timestamp);
@@ -1071,51 +1047,21 @@ function renderSets() {
     if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
     setsByDay.get(dayString).push(set);
   });
-
   const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
-  
-  // We need a global index to track position for moveItem
-  let globalSetIndex = 0;
-
+  const renderedSetsInOrder = [];
   sortedDays.forEach((dayString, dayIndex) => {
     const daySets = setsByDay.get(dayString);
     daySets.forEach((s, setIdx) => {
-      const currentGlobalIndex = globalSetIndex++; 
       const tr = document.createElement("tr");
-
       if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
         tr.classList.add("day-end-row");
       }
-      
       const originalIndex = selectedExercise.sets.indexOf(s);
-      
-      // Render Data Columns
       tr.innerHTML = `<td>${setIdx + 1}</td><td>${s.reps}</td><td>${s.weight}</td><td>${s.volume}</td><td>${s.notes}</td><td>${new Date(s.timestamp).toLocaleString()}</td>`;
-      
-      // --- Action Column with Arrows ---
-      const actionsTd = document.createElement('td');
-      
-      // UP BUTTON ( ↑ )
-      const upBtn = document.createElement('button');
-      upBtn.className = 'btn-icon btn-move';
-      upBtn.innerHTML = '↑';
-      upBtn.onclick = (e) => { 
-          e.stopPropagation(); 
-          moveItem('set', currentGlobalIndex, -1); 
-      };
-
-      // DOWN BUTTON ( ↓ )
-      const downBtn = document.createElement('button');
-      downBtn.className = 'btn-icon btn-move';
-      downBtn.innerHTML = '↓';
-      downBtn.onclick = (e) => { 
-          e.stopPropagation(); 
-          moveItem('set', currentGlobalIndex, 1); 
-      };
-
-      // DELETE BUTTON
+      const deleteTd = document.createElement('td');
       const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn-delete'; [cite_start]// [cite: 617]
+    
+      deleteBtn.className = 'btn-delete';
       deleteBtn.innerHTML = '&times;';
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
@@ -1124,18 +1070,13 @@ function renderSets() {
           saveUserJson(); renderSets();
         });
       };
-      
-      actionsTd.appendChild(upBtn);
-      actionsTd.appendChild(downBtn);
-      actionsTd.appendChild(deleteBtn);
-      tr.appendChild(actionsTd);
-      
+      deleteTd.appendChild(deleteBtn);
+      tr.appendChild(deleteTd);
       setsTable.appendChild(tr);
+      renderedSetsInOrder.push(s);
     });
   });
-  
-  // Re-hook editables after rendering
-  hookEditables(sortedSets);
+  hookEditables(renderedSetsInOrder);
   runTitleOnlyLogic();
 }
 
@@ -1223,8 +1164,7 @@ function getChartData() {
 // UPDATED: Added Sprint Animation Logic + Leaf Spawner Hook
 function drawChart() {
     // 1. STOP OLD LEAVES when redrawing
-    stopLeafSpawner(); 
-
+    stopLeafSpawner();
     chartState.dataPoints = getChartData();
     const points = chartState.dataPoints;
     const pointsGroup = document.getElementById('chartPoints');
@@ -1261,7 +1201,6 @@ function drawChart() {
                 pointsGroup.appendChild(circle);
      
             });
-            
             // TRIGGER SPRINT ANIMATION (SLOWER)
             const len = el.getTotalLength();
             el.style.strokeDasharray = len;
@@ -1351,7 +1290,8 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
 window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
 
 function hideAllDetails() {
-  stopLeafSpawner(); // Stop leaves if user navigates away
+  stopLeafSpawner();
+  // Stop leaves if user navigates away
   Object.values(SCREENS).forEach(screenId => { document.getElementById(screenId).classList.add('hidden'); });
   document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
   currentScreen = SCREENS.CLIENTS;
@@ -1491,14 +1431,13 @@ document.body.addEventListener('touchend', () => {
     }
     touchStartX = 0; touchStartY = 0;
 });
-
-
 // ==========================================
 // ORGANIC LEAF ANIMATION SYSTEM (FINAL)
 // ==========================================
 
 var leafInterval = null;
-var activeLeafSpots = []; // Tracks x/y coordinates to prevent overlapping
+var activeLeafSpots = [];
+// Tracks x/y coordinates to prevent overlapping
 
 // 1. LEAF GEOMETRY GENERATOR (3 Clean Styles)
 function generateOrganicLeafPath() {
@@ -1514,7 +1453,6 @@ function generateOrganicLeafPath() {
             d += "M 0 -35 L 8 -40 ";  d += "M 0 -35 L -8 -40 ";
             d += "M 0 -50 L 5 -55 ";  d += "M 0 -50 L -5 -55 ";
             break;
-
         case 1: // 2. THE WILLOW (Lanceolate)
             d += "M 0 0 Q 1 -40 0 -75 ";
             d += "C 6 -55, 4 -15, 0 0 ";
@@ -1523,14 +1461,16 @@ function generateOrganicLeafPath() {
             d += "M 0 -35 L 4 -45 "; d += "M 0 -35 L -4 -45 ";
             d += "M 0 -50 L 3 -60 "; d += "M 0 -50 L -3 -60 ";
             break;
-
         case 2: // 3. THE HEART (Cordate)
             d += "M 0 0 L 0 -60 ";
             d += "C 15 -50, 25 -25, 0 0 ";
             d += "C -25 -25, -15 -50, 0 -60 ";
-            d += "M 0 -15 Q 8 -18, 10 -22 ";   d += "M 0 -15 Q -8 -18, -10 -22 ";
-            d += "M 0 -30 Q 6 -33, 8 -38 ";    d += "M 0 -30 Q -6 -33, -8 -38 ";
-            d += "M 0 -45 Q 3 -48, 4 -50 ";    d += "M 0 -45 Q -3 -48, -4 -50 ";
+            d += "M 0 -15 Q 8 -18, 10 -22 ";
+            d += "M 0 -15 Q -8 -18, -10 -22 ";
+            d += "M 0 -30 Q 6 -33, 8 -38 ";
+            d += "M 0 -30 Q -6 -33, -8 -38 ";
+            d += "M 0 -45 Q 3 -48, 4 -50 ";
+            d += "M 0 -45 Q -3 -48, -4 -50 ";
             break;
     }
     return d;
@@ -1560,7 +1500,6 @@ function stopLeafSpawner() {
 function spawnRandomLeaf() {
   const pointsGroup = document.getElementById('chartPoints'); 
   if (!pointsGroup) return;
-
   const activeLines = Array.from(document.querySelectorAll('.chart-line.active'));
   if (activeLines.length === 0) return;
 
@@ -1577,14 +1516,12 @@ function spawnRandomLeaf() {
 
       const randLen = Math.random() * len;
       const candidate = targetLine.getPointAtLength(randLen);
-
       // Check distance against all current leaves (threshold: 60px)
       const isTooClose = activeLeafSpots.some(spot => {
           const dx = candidate.x - spot.x;
           const dy = candidate.y - spot.y;
           return (dx * dx + dy * dy) < 3600; // 60^2 = 3600
       });
-
       if (!isTooClose) {
           pt = candidate;
           validSpot = true;
@@ -1598,21 +1535,18 @@ function spawnRandomLeaf() {
   // REGISTER SPOT
   const spotRef = { x: pt.x, y: pt.y };
   activeLeafSpots.push(spotRef);
-
   const computedStyle = window.getComputedStyle(targetLine);
   const strokeColor = computedStyle.stroke;
 
   // CREATE ELEMENTS
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "leaf-group");
-  
   const rotation = (Math.random() * 90) - 45;
   const scale = 0.5 + (Math.random() * 0.5);
   g.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${rotation}) scale(${scale})`);
 
   const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
   gInner.setAttribute("class", "leaf-inner");
-  
   // 45% chance to sway
   if (Math.random() < 0.45) {
       gInner.classList.add('leaf-sway');
@@ -1626,12 +1560,10 @@ function spawnRandomLeaf() {
   gInner.appendChild(path);
   g.appendChild(gInner);
   pointsGroup.appendChild(g);
-
   // ANIMATE
   const pathLen = path.getTotalLength();
   path.style.strokeDasharray = pathLen;
   path.style.strokeDashoffset = pathLen;
-  
   const animation = path.animate([
     { strokeDashoffset: pathLen }, 
     { strokeDashoffset: 0 }        
@@ -1640,7 +1572,6 @@ function spawnRandomLeaf() {
     easing: 'ease-out',
     fill: 'forwards'
   });
-
   // CLEANUP
   animation.onfinish = () => {
     setTimeout(() => {
@@ -1651,6 +1582,7 @@ function spawnRandomLeaf() {
         }
 
         const undraw = path.animate([
+           
             { strokeDashoffset: 0 },
             { strokeDashoffset: pathLen }
         ], {
@@ -1660,7 +1592,8 @@ function spawnRandomLeaf() {
         });
 
         undraw.onfinish = () => {
-            if (document.body.contains(g)) g.remove();
+            if 
+            (document.body.contains(g)) g.remove();
             const idx = activeLeafSpots.indexOf(spotRef);
             if (idx > -1) activeLeafSpots.splice(idx, 1);
         };
@@ -1674,16 +1607,13 @@ function spawnRandomLeaf() {
 function initRandomLogo() {
   const logoSvg = document.getElementById('animated-logo');
   if (!logoSvg) return;
-
   // Helper to apply a specific variant
   const applyVariant = (v) => {
       // 1. Clear all existing classes to reset
       logoSvg.removeAttribute('class');
-      
       // 2. Force a reflow so the animation restarts from 0%
       // (This trick ensures the new animation plays immediately)
       void logoSvg.offsetWidth;
-
       // 3. Apply new class
       if (v > 0) {
           logoSvg.classList.add('logo-variant');
@@ -1698,22 +1628,23 @@ function initRandomLogo() {
   const pickNewVariant = (current) => {
       let next;
       do {
-          next = Math.floor(Math.random() * 20); // 0 to 19 (20 total)
-      } while (next === current); // Ensure we don't pick the same one twice in a row
+          next = Math.floor(Math.random() * 20);
+          // 0 to 19 (20 total)
+      } while (next === current);
+      // Ensure we don't pick the same one twice in a row
       return next;
   };
-
   // --- INITIAL LOAD ---
   let currentVariant = Math.floor(Math.random() * 20);
   applyVariant(currentVariant);
-
   // --- AUTOMATIC CYCLING TIMER ---
   // The CSS animation is 10s total (approx 3s action + 7s float).
   // We switch exactly when it finishes to keep it seamless.
   setInterval(() => {
       currentVariant = pickNewVariant(currentVariant);
       applyVariant(currentVariant);
-  }, 10000); // 10,000ms = 10 seconds
+  }, 10000);
+  // 10,000ms = 10 seconds
 
   // --- OPTIONAL CLICK INTERACTION ---
   // (Still allows manual skipping if user gets bored)
@@ -1734,7 +1665,6 @@ function initOrganicSpiral() {
 
     // 1. Configuration
     const centerX = 50, centerY = 50, maxRadius = 46, turns = 5.2, points = 200;
-    
     // 2. Generate the Spiral Path Data (d)
     let d = `M ${centerX} ${centerY}`;
     for (let i = 0; i <= points; i++) {
@@ -1748,7 +1678,6 @@ function initOrganicSpiral() {
 
     // 3. Clear existing SVG content
     svg.innerHTML = '';
-
     // 4. Create the Mask (This handles the animation/growing)
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
@@ -1756,16 +1685,18 @@ function initOrganicSpiral() {
     
     const maskPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     maskPath.setAttribute("d", d);
-    maskPath.setAttribute("stroke", "white"); // White = Visible in mask
+    maskPath.setAttribute("stroke", "white");
+    // White = Visible in mask
     maskPath.setAttribute("stroke-width", "3.5");
-    maskPath.setAttribute("stroke-linecap", "round"); // Round head for the snake
+    maskPath.setAttribute("stroke-linecap", "round");
+    // Round head for the snake
     maskPath.setAttribute("fill", "none");
-    maskPath.setAttribute("class", "mask-animator"); // CSS will animate this
+    maskPath.setAttribute("class", "mask-animator");
+    // CSS will animate this
     
     mask.appendChild(maskPath);
     defs.appendChild(mask);
     svg.appendChild(defs);
-
     // 5. Create the Colored Layers (Static image that gets revealed)
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.setAttribute("mask", "url(#spiralMask)");
@@ -1778,14 +1709,13 @@ function initOrganicSpiral() {
         p.setAttribute("stroke-width", "3.5");
         p.setAttribute("fill", "none");
         // "butt" linecap ensures the color break is a flat, straight line
-        p.setAttribute("stroke-linecap", "butt"); 
+        p.setAttribute("stroke-linecap", "butt");
         return p;
     };
 
     // Layer 1: Green Base (Background)
     const baseGreen = createPath('#34c759');
     group.appendChild(baseGreen);
-
     // We need the length to calculate dash offsets for segments
     // We append temporarily to measure, or create a temp element
     const tempPath = createPath('none');
@@ -1800,14 +1730,12 @@ function initOrganicSpiral() {
     const yLen = (len * 0.45) - yStart;
     yellow.setAttribute("stroke-dasharray", `0 ${yStart} ${yLen} ${len}`);
     group.appendChild(yellow);
-
     // Layer 3: Red Segment (45% to 72%)
     const red = createPath('#ff3b30');
     const rStart = len * 0.45;
     const rLen = (len * 0.72) - rStart;
     red.setAttribute("stroke-dasharray", `0 ${rStart} ${rLen} ${len}`);
     group.appendChild(red);
-
     svg.appendChild(group);
 
     // 6. Set CSS Variables for Animation
