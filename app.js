@@ -150,8 +150,14 @@ async function loadUserJson() {
   const uid = auth.currentUser.uid;
   const docRef = db.collection("clients").doc(uid);
   const docSnap = await docRef.get();
-  if (docSnap.exists) clientsData = docSnap.data();
-  else { clientsData = {}; await docRef.set(clientsData);
+  if (docSnap.exists) {
+      clientsData = docSnap.data();
+      // Ensure all clients have an order property to prevent jitter
+      Object.keys(clientsData).forEach((key, index) => {
+          if (clientsData[key].order === undefined) clientsData[key].order = index;
+      });
+  } else { 
+      clientsData = {}; await docRef.set(clientsData);
   }
 }
 
@@ -358,17 +364,58 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
+// --- REORDER HELPER ---
+function moveItem(type, index, direction) {
+    // direction: -1 (up), 1 (down)
+    if (type === 'client') {
+        const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= sortedClients.length) return;
+
+        // Swap order values
+        const itemA = sortedClients[index];
+        const itemB = sortedClients[targetIndex];
+        const tempOrder = itemA.order ?? 0;
+        itemA.order = itemB.order ?? 0;
+        itemB.order = tempOrder;
+
+        saveUserJson();
+        renderClients();
+    } else if (type === 'session') {
+        const list = clientsData[selectedClient].sessions;
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= list.length) return;
+        
+        [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
+        saveUserJson();
+        renderSessions();
+    } else if (type === 'exercise') {
+        const list = selectedSession.exercises;
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= list.length) return;
+
+        [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
+        saveUserJson();
+        renderExercises();
+    }
+}
+
 // ------------------ RENDER CLIENTS ------------------
 const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-  for (const name in clientsData) {
+  
+  // Sort by the new 'order' property
+  const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  sortedClients.forEach((clientObj, idx) => {
+    const name = clientObj.client_name;
     const li = document.createElement("li");
     li.style.cursor = "pointer";
     const nameSpan = document.createElement("span");
     let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-    const sessions = clientsData[name].sessions || [];
+    const sessions = clientObj.sessions || [];
     sessions.forEach(session => {
         const exercises = session.exercises || [];
         exercises.forEach(ex => {
@@ -377,7 +424,6 @@ function renderClients() {
             clientColorData.green += cData.green;
             clientColorData.yellow += cData.yellow;
             clientColorData.total += cData.total;
-    
         });
     });
     
@@ -389,13 +435,26 @@ function renderClients() {
     setupListTextAnimation(nameSpan, name, clientColorData);
 
     li.onclick = (e) => {
-      if (editMode) { e.stopPropagation();
-      return; }
+      if (editMode) { e.stopPropagation(); return; }
       selectClient(name);
     };
 
+    // NEW ACTIONS CONTAINER
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'edit-actions';
+    
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn-icon btn-move';
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, -1); };
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn-icon btn-move';
+    downBtn.innerHTML = '↓';
+    downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
+
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete';
+    deleteBtn.className = 'btn-icon btn-delete';
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
@@ -405,9 +464,13 @@ function renderClients() {
       });
     };
 
-    li.appendChild(nameSpan); li.appendChild(deleteBtn);
+    actionsDiv.appendChild(upBtn);
+    actionsDiv.appendChild(downBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    li.appendChild(nameSpan); li.appendChild(actionsDiv);
     clientList.appendChild(li);
-  }
+  });
   const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
   hookEditables();
@@ -417,7 +480,9 @@ document.getElementById("addClientBtn").onclick = () => {
   const name = prompt("Enter client name:");
   if (!name) return;
   if (clientsData[name]) { alert("Client already exists."); return; }
-  clientsData[name] = { client_name: name, sessions: [] };
+  // NEW: Add default order index
+  const newOrder = Object.keys(clientsData).length;
+  clientsData[name] = { client_name: name, sessions: [], order: newOrder };
   saveUserJson(); renderClients();
 };
 function selectClient(name) {
@@ -427,14 +492,8 @@ function selectClient(name) {
 
 const sessionList = document.getElementById("sessionList");
 function getSortedSessions(sessionsArray) {
-  if (!sessionsArray) return [];
-  return sessionsArray.slice().sort((a, b) => {
-    let dateB = b.date ? new Date(b.date) : new Date(0);
-    if (isNaN(dateB.getTime())) dateB = new Date(0);
-    let dateA = a.date ? new Date(a.date) : new Date(0);
-    if (isNaN(dateA.getTime())) dateA = new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // REMOVED FORCED DATE SORTING TO ALLOW MANUAL ORDERING
+  return sessionsArray || [];
 }
 
 document.getElementById("addSessionBtn").onclick = () => {
@@ -452,9 +511,8 @@ function renderSessions() {
   selectedSession = null;
   let clientTotalColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   const sessions = clientsData[selectedClient]?.sessions || [];
-  const sortedSessions = getSortedSessions(sessions);
-
-  sortedSessions.forEach((sess, idx) => {
+  
+  sessions.forEach((sess, idx) => {
     const li = document.createElement("li");
     li.style.cursor = "pointer";
     const nameSpan = document.createElement("span");
@@ -465,7 +523,6 @@ function renderSessions() {
         const cData = getExerciseColorData(ex);
         sessionColorData.red += cData.red;
         sessionColorData.green += cData.green;
-       
         sessionColorData.yellow += cData.yellow;
         sessionColorData.total += cData.total;
     });
@@ -480,8 +537,22 @@ function renderSessions() {
       if (editMode) { e.stopPropagation(); return; }
       selectSession(sess);
     };
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'edit-actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn-icon btn-move';
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, -1); };
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn-icon btn-move';
+    downBtn.innerHTML = '↓';
+    downBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, 1); };
+
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete';
+    deleteBtn.className = 'btn-icon btn-delete';
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
@@ -491,7 +562,12 @@ function renderSessions() {
         if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
       });
     };
-    li.appendChild(nameSpan); li.appendChild(deleteBtn);
+
+    actionsDiv.appendChild(upBtn);
+    actionsDiv.appendChild(downBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    li.appendChild(nameSpan); li.appendChild(actionsDiv);
     sessionList.appendChild(li);
   });
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
@@ -522,6 +598,7 @@ function renderExercises() {
   if (!selectedSession) { applyTitleStyling(sessionTitleElement, 'Exercises', null); return; }
   selectedExercise = null;
   let sessionColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+  
   selectedSession.exercises.forEach((ex, idx) => {
     const colorData = getExerciseColorData(ex);
     ex.colorData = colorData; 
@@ -537,8 +614,22 @@ function renderExercises() {
     nameSpan.textContent = ex.exercise;
     li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } 
     selectExercise(idx); };
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'edit-actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn-icon btn-move';
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, -1); };
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn-icon btn-move';
+    downBtn.innerHTML = '↓';
+    downBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, 1); };
+
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete';
+    deleteBtn.className = 'btn-icon btn-delete';
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
@@ -547,8 +638,13 @@ function renderExercises() {
         if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
       });
     };
+    
+    actionsDiv.appendChild(upBtn);
+    actionsDiv.appendChild(downBtn);
+    actionsDiv.appendChild(deleteBtn);
+
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
-    li.appendChild(nameSpan); li.appendChild(deleteBtn);
+    li.appendChild(nameSpan); li.appendChild(actionsDiv);
     exerciseList.appendChild(li);
   });
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
