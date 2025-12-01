@@ -180,8 +180,32 @@ tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6);
   transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
   border-radius: 4px;
 }
-.btn-delete { color: var(--color-red); }
+.btn-delete { 
+  color: var(--color-red);
+}
 .btn-delete:hover { background: rgba(255, 59, 48, 0.1); }
+
+/* ===== FIX FOR SETS TABLE DELETE BUTTON ===== */
+/* 1. Reset button styles to look like a clean X */
+td .btn-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem; /* Larger, cleaner X */
+  line-height: 1;
+  padding: 0 0.5rem;
+  margin: 0;
+  
+  /* 2. Hide by default */
+  display: none; 
+}
+
+/* 3. Only show when Edit Mode is active */
+.edit-mode-active td .btn-delete {
+  display: inline-block;
+  opacity: 1;
+  transform: scale(1);
+}
 .btn-move { color: var(--color-text-muted); font-size: 1.2rem; }
 .btn-move:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.1); }
 
