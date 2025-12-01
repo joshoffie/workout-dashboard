@@ -173,12 +173,14 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 .item-list li:last-child { border-bottom: 1px solid var(--color-border); }
 .item-list li:hover { background-color: var(--color-primary-light); }
-.item-list li::after { content: '>';
-  font-size: 1.1rem; font-weight: 600; color: var(--color-text-muted); transition: transform 0.2s ease; }
+
+/* --- UPDATED: REMOVED GREY > SYMBOL --- */
+.item-list li::after {
+  content: none !important;
+}
+
 .item-list li > span { flex: 1; padding-right: 1rem;
   transition: color 0.3s ease; }
-.edit-mode-active .item-list li::after { transform: translateX(20px); opacity: 0;
-}
 
 /* ===== SETS TABLE ===== */
 .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 1rem 2rem 1rem;
@@ -721,11 +723,10 @@ input[type=range]:active::-webkit-slider-thumb {
 }
 
 /* =========================================
-   UPDATED LOGO ANIMATIONS (DEBUGGED & FIXED)
+   UPDATED LOGO ANIMATIONS
    ========================================= */
 
 /* 1. GLOBAL SETTINGS */
-/* Added !important to override the ID-based original settings */
 .logo-variant text, 
 .logo-variant .logo-text text {
   transform-box: view-box;
@@ -776,7 +777,6 @@ input[type=range]:active::-webkit-slider-thumb {
   50% { transform: rotate(360deg) translate(0, -2px); } 75% { transform: rotate(360deg) translate(0, 2px); } 100% { transform: rotate(360deg); }
 }
 .logo-v4 text { animation-name: v4-basic-spin !important; }
-/* Delays don't need !important as they aren't set on the original ID, but good for safety */
 .logo-v4 #logo-t { animation-delay: 0s !important; }
 .logo-v4 #logo-r { animation-delay: 0.15s !important; }
 .logo-v4 #logo-u { animation-delay: 0.3s !important; }
@@ -975,3 +975,55 @@ input[type=range]:active::-webkit-slider-thumb {
 .logo-v19 #logo-u { animation-delay: 0.2s !important; }
 .logo-v19 #logo-n { animation-delay: 0.3s !important; }
 .logo-v19 #logo-k { animation-delay: 0.4s !important; }
+
+/* --- NEW DYNAMIC ARROW STYLES --- */
+.arrow-icon {
+  width: 24px;
+  height: 24px;
+  fill: var(--color-text-muted); /* Default grey */
+  margin-left: 10px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  display: block; /* Ensure SVG renders correctly */
+}
+
+/* Hide arrow in edit mode to make room for buttons */
+.edit-mode-active .arrow-icon {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Color & Animation Variants */
+.arrow-green {
+  fill: var(--color-green);
+  animation: arrow-bounce 1s infinite ease-in-out;
+}
+
+.arrow-red {
+  fill: var(--color-red);
+  animation: arrow-tilt 1s infinite ease-in-out;
+}
+
+.arrow-yellow {
+  fill: var(--color-yellow);
+  animation: arrow-vibrate 0.2s infinite linear;
+}
+
+/* Keyframes for new Arrows */
+@keyframes arrow-bounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+@keyframes arrow-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(45deg); }
+}
+
+@keyframes arrow-vibrate {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(1px, 1px); }
+  50% { transform: translate(-1px, -1px); }
+  75% { transform: translate(1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
