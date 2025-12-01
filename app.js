@@ -1318,7 +1318,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   if (!arrowEl || !dataEl) return 'neutral';
   const status = calculateStatStatus(currentValue, previousValue);
   let arrow = '—';
-  if (status === 'increase') arrow = ''; else if (status === 'decrease') arrow = '';
+  if (status === 'increase') arrow = '↑'; else if (status === 'decrease') arrow = '↓';
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
