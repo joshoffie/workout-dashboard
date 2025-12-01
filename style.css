@@ -76,46 +76,69 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .modal-logo { width: 100px;
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
 
-/* ===== TREE TRUNK ANIMATION (JS GENERATED) ===== */
+/* ===== TREE TRUNK ANIMATION (FINAL UPDATED) ===== */
 .tree-animation-svg { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
   viewBox: 0 0 100 100; overflow: visible; 
-  /* Rotates the whole container during the undraw phase */
   animation: trunkContainerSpin 14s linear infinite;
 }
 
 .generated-spiral {
   fill: none;
-  stroke-width: 3.5px; /* Thinner line + Math spacing = No Blob */
+  stroke-width: 3.5px;
   stroke-linecap: round;
+  /* Default Color */
+  stroke: var(--color-green);
   
-  /* The gradient is applied via the HTML attribute, so we don't set stroke color here */
-  
-  /* Animation Timing: 10s Draw + 1s Pause + 3s Undraw/Spin */
-  animation: trunkSnaking 14s ease-in-out infinite;
+  /* 1. trunkSnaking: Draws the line (Smooth)
+     2. trunkHardColors: Changes colors (Abrupt/Instant)
+  */
+  animation: 
+    trunkSnaking 14s ease-in-out infinite,
+    trunkHardColors 14s steps(1) infinite; 
 }
 
-/* 1. SNAKING GROWTH LOGIC */
+/* 1. SNAKING GROWTH */
 @keyframes trunkSnaking {
-  0% { 
-    stroke-dashoffset: var(--spiral-len); /* Fully hidden (exact math) */
-  }       
-  71.4% { 
-    stroke-dashoffset: 0; /* 10 Seconds: Fully Grown (Head reaches end) */
-  }      
-  78.5% { 
-    stroke-dashoffset: 0; /* 11 Seconds: Pause (Stay full) */
-  }      
-  100% { 
-    stroke-dashoffset: var(--spiral-len); /* 14 Seconds: Tail retracts */
-  }    
+  0% { stroke-dashoffset: var(--spiral-len); }       
+  71.4% { stroke-dashoffset: 0; }      
+  78.5% { stroke-dashoffset: 0; }      
+  100% { stroke-dashoffset: var(--spiral-len); }    
 }
 
-/* 2. SPIN LOGIC (Only spins during the undraw/retract phase) */
+/* 2. ABRUPT COLOR SWITCHING (Green -> Yellow -> Red -> Green) */
+/* steps(1) ensures it jumps instantly to the next color defined at the % mark */
+@keyframes trunkHardColors {
+  0% { stroke: var(--color-green); }
+  15% { stroke: var(--color-yellow); }
+  35% { stroke: var(--color-red); }
+  60% { stroke: var(--color-green); }
+  100% { stroke: var(--color-green); }
+}
+
+/* 3. SPIN LOGIC */
 @keyframes trunkContainerSpin {
-  0% { transform: rotate(-90deg); }     /* Start upright */
-  78.5% { transform: rotate(-90deg); }  /* Hold steady while growing */
-  100% { transform: rotate(270deg); }   /* Spin 360deg while retracting */
+  0% { transform: rotate(-90deg); }    
+  78.5% { transform: rotate(-90deg); }  
+  100% { transform: rotate(270deg); }   
+}
+
+/* ===== RESTORED TEXT STYLING ===== */
+.modal h2 { 
+  font-family: 'Inter', sans-serif; /* Clean, standard font */
+  font-size: 1.75rem; 
+  font-weight: 700; 
+  margin-bottom: 0.5rem; 
+  color: var(--color-text);
+  letter-spacing: -0.5px; /* Tighter tracking like the screenshot */
+}
+
+.modal-subtitle { 
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem; 
+  color: var(--color-text-muted); 
+  margin-bottom: 2rem; 
+  font-weight: 400;
 }
 /* ===== BUTTONS ===== */
 .btn {
