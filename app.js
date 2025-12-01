@@ -1621,58 +1621,92 @@ function initRandomLogo() {
 initRandomLogo();
 
 // ==========================================
-// DYNAMIC SPIRAL GENERATOR (Math-Perfect)
+// DYNAMIC SPIRAL GENERATOR (Masked Segments)
 // ==========================================
 function initOrganicSpiral() {
     const svg = document.getElementById('dynamicSpiralSvg');
     if (!svg) return;
 
-    // 1. Configuration for a "Perfect Snake"
-    const centerX = 50;
-    const centerY = 50;
-    const maxRadius = 46; // Stay within 100x100 box
-    const turns = 5.2;    // Matches the video's density
-    const points = 200;   // Resolution of the curve
+    // 1. Configuration
+    const centerX = 50, centerY = 50, maxRadius = 46, turns = 5.2, points = 200;
     
-    // 2. Generate the Path Data (d attribute)
-    // Formula: r = a + b * theta (Archimedean Spiral)
+    // 2. Generate the Spiral Path Data (d)
     let d = `M ${centerX} ${centerY}`;
-    
     for (let i = 0; i <= points; i++) {
         const t = i / points;
         const angle = t * (Math.PI * 2 * turns);
-        
-        // This ensures the gap is perfectly even
-        const radius = maxRadius * t; 
-        
+        const radius = maxRadius * t;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
-        
-        // Using "L" (Line) segments with high resolution is smoother/cleaner 
-        // than Bezier curves for parallel spirals
         d += ` L ${x} ${y}`;
     }
 
-    // 3. Create and Append the Path
-    const oldPath = svg.querySelector('path');
-    if(oldPath) oldPath.remove();
+    // 3. Clear existing SVG content
+    svg.innerHTML = '';
 
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", d);
-    path.setAttribute("class", "generated-spiral");
+    // 4. Create the Mask (This handles the animation/growing)
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
+    mask.setAttribute("id", "spiralMask");
     
-    // APPLY THE HARD-STOP GRADIENT HERE
-    path.setAttribute("stroke", "url(#hardStopGradient)"); 
+    const maskPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    maskPath.setAttribute("d", d);
+    maskPath.setAttribute("stroke", "white"); // White = Visible in mask
+    maskPath.setAttribute("stroke-width", "3.5");
+    maskPath.setAttribute("stroke-linecap", "round"); // Round head for the snake
+    maskPath.setAttribute("fill", "none");
+    maskPath.setAttribute("class", "mask-animator"); // CSS will animate this
     
-    svg.appendChild(path);
+    mask.appendChild(maskPath);
+    defs.appendChild(mask);
+    svg.appendChild(defs);
 
-    // 4. Calculate Exact Length to prevent "Crescent" Glitch
-    const len = path.getTotalLength();
-    
-    // Set CSS variables for the animation to use precisely
-    path.style.setProperty('--spiral-len', len);
-    path.style.strokeDasharray = len;
-    path.style.strokeDashoffset = len; // Hides it completely at start
+    // 5. Create the Colored Layers (Static image that gets revealed)
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("mask", "url(#spiralMask)");
+
+    // Helper to create a segment
+    const createPath = (color, type) => {
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", d);
+        p.setAttribute("stroke", color);
+        p.setAttribute("stroke-width", "3.5");
+        p.setAttribute("fill", "none");
+        // "butt" linecap ensures the color break is a flat, straight line
+        p.setAttribute("stroke-linecap", "butt"); 
+        return p;
+    };
+
+    // Layer 1: Green Base (Background)
+    const baseGreen = createPath('#34c759');
+    group.appendChild(baseGreen);
+
+    // We need the length to calculate dash offsets for segments
+    // We append temporarily to measure, or create a temp element
+    const tempPath = createPath('none');
+    svg.appendChild(tempPath);
+    const len = tempPath.getTotalLength();
+    tempPath.remove();
+
+    // Layer 2: Yellow Segment (22% to 45%)
+    // dasharray: 0 (dot), Gap to Start, Draw Length, Gap to End
+    const yellow = createPath('#ffcc00');
+    const yStart = len * 0.22;
+    const yLen = (len * 0.45) - yStart;
+    yellow.setAttribute("stroke-dasharray", `0 ${yStart} ${yLen} ${len}`);
+    group.appendChild(yellow);
+
+    // Layer 3: Red Segment (45% to 72%)
+    const red = createPath('#ff3b30');
+    const rStart = len * 0.45;
+    const rLen = (len * 0.72) - rStart;
+    red.setAttribute("stroke-dasharray", `0 ${rStart} ${rLen} ${len}`);
+    group.appendChild(red);
+
+    svg.appendChild(group);
+
+    // 6. Set CSS Variables for Animation
+    svg.style.setProperty('--spiral-len', len);
 }
 
 // Run immediately
