@@ -364,6 +364,46 @@ function calculateStatStatus(currentValue, previousValue) {
   return 'neutral';
 }
 
+// ------------------ NEW: DYNAMIC ARROW HELPER ------------------
+function createDynamicArrow(colorData) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("class", "arrow-icon");
+    
+    // Path for Chevron Right (Standard Material Arrow)
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z");
+    svg.appendChild(path);
+
+    if (!colorData || colorData.total === 0) {
+         return svg; // Default grey
+    }
+
+    const { red, green, yellow } = colorData;
+    
+    // Logic matching the app's dominance logic:
+    // Happy -> Green -> Bounce
+    // Sad -> Red -> Tilt
+    // Calm -> Yellow -> Vibrate
+    
+    if (green > red && green >= yellow) {
+        svg.classList.add("arrow-green");
+    } else if (red > green && red >= yellow) {
+        svg.classList.add("arrow-red");
+    } else if (yellow > green && yellow > red) {
+        svg.classList.add("arrow-yellow");
+    } else {
+        // Tie-breaking defaults
+        if (green > 0) svg.classList.add("arrow-green");
+        else if (red > 0) svg.classList.add("arrow-red");
+        else if (yellow > 0) svg.classList.add("arrow-yellow");
+    }
+    
+    return svg;
+}
+
+
 // --- REORDER HELPER ---
 function moveItem(type, index, direction) {
     // direction: -1 (up), 1 (down)
@@ -445,12 +485,12 @@ function renderClients() {
     
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '↑';
+    upBtn.innerHTML = '';
     upBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '↓';
+    downBtn.innerHTML = '';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -468,7 +508,11 @@ function renderClients() {
     actionsDiv.appendChild(downBtn);
     actionsDiv.appendChild(deleteBtn);
 
-    li.appendChild(nameSpan); li.appendChild(actionsDiv);
+    li.appendChild(nameSpan); 
+    li.appendChild(actionsDiv);
+    // APPEND DYNAMIC ARROW
+    li.appendChild(createDynamicArrow(clientColorData));
+    
     clientList.appendChild(li);
   });
   const clientsTitle = document.getElementById('clientsScreenTitle');
@@ -543,12 +587,12 @@ function renderSessions() {
 
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '↑';
+    upBtn.innerHTML = '';
     upBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '↓';
+    downBtn.innerHTML = '';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('session', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -567,7 +611,11 @@ function renderSessions() {
     actionsDiv.appendChild(downBtn);
     actionsDiv.appendChild(deleteBtn);
 
-    li.appendChild(nameSpan); li.appendChild(actionsDiv);
+    li.appendChild(nameSpan); 
+    li.appendChild(actionsDiv);
+    // APPEND DYNAMIC ARROW
+    li.appendChild(createDynamicArrow(sessionColorData));
+    
     sessionList.appendChild(li);
   });
   const sessionsTitle = document.getElementById('sessionsScreenTitle');
@@ -620,12 +668,12 @@ function renderExercises() {
 
     const upBtn = document.createElement('button');
     upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '↑';
+    upBtn.innerHTML = '';
     upBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, -1); };
 
     const downBtn = document.createElement('button');
     downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '↓';
+    downBtn.innerHTML = '';
     downBtn.onclick = (e) => { e.stopPropagation(); moveItem('exercise', idx, 1); };
 
     const deleteBtn = document.createElement('button');
@@ -644,7 +692,11 @@ function renderExercises() {
     actionsDiv.appendChild(deleteBtn);
 
     setupListTextAnimation(nameSpan, ex.exercise, colorData);
-    li.appendChild(nameSpan); li.appendChild(actionsDiv);
+    li.appendChild(nameSpan); 
+    li.appendChild(actionsDiv);
+    // APPEND DYNAMIC ARROW
+    li.appendChild(createDynamicArrow(colorData));
+    
     exerciseList.appendChild(li);
   });
   applyTitleStyling(sessionTitleElement, 'Exercises', sessionColorData);
@@ -1273,7 +1325,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   if (!arrowEl || !dataEl) return 'neutral';
   const status = calculateStatStatus(currentValue, previousValue);
   let arrow = '—';
-  if (status === 'increase') arrow = '↑'; else if (status === 'decrease') arrow = '↓';
+  if (status === 'increase') arrow = ''; else if (status === 'decrease') arrow = '';
   const change = currentValue - previousValue;
   let percentageChange = 0;
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
