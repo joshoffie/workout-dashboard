@@ -76,10 +76,11 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .modal-logo { width: 100px;
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
 
-/* ===== TREE TRUNK ANIMATION (FINAL UPDATED) ===== */
+/* ===== TREE TRUNK ANIMATION (MULTI-COLOR SEGMENTS) ===== */
 .tree-animation-svg { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
   viewBox: 0 0 100 100; overflow: visible; 
+  /* Rotate the whole container during the undraw phase */
   animation: trunkContainerSpin 14s linear infinite;
 }
 
@@ -87,50 +88,38 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   fill: none;
   stroke-width: 3.5px;
   stroke-linecap: round;
-  /* Default Color */
-  stroke: var(--color-green);
   
-  /* 1. trunkSnaking: Draws the line (Smooth)
-     2. trunkHardColors: Changes colors (Abrupt/Instant)
+  /* NOTE: Stroke Color is handled by the 'stroke="url(#hardStopGradient)"' 
+     attribute in JS/HTML, so we do NOT set a stroke color here.
   */
-  animation: 
-    trunkSnaking 14s ease-in-out infinite,
-    trunkHardColors 14s steps(1) infinite; 
+
+  /* Only animate the drawing (snaking). No color animation needed. */
+  animation: trunkSnaking 14s ease-in-out infinite;
 }
 
 /* 1. SNAKING GROWTH */
 @keyframes trunkSnaking {
   0% { stroke-dashoffset: var(--spiral-len); }       
-  71.4% { stroke-dashoffset: 0; }      
-  78.5% { stroke-dashoffset: 0; }      
-  100% { stroke-dashoffset: var(--spiral-len); }    
+  71.4% { stroke-dashoffset: 0; }      /* 10s: Full */
+  78.5% { stroke-dashoffset: 0; }      /* 11s: Pause */
+  100% { stroke-dashoffset: var(--spiral-len); }    /* 14s: Retract */
 }
 
-/* 2. ABRUPT COLOR SWITCHING (Green -> Yellow -> Red -> Green) */
-/* steps(1) ensures it jumps instantly to the next color defined at the % mark */
-@keyframes trunkHardColors {
-  0% { stroke: var(--color-green); }
-  15% { stroke: var(--color-yellow); }
-  35% { stroke: var(--color-red); }
-  60% { stroke: var(--color-green); }
-  100% { stroke: var(--color-green); }
-}
-
-/* 3. SPIN LOGIC */
+/* 2. SPIN LOGIC */
 @keyframes trunkContainerSpin {
   0% { transform: rotate(-90deg); }    
-  78.5% { transform: rotate(-90deg); }  
-  100% { transform: rotate(270deg); }   
+  78.5% { transform: rotate(-90deg); } /* Hold steady while growing */
+  100% { transform: rotate(270deg); }  /* Spin 360deg while retracting */
 }
 
-/* ===== RESTORED TEXT STYLING ===== */
+/* ===== TEXT STYLING (UNCHANGED) ===== */
 .modal h2 { 
-  font-family: 'Inter', sans-serif; /* Clean, standard font */
+  font-family: 'Inter', sans-serif;
   font-size: 1.75rem; 
   font-weight: 700; 
   margin-bottom: 0.5rem; 
   color: var(--color-text);
-  letter-spacing: -0.5px; /* Tighter tracking like the screenshot */
+  letter-spacing: -0.5px;
 }
 
 .modal-subtitle { 
