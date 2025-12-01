@@ -976,15 +976,16 @@ input[type=range]:active::-webkit-slider-thumb {
 .logo-v19 #logo-n { animation-delay: 0.3s !important; }
 .logo-v19 #logo-k { animation-delay: 0.4s !important; }
 
-/* --- NEW DYNAMIC ARROW STYLES --- */
+/* --- NEW DYNAMIC ARROW STYLES (TEXT VERSION) --- */
 .arrow-icon {
-  width: 24px;
-  height: 24px;
-  fill: var(--color-text-muted); /* Default grey */
+  font-size: 1.5rem; /* Adjust size to match the ↓ arrow */
+  font-weight: 700;
+  color: var(--color-text-muted); /* Use color instead of fill */
   margin-left: 10px;
   transition: all 0.3s ease;
   flex-shrink: 0;
-  display: block; /* Ensure SVG renders correctly */
+  display: inline-block; /* Required for animations to work on text */
+  line-height: 1;
 }
 
 /* Hide arrow in edit mode to make room for buttons */
@@ -995,21 +996,21 @@ input[type=range]:active::-webkit-slider-thumb {
 
 /* Color & Animation Variants */
 .arrow-green {
-  fill: var(--color-green);
+  color: var(--color-green);
   animation: arrow-bounce 1s infinite ease-in-out;
 }
 
 .arrow-red {
-  fill: var(--color-red);
+  color: var(--color-red);
   animation: arrow-tilt 1s infinite ease-in-out;
 }
 
 .arrow-yellow {
-  fill: var(--color-yellow);
+  color: var(--color-yellow);
   animation: arrow-vibrate 0.2s infinite linear;
 }
 
-/* Keyframes for new Arrows */
+/* Keyframes (Unchanged) */
 @keyframes arrow-bounce {
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(5px); }
