@@ -76,31 +76,28 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .modal-logo { width: 100px;
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
 
-/* ===== TREE TRUNK ANIMATION (MULTI-COLOR SEGMENTS) ===== */
+/* ===== TREE TRUNK ANIMATION (MASKED) ===== */
 .tree-animation-svg { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
   viewBox: 0 0 100 100; overflow: visible; 
-  /* Rotate the whole container during the undraw phase */
+  /* Container Spin (Undraw phase) */
   animation: trunkContainerSpin 14s linear infinite;
 }
 
-.generated-spiral {
-  fill: none;
-  stroke-width: 3.5px;
-  stroke-linecap: round;
+/* This is the white line inside the <mask id="spiralMask"> */
+.mask-animator {
+  /* No stroke color needed here, the mask uses white to reveal */
+  stroke-dasharray: var(--spiral-len);
+  stroke-dashoffset: var(--spiral-len); /* Start hidden */
   
-  /* NOTE: Stroke Color is handled by the 'stroke="url(#hardStopGradient)"' 
-     attribute in JS/HTML, so we do NOT set a stroke color here.
-  */
-
-  /* Only animate the drawing (snaking). No color animation needed. */
+  /* The Animation: Reveal the static colored layers underneath */
   animation: trunkSnaking 14s ease-in-out infinite;
 }
 
-/* 1. SNAKING GROWTH */
+/* 1. SNAKING GROWTH (The Mask Opening) */
 @keyframes trunkSnaking {
   0% { stroke-dashoffset: var(--spiral-len); }       
-  71.4% { stroke-dashoffset: 0; }      /* 10s: Full */
+  71.4% { stroke-dashoffset: 0; }      /* 10s: Fully Revealed */
   78.5% { stroke-dashoffset: 0; }      /* 11s: Pause */
   100% { stroke-dashoffset: var(--spiral-len); }    /* 14s: Retract */
 }
@@ -111,6 +108,7 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   78.5% { transform: rotate(-90deg); } /* Hold steady while growing */
   100% { transform: rotate(270deg); }  /* Spin 360deg while retracting */
 }
+
 
 /* ===== TEXT STYLING (UNCHANGED) ===== */
 .modal h2 { 
