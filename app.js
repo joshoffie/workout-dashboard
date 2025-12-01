@@ -1619,3 +1619,60 @@ function initRandomLogo() {
 }
 
 initRandomLogo();
+
+// ==========================================
+// DYNAMIC SPIRAL GENERATOR (Math-Perfect)
+// ==========================================
+function initOrganicSpiral() {
+    const svg = document.getElementById('dynamicSpiralSvg');
+    if (!svg) return;
+
+    // 1. Configuration for a "Perfect Snake"
+    const centerX = 50;
+    const centerY = 50;
+    const maxRadius = 46; // Stay within 100x100 box
+    const turns = 5.2;    // Matches the video's density
+    const points = 200;   // Resolution of the curve
+    
+    // 2. Generate the Path Data (d attribute)
+    // Formula: r = a + b * theta (Archimedean Spiral)
+    let d = `M ${centerX} ${centerY}`;
+    
+    for (let i = 0; i <= points; i++) {
+        const t = i / points;
+        const angle = t * (Math.PI * 2 * turns);
+        
+        // This ensures the gap is perfectly even
+        const radius = maxRadius * t; 
+        
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        // Using "L" (Line) segments with high resolution is smoother/cleaner 
+        // than Bezier curves for parallel spirals
+        d += ` L ${x} ${y}`;
+    }
+
+    // 3. Create and Append the Path
+    // Remove old path if exists
+    const oldPath = svg.querySelector('path');
+    if(oldPath) oldPath.remove();
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "generated-spiral");
+    path.setAttribute("stroke", "url(#spiralGradient)"); // Apply the gradient
+    
+    svg.appendChild(path);
+
+    // 4. Calculate Exact Length to prevent "Crescent" Glitch
+    const len = path.getTotalLength();
+    
+    // Set CSS variables for the animation to use precisely
+    path.style.setProperty('--spiral-len', len);
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len; // Hides it completely at start
+}
+
+// Run immediately
+initOrganicSpiral();
