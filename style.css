@@ -77,17 +77,49 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
 .tree-animation-svg { position: absolute; top: 0; left: 0; width: 100%;
   height: 100%; viewBox: 0 0 100 100; overflow: visible; }
+/* ===== TREE TRUNK ANIMATION ===== */
 .spiral-path {
-  fill: none; stroke: var(--color-primary); stroke-width: 2; stroke-linecap: round;
-  stroke-dasharray: 1200; stroke-dashoffset: 1200; transform-origin: 50px 50px;
-  animation: drawSpiral 4s ease-in-out infinite;
+  fill: none;
+  stroke-width: 2.5; 
+  stroke-linecap: round;
+  /* Length matches the new detailed path */
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  transform-origin: 50px 50px;
+  /* Total duration 13s (10s draw + 1s pause + 2s undraw) */
+  animation: 
+    trunkDraw 13s linear infinite,
+    trunkColors 13s linear infinite,
+    trunkSpin 13s ease-in-out infinite;
 }
-@keyframes drawSpiral {
-  0% { stroke-dashoffset: 1200;
-  stroke-width: 2; transform: scale(1); }
-  50% { stroke-dashoffset: 0; stroke-width: 5; transform: scale(1.2); }
-  100% { stroke-dashoffset: 1200;
-  stroke-width: 2; transform: scale(1); }
+
+/* 1. DRAWING LINE (Growth & Undraw) */
+@keyframes trunkDraw {
+  0% { stroke-dashoffset: 1000; }     /* Start hidden */
+  76.9% { stroke-dashoffset: 0; }     /* 10s mark: Fully drawn */
+  84.6% { stroke-dashoffset: 0; }     /* 11s mark: Pause */
+  100% { stroke-dashoffset: 1000; }   /* 13s mark: Undraw back to hidden */
+}
+
+/* 2. COLOR CYCLE */
+/* Sequence: Y -> G -> R -> G -> Y -> G -> Stay Green */
+@keyframes trunkColors {
+  0% { stroke: var(--color-yellow); }
+  12.8% { stroke: var(--color-green); }
+  25.6% { stroke: var(--color-red); }
+  38.4% { stroke: var(--color-green); }
+  51.2% { stroke: var(--color-yellow); }
+  64% { stroke: var(--color-green); }
+  76.9% { stroke: var(--color-green); } /* Reach final green at 10s */
+  100% { stroke: var(--color-green); }  /* Stay green during pause/undraw */
+}
+
+/* 3. SPIN (Only during undraw) */
+@keyframes trunkSpin {
+  0% { transform: rotate(-90deg); }     /* Start upright-ish */
+  76.9% { transform: rotate(-90deg); }  /* No spin during growth */
+  84.6% { transform: rotate(-90deg); }  /* Hold during pause */
+  100% { transform: rotate(270deg); }   /* Spin 360deg during undraw */
 }
 .modal h2 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text); }
 .modal-subtitle { font-size: 1rem;
