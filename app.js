@@ -472,7 +472,7 @@ function renderClients() {
     clientList.appendChild(li);
   });
   const clientsTitle = document.getElementById('clientsScreenTitle');
-  applyTitleStyling(clientsTitle, 'Clients', totalAppColorData);
+  applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
   hookEditables();
 }
 
