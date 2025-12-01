@@ -75,56 +75,60 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 .modal-logo { width: 100px;
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
-/* ===== TREE TRUNK ANIMATION (UPDATED) ===== */
+/* ===== TREE TRUNK ANIMATION (FINAL) ===== */
 .tree-animation-svg { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
   viewBox: 0 0 100 100; overflow: visible; 
-  /* The SVG itself handles the rotation during the undraw phase */
-  animation: trunkSpin 13s ease-in-out infinite;
+  /* Rotation happens on the container during the undraw phase */
+  animation: trunkSpin 14s linear infinite;
 }
 
 .spiral-path {
   fill: none;
-  stroke-width: 2.5; 
+  /* Stroke width 4px creates a clear gap because the spacing is wider */
+  stroke-width: 4px; 
   stroke-linecap: round;
-  /* Length matches the new detailed path */
-  stroke-dasharray: 450;
-  stroke-dashoffset: 450;
+  
+  /* The total length of this new path is approx 530 */
+  stroke-dasharray: 530;
+  stroke-dashoffset: 530;
+  
   transform-origin: 50px 50px;
   
-  /* 13s total loop: 10s draw + 1s pause + 2s undraw */
+  /* Timeline:
+     0s -> 10s: Draw (Draws in)
+     10s -> 11s: Pause (Stays full)
+     11s -> 14s: Undraw (Shrinks away)
+  */
   animation: 
-    trunkDraw 13s linear infinite,
-    trunkColors 13s linear infinite;
+    trunkDraw 14s ease-in-out infinite,
+    trunkColors 14s linear infinite;
 }
 
-/* 1. DRAWING LINE (Growth & Undraw) */
-/* 0s-10s: Draw. 10s-11s: Pause. 11s-13s: Undraw. */
+/* 1. DRAWING LINE LOGIC */
 @keyframes trunkDraw {
-  0% { stroke-dashoffset: 450; }     /* Start hidden */
-  76.9% { stroke-dashoffset: 0; }     /* 10s mark: Fully drawn (10/13 ≈ 76.9%) */
-  84.6% { stroke-dashoffset: 0; }     /* 11s mark: Pause (11/13 ≈ 84.6%) */
-  100% { stroke-dashoffset: 450; }   /* 13s mark: Undraw back to hidden */
+  0% { stroke-dashoffset: 530; }       /* Start Empty */
+  71.4% { stroke-dashoffset: 0; }      /* 10 Seconds: Fully Drawn (10/14 = 71.4%) */
+  78.5% { stroke-dashoffset: 0; }      /* 11 Seconds: Still Full (Pause) */
+  100% { stroke-dashoffset: 530; }     /* 14 Seconds: Undraws back to start */
 }
 
-/* 2. COLOR CYCLE */
-/* Sequence: Y -> G -> R -> G -> Y -> Green(Final) */
+/* 2. COLOR CYCLE (Y->G->R->G... -> Green Hold) */
 @keyframes trunkColors {
   0% { stroke: var(--color-yellow); }
-  15% { stroke: var(--color-green); }
-  30% { stroke: var(--color-red); }
-  45% { stroke: var(--color-green); }
-  60% { stroke: var(--color-yellow); }
-  76.9% { stroke: var(--color-green); } /* Reach final green at 10s */
-  100% { stroke: var(--color-green); }  /* Stay green during pause/undraw */
+  14% { stroke: var(--color-green); }
+  28% { stroke: var(--color-red); }
+  42% { stroke: var(--color-green); }
+  56% { stroke: var(--color-yellow); }
+  71.4% { stroke: var(--color-green); } /* Reach Green at 10s */
+  100% { stroke: var(--color-green); }  /* Remain Green during pause/undraw */
 }
 
-/* 3. SPIN (Only during undraw) */
-/* 0s-11s: No spin. 11s-13s: Spin 360 degrees. */
+/* 3. SPIN LOGIC (Only spins during the undraw phase) */
 @keyframes trunkSpin {
-  0% { transform: rotate(-90deg); }      /* Start upright */
-  84.6% { transform: rotate(-90deg); }   /* Hold until 11s */
-  100% { transform: rotate(270deg); }    /* Spin 360deg during undraw */
+  0% { transform: rotate(-90deg); }     /* Start upright */
+  78.5% { transform: rotate(-90deg); }  /* No rotation until after pause (11s) */
+  100% { transform: rotate(270deg); }   /* Spin 360deg while undrawing */
 }
 /* ===== BUTTONS ===== */
 .btn {
