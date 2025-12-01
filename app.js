@@ -1660,8 +1660,9 @@ function initOrganicSpiral() {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d);
     path.setAttribute("class", "generated-spiral");
-    // REMOVED: path.setAttribute("stroke", "url(#spiralGradient)"); 
-    // We will let CSS handle the stroke color directly
+    
+    // APPLY THE HARD-STOP GRADIENT HERE
+    path.setAttribute("stroke", "url(#hardStopGradient)"); 
     
     svg.appendChild(path);
 
