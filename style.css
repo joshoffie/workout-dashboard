@@ -75,60 +75,47 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 .modal-logo { width: 100px;
   height: 100px; margin: 0 auto 1.5rem auto; position: relative; }
-/* ===== TREE TRUNK ANIMATION (FINAL) ===== */
+
+/* ===== TREE TRUNK ANIMATION (JS GENERATED) ===== */
 .tree-animation-svg { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
   viewBox: 0 0 100 100; overflow: visible; 
-  /* Rotation happens on the container during the undraw phase */
-  animation: trunkSpin 14s linear infinite;
+  /* Rotates the whole container during the undraw phase */
+  animation: trunkContainerSpin 14s linear infinite;
 }
 
-.spiral-path {
+.generated-spiral {
   fill: none;
-  /* Stroke width 4px creates a clear gap because the spacing is wider */
-  stroke-width: 4px; 
+  stroke-width: 3.5px; /* Thinner line + Math spacing = No Blob */
   stroke-linecap: round;
   
-  /* The total length of this new path is approx 530 */
-  stroke-dasharray: 530;
-  stroke-dashoffset: 530;
+  /* The gradient is applied via the HTML attribute, so we don't set stroke color here */
   
-  transform-origin: 50px 50px;
-  
-  /* Timeline:
-     0s -> 10s: Draw (Draws in)
-     10s -> 11s: Pause (Stays full)
-     11s -> 14s: Undraw (Shrinks away)
-  */
-  animation: 
-    trunkDraw 14s ease-in-out infinite,
-    trunkColors 14s linear infinite;
+  /* Animation Timing: 10s Draw + 1s Pause + 3s Undraw/Spin */
+  animation: trunkSnaking 14s ease-in-out infinite;
 }
 
-/* 1. DRAWING LINE LOGIC */
-@keyframes trunkDraw {
-  0% { stroke-dashoffset: 530; }       /* Start Empty */
-  71.4% { stroke-dashoffset: 0; }      /* 10 Seconds: Fully Drawn (10/14 = 71.4%) */
-  78.5% { stroke-dashoffset: 0; }      /* 11 Seconds: Still Full (Pause) */
-  100% { stroke-dashoffset: 530; }     /* 14 Seconds: Undraws back to start */
+/* 1. SNAKING GROWTH LOGIC */
+@keyframes trunkSnaking {
+  0% { 
+    stroke-dashoffset: var(--spiral-len); /* Fully hidden (exact math) */
+  }       
+  71.4% { 
+    stroke-dashoffset: 0; /* 10 Seconds: Fully Grown (Head reaches end) */
+  }      
+  78.5% { 
+    stroke-dashoffset: 0; /* 11 Seconds: Pause (Stay full) */
+  }      
+  100% { 
+    stroke-dashoffset: var(--spiral-len); /* 14 Seconds: Tail retracts */
+  }    
 }
 
-/* 2. COLOR CYCLE (Y->G->R->G... -> Green Hold) */
-@keyframes trunkColors {
-  0% { stroke: var(--color-yellow); }
-  14% { stroke: var(--color-green); }
-  28% { stroke: var(--color-red); }
-  42% { stroke: var(--color-green); }
-  56% { stroke: var(--color-yellow); }
-  71.4% { stroke: var(--color-green); } /* Reach Green at 10s */
-  100% { stroke: var(--color-green); }  /* Remain Green during pause/undraw */
-}
-
-/* 3. SPIN LOGIC (Only spins during the undraw phase) */
-@keyframes trunkSpin {
+/* 2. SPIN LOGIC (Only spins during the undraw/retract phase) */
+@keyframes trunkContainerSpin {
   0% { transform: rotate(-90deg); }     /* Start upright */
-  78.5% { transform: rotate(-90deg); }  /* No rotation until after pause (11s) */
-  100% { transform: rotate(270deg); }   /* Spin 360deg while undrawing */
+  78.5% { transform: rotate(-90deg); }  /* Hold steady while growing */
+  100% { transform: rotate(270deg); }   /* Spin 360deg while retracting */
 }
 /* ===== BUTTONS ===== */
 .btn {
