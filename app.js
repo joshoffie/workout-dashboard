@@ -914,7 +914,43 @@ function runTrack(segments, index = 0) {
 function updateSpiralData(sets) {
     initSpiralElements();
     spiralState.fullHistory = processSetsForSpiral(sets);
-    setSpiralRange(spiralState.currentRange); 
+
+    // --- NEW: Check for empty history and reset UI to zeros ---
+    if (spiralState.fullHistory.length === 0) {
+        // 1. Reset Text Stats (Banner)
+        const stats = ['sets', 'reps', 'volume', 'wpr'];
+        stats.forEach(stat => {
+            const arrowEl = document.getElementById(stat + 'Arrow');
+            const spiralEl = document.getElementById(stat + 'Spiral');
+            const dataEl = document.getElementById(stat + 'Data');
+
+            if (arrowEl) { 
+                arrowEl.innerHTML = '—'; 
+                arrowEl.className = 'stat-arrow neutral'; 
+            }
+            if (spiralEl) { 
+                spiralEl.setAttribute('class', 'comparison-spiral neutral'); 
+            }
+            if (dataEl) { 
+                // Display zeros as requested
+                dataEl.textContent = '0 (0 / 0%)'; 
+                dataEl.className = 'stat-data neutral'; 
+            }
+        });
+
+        // 2. Clear Spiral Graphics
+        if (spiralState.segmentsGroup) spiralState.segmentsGroup.innerHTML = '';
+        if (spiralState.markersGroup) spiralState.markersGroup.innerHTML = '';
+        if (spiralState.timeBall) spiralState.timeBall.style.display = 'none';
+        if (spiralState.dateDisplay) spiralState.dateDisplay.textContent = 'No Data';
+        
+        // 3. Ensure banner is visible but neutral
+        document.getElementById('comparisonBanner').classList.remove('hidden');
+        return;
+    }
+    // ----------------------------------------------------------
+
+    setSpiralRange(spiralState.currentRange);
     document.getElementById('comparisonBanner').classList.remove('hidden');
 }
 
