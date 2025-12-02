@@ -506,7 +506,7 @@ function renderClients() {
 }
 
 document.getElementById("addClientBtn").onclick = () => {
-  const name = prompt("Enter client name:");
+  const name = prompt("Enter name:");
   if (!name) return;
   if (clientsData[name]) { alert("Client already exists."); return; }
   // NEW: Add default order index
