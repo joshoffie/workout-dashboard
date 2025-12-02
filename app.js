@@ -148,6 +148,7 @@ async function loadUserJson() {
   const uid = auth.currentUser.uid;
   const docRef = db.collection("clients").doc(uid);
   const docSnap = await docRef.get();
+
   if (docSnap.exists) {
       clientsData = docSnap.data();
       // Ensure all clients have an order property to prevent jitter
@@ -155,7 +156,25 @@ async function loadUserJson() {
           if (clientsData[key].order === undefined) clientsData[key].order = index;
       });
   } else { 
-      clientsData = {}; await docRef.set(clientsData);
+      // --- NEW LOGIC STARTS HERE ---
+      // 1. Get the full name from Google (or fallback to "User")
+      const fullName = auth.currentUser.displayName || "User";
+      
+      // 2. Extract just the first name (split by space and take the first part)
+      const firstName = fullName.split(' ')[0];
+
+      // 3. Create the default profile object
+      clientsData = {
+          [firstName]: {
+              client_name: firstName,
+              sessions: [],
+              order: 0
+          }
+      };
+
+      // 4. Save this new profile to the database immediately
+      await docRef.set(clientsData);
+      // --- NEW LOGIC ENDS HERE ---
   }
 }
 
