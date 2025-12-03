@@ -1223,14 +1223,34 @@ const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralStat
 }
 
 // NEW SLIDER HANDLER
+
 const handleSliderMove = (e) => {
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
 
-    // --- REMOVED TUTORIAL LOGIC FROM HERE ---
-    // The graph tutorial prompt is now handled automatically 
-    // by the timer in addSetBtn.onclick
+    // --- TUTORIAL INTERACTION LOGIC ---
+    if (isTutorialMode && document.body.dataset.tutorialStep === "waiting-for-slider") {
+        
+        // 1. Debounce: Only trigger if they actually moved it somewhat
+        if (val < 98) {
+            // 2. Clear flag so this doesn't fire continuously while dragging
+            document.body.dataset.tutorialStep = "slider-done";
+            clearTutorialTips();
+
+            // 3. Wait 2 seconds
+            setTimeout(() => {
+                // 4. Scroll to top
+                document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // 5. Point to Graph Button
+                // Offset 20 pushes it DOWN closer to the button
+                setTimeout(() => {
+                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', 20);
+                }, 600); 
+            }, 2000);
+        }
+    }
 }
 
 
@@ -1276,28 +1296,30 @@ document.getElementById("addSetBtn").onclick = () => {
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
 
+// Replace the bottom section of addSetBtn.onclick
+
   // --- UPDATED TUTORIAL FLOW POST-ADD SET ---
   if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
       if (tutorialTimer) clearTimeout(tutorialTimer);
           
       // Step 1: Point to the Spiral Widget immediately
+      // Offset 20 pushes it DOWN closer to the swirl
       setTimeout(() => {
-          // Point to the canvas/spiral container
-          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', -50);
+          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 20);
           
-          // Step 2: Wait 5 seconds, then go to Graph button
+          // Step 2: Wait 3 seconds, then point to slider
           tutorialTimer = setTimeout(() => {
-              // Scroll to top to ensure Show Graph button is visible
-              document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+              // Mark state so the slider event listener knows to react
+              document.body.dataset.tutorialStep = "waiting-for-slider";
               
-              setTimeout(() => {
-                   showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', -40);
-              }, 600); // Slight delay for scroll
-          }, 5000); // 5 Seconds wait
+              // Offset 10 pushes it closer to the slider handle
+              showTutorialTip('spiralSlider', 'Drag the toggle backwards to view the history.', 10);
+          }, 3000); 
+          
       }, 500);
   }
-};
+}; // End of addSetBtn.onclick
 
 function renderSets() {
   setsTable.innerHTML = "";
