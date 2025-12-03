@@ -104,8 +104,8 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
   const target = document.getElementById(targetId);
   if (!target) return;
   
-  // Scroll to target
-  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // FIX 2: Gentle scroll ("nearest") instead of aggressive jump ("center")
+  target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
@@ -118,12 +118,12 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
   
   let left;
   if (align === 'right') {
-      // Point to the right edge (minus a small buffer for the thumb center)
-      left = rect.right - 20; 
+      // FIX 3: Shift left slightly (rect.right - 50) so the bubble stays on screen 
+      // but still points generally towards the right side (the ball)
+      left = rect.right - 50; 
   } else if (align === 'left') {
       left = rect.left + 40;
   } else {
-      // Default center
       left = rect.left + (rect.width / 2);
   }
   
@@ -1282,11 +1282,11 @@ if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
       const spiralSection = document.querySelector('.spiral-container');
       if(spiralSection) {
-          spiralSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          spiralSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // Match new gentle scroll
           
           tutorialTimer = setTimeout(() => {
-              // UPDATED LINE: Added 'right' as the 4th argument
-              showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', 0, 'right');
+              // FIX 4: Changed offset to -25 (Higher up)
+              showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right');
           }, 800);
       }
   }
