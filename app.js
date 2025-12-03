@@ -98,6 +98,7 @@ endTutorialBtn.onclick = () => {
 };
 
 // 3. TOOLTIP SYSTEM
+// Updated helper with CSS class logic
 function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
   clearTutorialTips();
   
@@ -110,8 +111,13 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
-  tip.textContent = text;
   
+  // FIX 1: Add specific class if aligned right
+  if (align === 'right') {
+      tip.classList.add('right-aligned');
+  }
+
+  tip.textContent = text;
   document.body.appendChild(tip);
   
   const rect = target.getBoundingClientRect();
@@ -119,7 +125,7 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   let left;
   if (align === 'right') {
-      // FIX: Changed from -50 to -30 to point closer to the right edge (the green ball)
+      // FIX 2: Point to the ball (right edge - 30px buffer)
       left = rect.right - 30; 
   } else if (align === 'left') {
       left = rect.left + 40;
@@ -1279,19 +1285,9 @@ document.getElementById("addSetBtn").onclick = () => {
 
 if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
-
-      // 1. Get container
-      const screenContainer = document.getElementById('setsDiv');
-
-      // 2. FIX: Wait 100ms for the DOM to update, then scroll down "very little" (120px)
-      setTimeout(() => {
-          if (screenContainer) {
-              screenContainer.scrollBy({ top: 120, behavior: 'smooth' });
-          }
-      }, 100);
           
       tutorialTimer = setTimeout(() => {
-          // 3. Point to the slider
+          // 3. Point to the slider with 'right' alignment (and enableScroll = false)
           showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right', false);
       }, 800);
   }
