@@ -1064,6 +1064,7 @@ input[type=range]:active::-webkit-slider-thumb {
   width: max-content;
   transform: translate(-50%, -130%); 
   text-align: center;
+  transition: opacity 0.3s ease, transform 0.3s ease, top 0.3s ease, left 0.3s ease;
 }
 
 /* Arrow Logic (Updated for Border) */
@@ -1103,9 +1104,23 @@ input[type=range]:active::-webkit-slider-thumb {
   50% { transform: translate(-50%, -140%); }
 }
 
-/* Remove the jarring red flash, use a subtle glow instead */
+@keyframes flash-red-loop {
+  0%, 100% { 
+    background-color: transparent; 
+    color: var(--color-yellow); 
+    border-color: var(--color-yellow); 
+    box-shadow: none;
+  }
+  50% { 
+    background-color: rgba(255, 59, 48, 0.2); /* Semi-transparent red bg */
+    color: var(--color-red); 
+    border-color: var(--color-red); 
+    box-shadow: 0 0 15px var(--color-red); 
+  }
+}
+
 .flash-active {
-  animation: subtle-glow 2s infinite ease-in-out !important;
+  animation: flash-red-loop 2s infinite ease-in-out !important;
 }
 
 @keyframes subtle-glow {
