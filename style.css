@@ -1034,28 +1034,57 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== TUTORIAL MODE STYLES (Vertical Fix) ===== */
-.tutorial-tooltip {
-  position: absolute;
-  background: var(--color-primary);
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 600;
-  z-index: 9999;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  pointer-events: none; 
-  animation: float-attention 2s infinite ease-in-out;
-  
-  /* Standard centered behavior */
-  max-width: 200px;
-  width: auto;
-  transform: translate(-50%, -120%); 
-  text-align: center;
+/* ===== UPDATED TUTORIAL STYLES ===== */
+
+/* 1. The Highlight Glow Animation */
+.tutorial-highlight {
+  position: relative;
+  z-index: 1001 !important; /* Ensure it sits above other content */
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 20px rgba(0, 122, 255, 0.6) !important;
+  transition: box-shadow 0.3s ease;
+  animation: pulse-glow 2s infinite ease-in-out;
+  border-radius: var(--radius-sm); /* smooth corners on highlight */
 }
 
-/* Arrow for standard center tooltip */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 10px rgba(0, 122, 255, 0.4); }
+  50% { box-shadow: 0 0 0 4px var(--color-primary), 0 0 30px rgba(0, 122, 255, 0.8); }
+  100% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 10px rgba(0, 122, 255, 0.4); }
+}
+
+/* 2. Professional Tooltip Styling */
+.tutorial-tooltip {
+  position: absolute;
+  /* Dark Glass effect */
+  background: rgba(28, 28, 30, 0.95); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-weight: 500;
+  text-align: center;
+  
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  
+  /* Centering logic */
+  max-width: 240px;
+  width: max-content;
+  transform: translate(-50%, -130%); /* Sits above item */
+  
+  /* Entry animation */
+  animation: float-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* The Arrow (pointing down) */
 .tutorial-tooltip::after {
   content: '';
   position: absolute;
@@ -1064,34 +1093,18 @@ input[type=range]:active::-webkit-slider-thumb {
   margin-left: -8px;
   border-width: 8px;
   border-style: solid;
-  border-color: var(--color-primary) transparent transparent transparent;
+  border-color: rgba(28, 28, 30, 0.95) transparent transparent transparent;
 }
 
-/* FIX: Specific styles for the "Right Aligned" bubble (The Slider Step) */
+@keyframes float-in {
+  from { opacity: 0; transform: translate(-50%, -110%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -130%) scale(1); }
+}
+
+/* Override for specific alignments if needed */
 .tutorial-tooltip.right-aligned {
-  /* 1. Force it to be narrow (Vertical shape) */
-  max-width: 130px !important; 
-  
-  /* 2. Pull the whole box to the left so it doesn't fall off screen */
-  transform: translate(-85%, -125%); 
+  transform: translate(-85%, -130%);
 }
-
-/* FIX: Move the arrow to the right side of the box to point at the ball */
 .tutorial-tooltip.right-aligned::after {
-  left: 85%; 
-  margin-left: -8px;
-}
-
-@keyframes float-attention {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: -10px; }
-}
-
-@keyframes flash-red-loop {
-  0%, 100% { background-color: transparent; color: var(--color-yellow); border-color: var(--color-yellow); }
-  50% { background-color: var(--color-red); color: white; border-color: var(--color-red); box-shadow: 0 0 15px var(--color-red); }
-}
-
-.flash-active {
-  animation: flash-red-loop 3s infinite ease-in-out !important;
+  left: 85%;
 }
