@@ -98,12 +98,13 @@ endTutorialBtn.onclick = () => {
 };
 
 // 3. TOOLTIP SYSTEM
-function showTutorialTip(targetId, text, offsetY = -60) {
+function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
   clearTutorialTips();
   
   const target = document.getElementById(targetId);
-  if (!target) return; // Safety check
+  if (!target) return;
   
+  // Scroll to target
   target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const tip = document.createElement('div');
@@ -114,7 +115,17 @@ function showTutorialTip(targetId, text, offsetY = -60) {
   
   const rect = target.getBoundingClientRect();
   const top = rect.top + window.scrollY + offsetY;
-  const left = rect.left + (rect.width / 2); 
+  
+  let left;
+  if (align === 'right') {
+      // Point to the right edge (minus a small buffer for the thumb center)
+      left = rect.right - 20; 
+  } else if (align === 'left') {
+      left = rect.left + 40;
+  } else {
+      // Default center
+      left = rect.left + (rect.width / 2);
+  }
   
   tip.style.top = `${top}px`;
   tip.style.left = `${left}px`;
@@ -1274,9 +1285,8 @@ if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
           spiralSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
           tutorialTimer = setTimeout(() => {
-              // TARGET CHANGED: 'spiralSlider' (Points to the slider control)
-              // OFFSET CHANGED: 0 (Points exactly at the slider track)
-              showTutorialTip('spiralSlider', 'Drag the green ball left to see exercise history.', 0);
+              // UPDATED LINE: Added 'right' as the 4th argument
+              showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', 0, 'right');
           }, 800);
       }
   }
