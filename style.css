@@ -1033,3 +1033,43 @@ input[type=range]:active::-webkit-slider-thumb {
   75% { transform: translate(1px, -1px); }
   100% { transform: translate(0, 0); }
 }
+
+/* ===== TUTORIAL MODE STYLES ===== */
+.tutorial-tooltip {
+  position: absolute;
+  background: var(--color-primary);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  pointer-events: none; /* Let clicks pass through to the button below */
+  animation: float-attention 2s infinite ease-in-out;
+  max-width: 200px;
+}
+
+/* Little arrow pointing down */
+.tutorial-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: var(--color-primary) transparent transparent transparent;
+}
+
+@keyframes float-attention {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Highlight the element being pointed at */
+.tutorial-highlight {
+  box-shadow: 0 0 0 2px var(--color-yellow) !important;
+  position: relative;
+  z-index: 50;
+}
