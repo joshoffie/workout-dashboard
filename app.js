@@ -63,28 +63,28 @@ const endTutorialBtn = document.getElementById('endTutorialBtn');
 startTutorialBtn.onclick = () => {
   isTutorialMode = true;
   
-  // UI Switch
   document.getElementById('loginModal').classList.add('hidden');
   document.getElementById('loginBtn').classList.add('hidden');
   document.getElementById('logoutBtn').classList.add('hidden');
-  document.getElementById('editToggleBtn').classList.add('hidden'); // Disable edit in tutorial
+  document.getElementById('editToggleBtn').classList.add('hidden');
   endTutorialBtn.classList.remove('hidden');
   
-  // Load Fake Data
   clientsData = generateTutorialData();
   renderClients();
   
-  // Start Walkthrough
-  showTutorialTip('clientList', 'Tap the profile to see sessions.', -50);
+  // OFFSET CHANGED: 40 (Points down at the list item "Mike")
+  showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
 };
 
 endTutorialBtn.onclick = () => {
   isTutorialMode = false;
   
-  // 1. CLEAR PENDING TIMERS
+  // 1. STRICT CLEANUP: Kill timer and remove bubble immediately
   if (tutorialTimer) clearTimeout(tutorialTimer);
+  tutorialTimer = null;
+  clearTutorialTips(); 
   
-  // 2. Cleanup Flashing Class
+  // 2. Reset UI
   endTutorialBtn.classList.remove('flash-active');
   document.body.removeAttribute('data-tutorial-graph-ready'); 
   
@@ -95,7 +95,6 @@ endTutorialBtn.onclick = () => {
   
   clientsData = {};
   hideAllDetails();
-  clearTutorialTips();
 };
 
 // 3. TOOLTIP SYSTEM
@@ -672,7 +671,7 @@ function selectClient(name) {
   
   // --- ADD THIS ---
   if (isTutorialMode) {
-    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to see exercises.', -50), 400);
+    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to see exercises.', 40), 400);
   }
 }
 
@@ -772,7 +771,7 @@ function selectSession(sessionObject) {
   
   // --- ADD THIS ---
   if (isTutorialMode) {
-    setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', -50), 400);
+    setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40), 400);
   }
 }
 
@@ -1270,15 +1269,16 @@ document.getElementById("addSetBtn").onclick = () => {
   saveUserJson(); renderSets();
 
   // --- TUTORIAL SCROLL & TEXT UPDATES ---
-  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
       const spiralSection = document.querySelector('.spiral-container');
       if(spiralSection) {
           spiralSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
           tutorialTimer = setTimeout(() => {
-              // Changed "white" to "green"
-              showTutorialTip('timeBall', 'Drag the green ball left to travel back in time.', -10);
+              // TARGET CHANGED: 'spiralSlider' (Points to the slider control)
+              // OFFSET CHANGED: 0 (Points exactly at the slider track)
+              showTutorialTip('spiralSlider', 'Drag the green ball left to see exercise history.', 0);
           }, 800);
       }
   }
