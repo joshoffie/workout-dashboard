@@ -1034,77 +1034,81 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== UPDATED TUTORIAL STYLES ===== */
-
-/* 1. The Highlight Glow Animation */
-.tutorial-highlight {
-  position: relative;
-  z-index: 1001 !important; /* Ensure it sits above other content */
-  box-shadow: 0 0 0 2px var(--color-primary), 0 0 20px rgba(0, 122, 255, 0.6) !important;
-  transition: box-shadow 0.3s ease;
-  animation: pulse-glow 2s infinite ease-in-out;
-  border-radius: var(--radius-sm); /* smooth corners on highlight */
-}
-
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 10px rgba(0, 122, 255, 0.4); }
-  50% { box-shadow: 0 0 0 4px var(--color-primary), 0 0 30px rgba(0, 122, 255, 0.8); }
-  100% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 10px rgba(0, 122, 255, 0.4); }
-}
-
-/* 2. Professional Tooltip Styling */
+/* ===== TUTORIAL MODE STYLES (Professional Update) ===== */
 .tutorial-tooltip {
   position: absolute;
-  /* Dark Glass effect */
-  background: rgba(28, 28, 30, 0.95); 
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Dark card background to match UI */
+  background: var(--color-card);
+  border: 1px solid var(--color-primary);
+  color: var(--color-text);
   
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
   padding: 1rem 1.25rem;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   
+  /* Typography */
   font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
-  line-height: 1.4;
   font-weight: 500;
-  text-align: center;
+  line-height: 1.4;
   
   z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  pointer-events: none; 
   
-  /* Centering logic */
+  /* Animation */
+  animation: float-attention 3s infinite ease-in-out;
+  transition: all 0.3s ease;
+  
+  /* Sizing limits */
   max-width: 240px;
   width: max-content;
-  transform: translate(-50%, -130%); /* Sits above item */
-  
-  /* Entry animation */
-  animation: float-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform: translate(-50%, -130%); 
+  text-align: center;
 }
 
-/* The Arrow (pointing down) */
-.tutorial-tooltip::after {
+/* Arrow Logic (Updated for Border) */
+.tutorial-tooltip::before, .tutorial-tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
   left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* The Border Triangle (Blue) */
+.tutorial-tooltip::before {
+  margin-left: -9px;
+  border-width: 9px;
+  border-color: var(--color-primary) transparent transparent transparent;
+}
+
+/* The Background Triangle (Card Color - covers part of the border) */
+.tutorial-tooltip::after {
   margin-left: -8px;
   border-width: 8px;
-  border-style: solid;
-  border-color: rgba(28, 28, 30, 0.95) transparent transparent transparent;
+  border-color: var(--color-card) transparent transparent transparent;
 }
 
-@keyframes float-in {
-  from { opacity: 0; transform: translate(-50%, -110%) scale(0.9); }
-  to { opacity: 1; transform: translate(-50%, -130%) scale(1); }
-}
-
-/* Override for specific alignments if needed */
+/* Special alignment for edge cases (if needed) */
 .tutorial-tooltip.right-aligned {
-  transform: translate(-85%, -130%);
+  transform: translate(-85%, -130%); 
 }
-.tutorial-tooltip.right-aligned::after {
-  left: 85%;
+.tutorial-tooltip.right-aligned::before { left: 85%; margin-left: -9px; }
+.tutorial-tooltip.right-aligned::after { left: 85%; margin-left: -8px; }
+
+@keyframes float-attention {
+  0%, 100% { transform: translate(-50%, -130%); }
+  50% { transform: translate(-50%, -140%); }
+}
+
+/* Remove the jarring red flash, use a subtle glow instead */
+.flash-active {
+  animation: subtle-glow 2s infinite ease-in-out !important;
+}
+
+@keyframes subtle-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 204, 0, 0); border-color: var(--color-yellow); color: var(--color-yellow); }
+  50% { box-shadow: 0 0 20px rgba(255, 204, 0, 0.3); border-color: var(--color-yellow); color: var(--color-yellow); }
 }
