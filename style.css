@@ -1034,42 +1034,42 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== TUTORIAL MODE STYLES (UPDATED) ===== */
+/* ===== TUTORIAL MODE STYLES (REVERTED & FIXED) ===== */
 .tutorial-tooltip {
   position: absolute;
   background: var(--color-primary);
   color: white;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  border-bottom-left-radius: 0; /* Little styling detail */
   font-size: 0.9rem;
   font-weight: 600;
   z-index: 9999;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   pointer-events: none; 
   animation: float-attention 2s infinite ease-in-out;
-  max-width: 220px;
-  /* FIX: Anchor to top-right of the element so it doesn't block the center/right buttons */
-  transform: translate(-10px, -110%); 
+  max-width: 200px;
+  /* Reverted to centered positioning */
+  transform: translate(-50%, -120%); 
+  text-align: center;
 }
 
-/* Arrow pointing down-left */
+/* Arrow pointing straight down from center */
 .tutorial-tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
-  left: 0; /* Anchor arrow to left corner */
+  left: 50%;
+  margin-left: -8px;
   border-width: 8px;
   border-style: solid;
   border-color: var(--color-primary) transparent transparent transparent;
 }
 
 @keyframes float-attention {
-  0%, 100% { transform: translate(-10px, -110%); }
-  50% { transform: translate(-10px, -125%); }
+  0%, 100% { transform: translate(-50%, -120%); }
+  50% { transform: translate(-50%, -135%); }
 }
 
-/* Flashing Red Animation for End Tutorial Button */
 @keyframes flash-red-loop {
   0%, 100% { background-color: transparent; color: var(--color-yellow); border-color: var(--color-yellow); }
   50% { background-color: var(--color-red); color: white; border-color: var(--color-red); box-shadow: 0 0 15px var(--color-red); }
