@@ -1034,7 +1034,7 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== TUTORIAL MODE STYLES (REVERTED & FIXED) ===== */
+/* ===== TUTORIAL MODE STYLES (Final Fix) ===== */
 .tutorial-tooltip {
   position: absolute;
   background: var(--color-primary);
@@ -1047,13 +1047,15 @@ input[type=range]:active::-webkit-slider-thumb {
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   pointer-events: none; 
   animation: float-attention 2s infinite ease-in-out;
-  max-width: 200px;
-  /* Reverted to centered positioning */
+  
+  /* FIX 1: Prevent "weird vertical rectangle" shape */
+  width: max-content; 
+  max-width: 250px; 
+  
   transform: translate(-50%, -120%); 
   text-align: center;
 }
 
-/* Arrow pointing straight down from center */
 .tutorial-tooltip::after {
   content: '';
   position: absolute;
