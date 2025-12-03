@@ -1080,3 +1080,12 @@ input[type=range]:active::-webkit-slider-thumb {
 .flash-active {
   animation: flash-red-loop 3s infinite ease-in-out !important;
 }
+/* FIX: Keeps the bubble on-screen but points the arrow to the far right */
+.tutorial-tooltip.right-aligned {
+  transform: translate(-90%, -120%); /* Pulls the text box to the left */
+}
+
+.tutorial-tooltip.right-aligned::after {
+  left: 90%; /* Pushes the arrow to the right to match the ball */
+  margin-left: -8px; /* Keeps the arrow centered on that 90% mark */
+}
