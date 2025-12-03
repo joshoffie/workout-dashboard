@@ -102,9 +102,8 @@ function showTutorialTip(targetId, text, offsetY = -60) {
   clearTutorialTips();
   
   const target = document.getElementById(targetId);
-  if (!target) return;
+  if (!target) return; // Safety check
   
-  // Scroll to target
   target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const tip = document.createElement('div');
@@ -115,7 +114,6 @@ function showTutorialTip(targetId, text, offsetY = -60) {
   
   const rect = target.getBoundingClientRect();
   const top = rect.top + window.scrollY + offsetY;
-  // Set left to the center of the element
   const left = rect.left + (rect.width / 2); 
   
   tip.style.top = `${top}px`;
