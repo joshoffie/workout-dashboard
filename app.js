@@ -1,3 +1,128 @@
+// =====================================================
+// TUTORIAL ENGINE
+// =====================================================
+let isTutorialMode = false;
+let tutorialStep = 0;
+
+// 1. FAKE DATA GENERATOR (8 Weeks of History)
+function generateTutorialData() {
+  const now = new Date();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const sets = [];
+  
+  // Create 8 weeks of Bench Press data, 1 session per week
+  for (let i = 0; i < 8; i++) {
+    const weeksAgo = 7 - i; // 7, 6, 5... 0
+    const date = new Date(now.getTime() - (weeksAgo * 7 * oneDay));
+    
+    // Progressive Overload Logic (Start at 135, end at 165)
+    const weight = 135 + (i * 5); 
+    const reps = 8 + (i % 2); // Toggle between 8 and 9 reps
+    
+    // Add 3 sets per workout
+    for (let s = 0; s < 3; s++) {
+      sets.push({
+        reps: reps,
+        weight: weight,
+        volume: reps * weight,
+        notes: i === 7 ? "New PR!" : "Felt good",
+        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString() // 5 mins apart
+      });
+    }
+  }
+
+  return {
+    "Tutorial User": {
+      client_name: "Tutorial User",
+      order: 0,
+      sessions: [
+        {
+          session_name: "Chest Day",
+          date: new Date().toISOString(),
+          exercises: [
+            {
+              exercise: "Bench Press",
+              sets: sets
+            },
+            {
+              exercise: "Incline Dumbbell",
+              sets: [] // Empty to show contrast
+            }
+          ]
+        }
+      ]
+    }
+  };
+}
+
+// 2. TUTORIAL CONTROLS
+const startTutorialBtn = document.getElementById('startTutorialBtn');
+const endTutorialBtn = document.getElementById('endTutorialBtn');
+
+startTutorialBtn.onclick = () => {
+  isTutorialMode = true;
+  
+  // UI Switch
+  document.getElementById('loginModal').classList.add('hidden');
+  document.getElementById('loginBtn').classList.add('hidden');
+  document.getElementById('logoutBtn').classList.add('hidden');
+  document.getElementById('editToggleBtn').classList.add('hidden'); // Disable edit in tutorial
+  endTutorialBtn.classList.remove('hidden');
+  
+  // Load Fake Data
+  clientsData = generateTutorialData();
+  renderClients();
+  
+  // Start Walkthrough
+  showTutorialTip('clientList', 'Tap the profile to see sessions.', -50);
+};
+
+endTutorialBtn.onclick = () => {
+  isTutorialMode = false;
+  
+  // UI Switch
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('loginBtn').classList.remove('hidden');
+  document.getElementById('editToggleBtn').classList.remove('hidden');
+  endTutorialBtn.classList.add('hidden');
+  
+  // Clear Data & Reset Screens
+  clientsData = {};
+  hideAllDetails(); // Existing function to reset screens
+  clearTutorialTips();
+};
+
+// 3. TOOLTIP SYSTEM
+function showTutorialTip(targetId, text, offsetY = -60) {
+  clearTutorialTips();
+  
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  
+  // Scroll to target
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Create Tooltip
+  const tip = document.createElement('div');
+  tip.className = 'tutorial-tooltip';
+  tip.textContent = text;
+  
+  document.body.appendChild(tip);
+  
+  // Position it
+  const rect = target.getBoundingClientRect();
+  const top = rect.top + window.scrollY + offsetY;
+  const left = rect.left + (rect.width / 2) - (100); // Center generic 200px width
+  
+  tip.style.top = `${top}px`;
+  tip.style.left = `${left}px`;
+}
+
+function clearTutorialTips() {
+  document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
+}
+
+
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
@@ -179,6 +304,8 @@ async function loadUserJson() {
 }
 
 async function saveUserJson() {
+  if (isTutorialMode) return; // <--- ADD THIS LINE. Prevents saving fake data.
+  
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
   await db.collection("clients").doc(uid).set(clientsData);
@@ -537,6 +664,11 @@ function selectClient(name) {
   selectedClient = name;
   selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
+  
+  // --- ADD THIS ---
+  if (isTutorialMode) {
+    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to see exercises.', -50), 400);
+  }
 }
 
 const sessionList = document.getElementById("sessionList");
@@ -632,6 +764,11 @@ function selectSession(sessionObject) {
   selectedSession = sessionObject;
   selectedExercise = null;
   renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
+  
+  // --- ADD THIS ---
+  if (isTutorialMode) {
+    setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', -50), 400);
+  }
 }
 
 const exerciseList = document.getElementById("exerciseList");
@@ -711,6 +848,16 @@ function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
+  
+  // --- ADD THIS ---
+  if (isTutorialMode) {
+    if (selectedExercise.exercise === 'Bench Press') {
+       setTimeout(() => showTutorialTip('spiralCanvas', 'This spiral visualizes your 8-week history. Tap "Show Graph" for more.', -20), 400);
+    } else {
+       // Fallback if they clicked the empty one
+       setTimeout(() => showTutorialTip('addSetBtn', 'This exercise is empty. Try adding a set!', -50), 400);
+    }
+  }
 }
 
 // ------------------ SPIRAL WIDGET LOGIC ------------------
@@ -1138,12 +1285,18 @@ document.getElementById("showGraphBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
   const sets = selectedExercise.sets;
   if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+  
   navigateTo(SCREENS.GRAPH, 'forward');
   const graphTitle = document.getElementById('graphTitle');
   applyTitleStyling(graphTitle, selectedExercise.exercise, getExerciseColorData(selectedExercise));
   requestAnimationFrame(() => {
       initChart();
       drawChart();
+      
+      // --- ADD THIS ---
+      if (isTutorialMode) {
+         setTimeout(() => showTutorialTip('touchLayer', 'Touch and drag across the graph to see details.', 50), 1000);
+      }
   });
 };
 
