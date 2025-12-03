@@ -97,14 +97,17 @@ endTutorialBtn.onclick = () => {
   hideAllDetails();
 };
 
-// 3. TOOLTIP SYSTEM
-// Updated helper with CSS class logic
+// 3. TOOLTIP SYSTEM (Updated with Highlight Logic)
 function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
+  // 1. Clear existing highlights and tips
   clearTutorialTips();
   
   const target = document.getElementById(targetId);
   if (!target) return;
   
+  // 2. Add Highlight Glow
+  target.classList.add('tutorial-highlight');
+
   if (enableScroll) {
       target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -112,10 +115,7 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
   
-  // FIX 1: Add specific class if aligned right
-  if (align === 'right') {
-      tip.classList.add('right-aligned');
-  }
+  if (align === 'right') tip.classList.add('right-aligned');
 
   tip.textContent = text;
   document.body.appendChild(tip);
@@ -125,7 +125,6 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   let left;
   if (align === 'right') {
-      // FIX 2: Point to the ball (right edge - 30px buffer)
       left = rect.right - 30; 
   } else if (align === 'left') {
       left = rect.left + 40;
@@ -135,6 +134,13 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   tip.style.top = `${top}px`;
   tip.style.left = `${left}px`;
+}
+
+function clearTutorialTips() {
+  // Remove all bubbles
+  document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
+  // Remove all glow effects
+  document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
 }
 
 function clearTutorialTips() {
@@ -863,7 +869,6 @@ function renderExercises() {
   hookEditables();
 }
 
-// Inside selectExercise(idx)
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
@@ -873,11 +878,14 @@ function selectExercise(idx) {
     if (selectedExercise.exercise === 'Bench Press') {
        // Save to timer variable so we can cancel it if user quits
        tutorialTimer = setTimeout(() => {
-         showTutorialTip('comparisonBanner', 'This area compares your current workout vs. your last one.', 10);
+         // STEP 1: Comparison Banner
+         showTutorialTip('comparisonBanner', 'This area compares your current workout stats vs. your last one.', 10);
          
+         // WAIT 5 SECONDS (Previously 3.5s)
          tutorialTimer = setTimeout(() => {
+            // STEP 2: Add Set Button
             showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -10);
-         }, 3500);
+         }, 5000); 
        }, 400);
     }
   }
@@ -1217,29 +1225,13 @@ const handleSpiralMove = (e) => { if(!spiralState.isDragging) return; e.preventD
 const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralState.isDragging = false; spiralState.hitPath.releasePointerCapture(e.pointerId);
 }
 
-// NEW SLIDER HANDLER
+// Find handleSliderMove and revert it to standard logic
 const handleSliderMove = (e) => {
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
-
-    // --- ADD THIS TUTORIAL LOGIC ---
-    if (isTutorialMode && !document.body.dataset.tutorialGraphReady) {
-        // Debounce simple check to ensure they actually dragged it
-        if (val < 95) { 
-            document.body.dataset.tutorialGraphReady = "true"; // Prevent firing multiple times
-            
-            setTimeout(() => {
-                // Scroll back to top
-                document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // Point to Graph Button
-                setTimeout(() => {
-                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', -40);
-                }, 800);
-            }, 1200); // Wait a moment before scrolling up
-        }
-    }
+    // Removed the isTutorialMode block here. 
+    // The graph prompt is now triggered automatically via timer in addSetBtn.
 }
 
 
@@ -1283,13 +1275,22 @@ document.getElementById("addSetBtn").onclick = () => {
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
 
-if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
-          
+      
+      // Slight delay to allow table to render and layout to settle
       tutorialTimer = setTimeout(() => {
-          // 3. Point to the slider with 'right' alignment (and enableScroll = false)
-          showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right', false);
-      }, 800);
+          // STEP 3: Point to Spiral (Swirl)
+          // We target the canvas ID
+          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 0);
+          
+          // WAIT 5 SECONDS
+          tutorialTimer = setTimeout(() => {
+              // STEP 4: Point to Graph Button
+              showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', -10);
+          }, 5000);
+          
+      }, 500);
   }
 };
 
