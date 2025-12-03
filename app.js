@@ -98,14 +98,18 @@ endTutorialBtn.onclick = () => {
 };
 
 // 3. TOOLTIP SYSTEM
-function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
+// Updated signature with 'enableScroll' parameter defaulting to true
+function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
   clearTutorialTips();
   
   const target = document.getElementById(targetId);
   if (!target) return;
   
-  // FIX 2: Gentle scroll ("nearest") instead of aggressive jump ("center")
-  target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // ONLY scroll if enabled. 
+  // We will disable this for the slider and do a manual "gentle" scroll instead.
+  if (enableScroll) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
@@ -118,8 +122,6 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
   
   let left;
   if (align === 'right') {
-      // FIX 3: Shift left slightly (rect.right - 50) so the bubble stays on screen 
-      // but still points generally towards the right side (the ball)
       left = rect.right - 50; 
   } else if (align === 'left') {
       left = rect.left + 40;
@@ -1277,18 +1279,22 @@ document.getElementById("addSetBtn").onclick = () => {
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
 
-  // --- TUTORIAL SCROLL & TEXT UPDATES ---
-if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+// --- TUTORIAL SCROLL & TEXT UPDATES ---
+  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
-      const spiralSection = document.querySelector('.spiral-container');
-      if(spiralSection) {
-          spiralSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // Match new gentle scroll
-          
-          tutorialTimer = setTimeout(() => {
-              // FIX 4: Changed offset to -25 (Higher up)
-              showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right');
-          }, 800);
+      
+      // 1. Get the scrollable screen container
+      const screenContainer = document.getElementById('setsDiv');
+      
+      // 2. Scroll it down manually by 250px (The gentle nudge)
+      if (screenContainer) {
+          screenContainer.scrollBy({ top: 250, behavior: 'smooth' });
       }
+          
+      tutorialTimer = setTimeout(() => {
+          // 3. Point to the slider with 'right' alignment
+          showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right', false);
+      }, 800);
   }
 };
 
