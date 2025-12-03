@@ -2,6 +2,7 @@
 // TUTORIAL ENGINE
 // =====================================================
 let isTutorialMode = false;
+let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
 let tutorialStep = 0;
 
 // 1. FAKE DATA GENERATOR (8 Weeks of History)
@@ -80,15 +81,18 @@ startTutorialBtn.onclick = () => {
 endTutorialBtn.onclick = () => {
   isTutorialMode = false;
   
-  // Cleanup Flashing Class
-  endTutorialBtn.classList.remove('flash-active');
-  document.body.removeAttribute('data-tutorial-graph-ready'); // Reset flag
+  // 1. CLEAR PENDING TIMERS
+  if (tutorialTimer) clearTimeout(tutorialTimer);
   
-  // UI Switch
+  // 2. Cleanup Flashing Class
+  endTutorialBtn.classList.remove('flash-active');
+  document.body.removeAttribute('data-tutorial-graph-ready'); 
+  
   document.getElementById('loginModal').classList.remove('hidden');
   document.getElementById('loginBtn').classList.remove('hidden');
   document.getElementById('editToggleBtn').classList.remove('hidden');
   endTutorialBtn.classList.add('hidden');
+  
   clientsData = {};
   hideAllDetails();
   clearTutorialTips();
@@ -104,17 +108,16 @@ function showTutorialTip(targetId, text, offsetY = -60) {
   // Scroll to target
   target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  // Create Tooltip
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
   tip.textContent = text;
   
   document.body.appendChild(tip);
   
-  // Position it
   const rect = target.getBoundingClientRect();
   const top = rect.top + window.scrollY + offsetY;
-  const left = rect.left + (rect.width / 2) - (100); // Center generic 200px width
+  // Set left to the center of the element
+  const left = rect.left + (rect.width / 2); 
   
   tip.style.top = `${top}px`;
   tip.style.left = `${left}px`;
@@ -852,16 +855,14 @@ function selectExercise(idx) {
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
   
-  // --- UPDATED TUTORIAL LOGIC ---
   if (isTutorialMode) {
     if (selectedExercise.exercise === 'Bench Press') {
-       // Step 1: Explain the Data Window (Top Banner)
-       setTimeout(() => {
-         showTutorialTip('comparisonBanner', 'This bar compares your current workout vs. your last one.', 10);
+       // Save to timer variable so we can cancel it if user quits
+       tutorialTimer = setTimeout(() => {
+         showTutorialTip('comparisonBanner', 'This area compares your current workout vs. your last one.', 10);
          
-         // Step 2: Prompt to Add Set after 3.5 seconds
-         setTimeout(() => {
-            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -40);
+         tutorialTimer = setTimeout(() => {
+            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -10);
          }, 3500);
        }, 400);
     }
@@ -1220,7 +1221,7 @@ const handleSliderMove = (e) => {
                 
                 // Point to Graph Button
                 setTimeout(() => {
-                    showTutorialTip('showGraphBtn', 'Now tap here to see your progress.', -40);
+                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', -40);
                 }, 800);
             }, 1200); // Wait a moment before scrolling up
         }
@@ -1238,35 +1239,51 @@ function getLastSet() {
 
 document.getElementById("addSetBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
+  
+  // --- TUTORIAL PROMPT INTERCEPTION ---
   const lastSet = getLastSet();
-  const repsPrompt = lastSet ? lastSet.reps : "";
-  const weightPrompt = lastSet ? lastSet.weight : "";
-  let reps = prompt(`Reps (last: ${repsPrompt}):`);
+  let repsPromptText = lastSet ? `Reps (last: ${lastSet.reps}):` : "Reps:";
+  let weightPromptText = lastSet ? `Weight (last: ${lastSet.weight}):` : "Weight:";
+  let notesPromptText = "Notes:";
+
+  if (isTutorialMode) {
+      repsPromptText = "TUTORIAL STEP 1:\n\nEnter number of Reps (e.g. 8):";
+      weightPromptText = "TUTORIAL STEP 2:\n\nEnter Weight (e.g. 155):";
+      notesPromptText = "TUTORIAL STEP 3:\n\nAdd a note if you want!";
+  }
+  // ------------------------------------
+
+  let reps = prompt(repsPromptText);
   if (!reps || isNaN(reps)) return;
   reps = parseInt(reps);
-  let weight = prompt(`Weight (last: ${weightPrompt}):`);
+  
+  let weight = prompt(weightPromptText);
   if (!weight || isNaN(weight)) return;
   weight = parseFloat(weight);
-  let notes = prompt("Notes:") || "";
+  
+  let notes = prompt(notesPromptText) || "";
+  
   const timestamp = new Date().toISOString();
   const volume = reps * weight;
 
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
-  // --- ADD THIS TUTORIAL LOGIC ---
+
+  // --- TUTORIAL SCROLL & TEXT UPDATES ---
   if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
       clearTutorialTips();
-      // Auto-scroll to the spiral at the bottom
       const spiralSection = document.querySelector('.spiral-container');
       if(spiralSection) {
           spiralSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
-          setTimeout(() => {
-              showTutorialTip('timeBall', 'Drag the white ball left to travel back in time.', -40);
+          tutorialTimer = setTimeout(() => {
+              // Changed "white" to "green"
+              showTutorialTip('timeBall', 'Drag the green ball left to travel back in time.', -10);
           }, 800);
       }
   }
 };
+
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
