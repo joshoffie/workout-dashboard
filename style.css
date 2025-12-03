@@ -1034,7 +1034,7 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== TUTORIAL MODE STYLES (Final Fix) ===== */
+/* ===== TUTORIAL MODE STYLES (Vertical Fix) ===== */
 .tutorial-tooltip {
   position: absolute;
   background: var(--color-primary);
@@ -1048,14 +1048,14 @@ input[type=range]:active::-webkit-slider-thumb {
   pointer-events: none; 
   animation: float-attention 2s infinite ease-in-out;
   
-  /* FIX 1: Prevent "weird vertical rectangle" shape */
-  width: max-content; 
-  max-width: 250px; 
-  
+  /* Standard centered behavior */
+  max-width: 200px;
+  width: auto;
   transform: translate(-50%, -120%); 
   text-align: center;
 }
 
+/* Arrow for standard center tooltip */
 .tutorial-tooltip::after {
   content: '';
   position: absolute;
@@ -1067,9 +1067,24 @@ input[type=range]:active::-webkit-slider-thumb {
   border-color: var(--color-primary) transparent transparent transparent;
 }
 
+/* FIX: Specific styles for the "Right Aligned" bubble (The Slider Step) */
+.tutorial-tooltip.right-aligned {
+  /* 1. Force it to be narrow (Vertical shape) */
+  max-width: 130px !important; 
+  
+  /* 2. Pull the whole box to the left so it doesn't fall off screen */
+  transform: translate(-85%, -125%); 
+}
+
+/* FIX: Move the arrow to the right side of the box to point at the ball */
+.tutorial-tooltip.right-aligned::after {
+  left: 85%; 
+  margin-left: -8px;
+}
+
 @keyframes float-attention {
-  0%, 100% { transform: translate(-50%, -120%); }
-  50% { transform: translate(-50%, -135%); }
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -10px; }
 }
 
 @keyframes flash-red-loop {
@@ -1079,13 +1094,4 @@ input[type=range]:active::-webkit-slider-thumb {
 
 .flash-active {
   animation: flash-red-loop 3s infinite ease-in-out !important;
-}
-/* FIX: Keeps the bubble on-screen but points the arrow to the far right */
-.tutorial-tooltip.right-aligned {
-  transform: translate(-90%, -120%); /* Pulls the text box to the left */
-}
-
-.tutorial-tooltip.right-aligned::after {
-  left: 90%; /* Pushes the arrow to the right to match the ball */
-  margin-left: -8px; /* Keeps the arrow centered on that 90% mark */
 }
