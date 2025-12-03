@@ -32,8 +32,8 @@ function generateTutorialData() {
   }
 
   return {
-    "Tutorial User": {
-      client_name: "Tutorial User",
+    "Mike": {
+      client_name: "Mike",
       order: 0,
       sessions: [
         {
@@ -80,15 +80,17 @@ startTutorialBtn.onclick = () => {
 endTutorialBtn.onclick = () => {
   isTutorialMode = false;
   
+  // Cleanup Flashing Class
+  endTutorialBtn.classList.remove('flash-active');
+  document.body.removeAttribute('data-tutorial-graph-ready'); // Reset flag
+  
   // UI Switch
   document.getElementById('loginModal').classList.remove('hidden');
   document.getElementById('loginBtn').classList.remove('hidden');
   document.getElementById('editToggleBtn').classList.remove('hidden');
   endTutorialBtn.classList.add('hidden');
-  
-  // Clear Data & Reset Screens
   clientsData = {};
-  hideAllDetails(); // Existing function to reset screens
+  hideAllDetails();
   clearTutorialTips();
 };
 
@@ -844,22 +846,27 @@ function renderExercises() {
   hookEditables();
 }
 
+// Inside selectExercise(idx)
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
   
-  // --- ADD THIS ---
+  // --- UPDATED TUTORIAL LOGIC ---
   if (isTutorialMode) {
     if (selectedExercise.exercise === 'Bench Press') {
-       setTimeout(() => showTutorialTip('spiralCanvas', 'This spiral visualizes your 8-week history. Tap "Show Graph" for more.', -20), 400);
-    } else {
-       // Fallback if they clicked the empty one
-       setTimeout(() => showTutorialTip('addSetBtn', 'This exercise is empty. Try adding a set!', -50), 400);
+       // Step 1: Explain the Data Window (Top Banner)
+       setTimeout(() => {
+         showTutorialTip('comparisonBanner', 'This bar compares your current workout vs. your last one.', 10);
+         
+         // Step 2: Prompt to Add Set after 3.5 seconds
+         setTimeout(() => {
+            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -40);
+         }, 3500);
+       }, 400);
     }
   }
 }
-
 // ------------------ SPIRAL WIDGET LOGIC ------------------
 const spiralState = {
     svg: null, hitPath: null, segmentsGroup: null, markersGroup: null, timeBall: null, dateDisplay: null,
@@ -1200,6 +1207,24 @@ const handleSliderMove = (e) => {
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
+
+    // --- ADD THIS TUTORIAL LOGIC ---
+    if (isTutorialMode && !document.body.dataset.tutorialGraphReady) {
+        // Debounce simple check to ensure they actually dragged it
+        if (val < 95) { 
+            document.body.dataset.tutorialGraphReady = "true"; // Prevent firing multiple times
+            
+            setTimeout(() => {
+                // Scroll back to top
+                document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Point to Graph Button
+                setTimeout(() => {
+                    showTutorialTip('showGraphBtn', 'Now tap here to see your progress.', -40);
+                }, 800);
+            }, 1200); // Wait a moment before scrolling up
+        }
+    }
 }
 
 
@@ -1228,6 +1253,19 @@ document.getElementById("addSetBtn").onclick = () => {
 
   selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
   saveUserJson(); renderSets();
+  // --- ADD THIS TUTORIAL LOGIC ---
+  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+      clearTutorialTips();
+      // Auto-scroll to the spiral at the bottom
+      const spiralSection = document.querySelector('.spiral-container');
+      if(spiralSection) {
+          spiralSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          setTimeout(() => {
+              showTutorialTip('timeBall', 'Drag the white ball left to travel back in time.', -40);
+          }, 800);
+      }
+  }
 };
 function renderSets() {
   setsTable.innerHTML = "";
@@ -1444,6 +1482,12 @@ const handleInteraction = (clientX) => {
         if (dist < closestDist) { closestDist = dist; closestIdx = i; }
     });
     if (closestIdx !== -1) updateDetailView(closestIdx);
+    // --- ADD THIS TUTORIAL LOGIC ---
+    if (isTutorialMode) {
+        clearTutorialTips(); // Remove bubble immediately
+        const endBtn = document.getElementById('endTutorialBtn');
+        if (endBtn) endBtn.classList.add('flash-active'); // Start red flash loop
+    }
 };
 
 touchLayer.addEventListener('mousemove', (e) => handleInteraction(e.clientX));
