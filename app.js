@@ -98,17 +98,14 @@ endTutorialBtn.onclick = () => {
 };
 
 // 3. TOOLTIP SYSTEM
-function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
+function showTutorialTip(targetId, text, offsetY = -60, align = 'center') {
   clearTutorialTips();
   
   const target = document.getElementById(targetId);
   if (!target) return;
   
-  // ONLY scroll if enabled. 
-  // We will disable this for the slider and do a manual "gentle" scroll instead.
-  if (enableScroll) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+  // FIX 2: Gentle scroll ("nearest") instead of aggressive jump ("center")
+  target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
@@ -121,6 +118,8 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   let left;
   if (align === 'right') {
+      // FIX 3: Shift left slightly (rect.right - 50) so the bubble stays on screen 
+      // but still points generally towards the right side (the ball)
       left = rect.right - 50; 
   } else if (align === 'left') {
       left = rect.left + 40;
@@ -859,22 +858,23 @@ function renderExercises() {
 }
 
 // Inside selectExercise(idx)
-if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
-    clearTutorialTips();
-    
-    // 1. Get the scrollable screen container
-    const screenContainer = document.getElementById('setsDiv');
-    
-    // 2. Scroll it down manually by 250px (gentle nudge)
-    // This reveals the slider without snapping the whole page
-    if (screenContainer) {
-        screenContainer.scrollBy({ top: 250, behavior: 'smooth' });
+function selectExercise(idx) {
+  selectedExercise = selectedSession.exercises[idx];
+  renderSets(); navigateTo(SCREENS.SETS, 'forward');
+  document.getElementById("graphContainer").classList.add("hidden");
+  
+  if (isTutorialMode) {
+    if (selectedExercise.exercise === 'Bench Press') {
+       // Save to timer variable so we can cancel it if user quits
+       tutorialTimer = setTimeout(() => {
+         showTutorialTip('comparisonBanner', 'This area compares your current workout vs. your last one.', 10);
+         
+         tutorialTimer = setTimeout(() => {
+            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -10);
+         }, 3500);
+       }, 400);
     }
-        
-    tutorialTimer = setTimeout(() => {
-        // 3. Show tip with enableScroll = false (5th param)
-        showTutorialTip('spiralSlider', 'Drag the green ball left to travel back in time.', -25, 'right', false);
-    }, 800);
+  }
 }
 // ------------------ SPIRAL WIDGET LOGIC ------------------
 const spiralState = {
