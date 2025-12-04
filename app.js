@@ -877,7 +877,7 @@ function selectExercise(idx) {
 
        tutorialTimer = setTimeout(() => {
          // Step 1: Show Comparison
-         showTutorialTip('comparisonBanner', 'This window shows your current workout stats vs last one.', 10);
+         showTutorialTip('comparisonBanner', 'This window shows your most current session stats vs your previous session.', 10);
          
          // Step 2: WAIT 5 SECONDS before pointing to Add Set
          tutorialTimer = setTimeout(() => {
