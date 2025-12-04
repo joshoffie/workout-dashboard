@@ -1127,3 +1127,84 @@ input[type=range]:active::-webkit-slider-thumb {
   0%, 100% { box-shadow: 0 0 0 rgba(255, 204, 0, 0); border-color: var(--color-yellow); color: var(--color-yellow); }
   50% { box-shadow: 0 0 20px rgba(255, 204, 0, 0.3); border-color: var(--color-yellow); color: var(--color-yellow); }
 }
+
+/* ===== INSTALL PROMPT STYLES ===== */
+.install-prompt {
+  position: fixed;
+  z-index: 10000;
+  max-width: 260px;
+  text-align: left;
+  animation: float-attention 3s infinite ease-in-out;
+  pointer-events: auto; /* Allow clicking the button */
+}
+
+.install-prompt p {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  white-space: pre-line; /* Allows line breaks in JS text */
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  float: right;
+}
+
+/* iOS Position (Bottom Center/Right) */
+.install-prompt.ios-pos {
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+/* Arrow pointing DOWN for iOS */
+.install-prompt.ios-pos::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: var(--color-card) transparent transparent transparent;
+}
+.install-prompt.ios-pos::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -9px;
+  border-width: 9px;
+  border-style: solid;
+  border-color: var(--color-primary) transparent transparent transparent;
+}
+
+/* Android Position (Top Right) */
+.install-prompt.android-pos {
+  top: 20px;
+  right: 20px;
+  transform: none;
+}
+/* Arrow pointing UP for Android (at the dots) */
+.install-prompt.android-pos::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 10px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent transparent var(--color-card) transparent;
+}
+.install-prompt.android-pos::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 9px;
+  border-width: 9px;
+  border-style: solid;
+  border-color: transparent transparent var(--color-primary) transparent;
+}
