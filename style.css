@@ -1128,20 +1128,23 @@ input[type=range]:active::-webkit-slider-thumb {
   50% { box-shadow: 0 0 20px rgba(255, 204, 0, 0.3); border-color: var(--color-yellow); color: var(--color-yellow); }
 }
 
-/* ===== INSTALL PROMPT STYLES ===== */
+/* ===== INSTALL PROMPT STYLES (Fixed) ===== */
 .install-prompt {
   position: fixed;
   z-index: 10000;
   max-width: 260px;
   text-align: left;
-  animation: float-attention 3s infinite ease-in-out;
-  pointer-events: auto; /* Allow clicking the button */
+  pointer-events: auto;
+  
+  /* Reset generic tooltip transforms/animations */
+  transform: none; 
+  animation: none; 
 }
 
 .install-prompt p {
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
-  white-space: pre-line; /* Allows line breaks in JS text */
+  white-space: pre-line;
 }
 
 .btn-text {
@@ -1155,56 +1158,60 @@ input[type=range]:active::-webkit-slider-thumb {
   float: right;
 }
 
-/* iOS Position (Bottom Center/Right) */
+/* --- iOS SPECIFIC (Bottom Center) --- */
 .install-prompt.ios-pos {
-  bottom: 40px;
+  bottom: 50px;       /* Spacing from bottom edge */
   left: 50%;
-  transform: translateX(-50%);
+  /* Force specific animation that keeps X centered but bounces Y */
+  animation: float-ios 3s infinite ease-in-out !important; 
 }
-/* Arrow pointing DOWN for iOS */
+
+/* iOS Arrow (Pointing Down) */
 .install-prompt.ios-pos::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -8px;
-  border-width: 8px;
-  border-style: solid;
+  content: ''; position: absolute;
+  top: 100%; left: 50%; margin-left: -8px;
+  border-width: 8px; border-style: solid;
   border-color: var(--color-card) transparent transparent transparent;
 }
 .install-prompt.ios-pos::before {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -9px;
-  border-width: 9px;
-  border-style: solid;
+  content: ''; position: absolute;
+  top: 100%; left: 50%; margin-left: -9px;
+  border-width: 9px; border-style: solid;
   border-color: var(--color-primary) transparent transparent transparent;
 }
 
-/* Android Position (Top Right) */
-.install-prompt.android-pos {
-  top: 20px;
-  right: 20px;
-  transform: none;
+/* iOS Animation: Only bounce Up/Down, keep X centered */
+@keyframes float-ios {
+  0%, 100% { transform: translate(-50%, 0); }
+  50%      { transform: translate(-50%, -10px); }
 }
-/* Arrow pointing UP for Android (at the dots) */
+
+/* --- ANDROID SPECIFIC (Top Right) --- */
+.install-prompt.android-pos {
+  top: 15px;
+  right: 15px;
+  left: auto;        /* Reset left if inherited */
+  transform: none;   /* Reset transform */
+  /* Force specific animation for corner */
+  animation: float-android 3s infinite ease-in-out !important;
+}
+
+/* Android Arrow (Pointing Up) */
 .install-prompt.android-pos::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  right: 10px;
-  border-width: 8px;
-  border-style: solid;
+  content: ''; position: absolute;
+  bottom: 100%; right: 10px;
+  border-width: 8px; border-style: solid;
   border-color: transparent transparent var(--color-card) transparent;
 }
 .install-prompt.android-pos::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  right: 9px;
-  border-width: 9px;
-  border-style: solid;
+  content: ''; position: absolute;
+  bottom: 100%; right: 9px;
+  border-width: 9px; border-style: solid;
   border-color: transparent transparent var(--color-primary) transparent;
+}
+
+/* Android Animation: Bounce Down/Up slightly */
+@keyframes float-android {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(10px); }
 }
