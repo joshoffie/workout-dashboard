@@ -2068,7 +2068,7 @@ function initInstallPrompt() {
     if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
         promptEl.classList.remove('hidden');
         promptEl.classList.add('ios-pos');
-        textEl.textContent = "Install as App:\n1. Tap Share button below\n2. Scroll down\n3. Tap 'Add to Home Screen'";
+        textEl.textContent = "Install as App:\n1. Press the 3 dots, then tap share button below\n2. Scroll down\n3. Tap 'Add to Home Screen'";
     } 
     // ANDROID DETECTION
     else if (/android/i.test(userAgent)) {
