@@ -190,6 +190,11 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
+function navigateTo(targetScreenId, direction = 'forward') {
+  const targetScreen = document.getElementById(targetScreenId);
+  const currentScreenEl = document.getElementById(currentScreen);
+  if (!targetScreen || targetScreen === currentScreenEl) return;
+
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -201,6 +206,12 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
+  
+  // --- NEW ADDITION HERE ---
+  // We must calculate size immediately after removing 'hidden' so dimensions exist
+  autoShrinkTitle(); 
+  // -------------------------
+
   targetScreen.classList.add(enterClass);
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   currentScreenEl.classList.add(exitClass);
@@ -346,6 +357,29 @@ function setTextAsChars(element, text) {
     span.textContent = char;
     if (char === ' ') span.innerHTML = '&nbsp;';
     element.appendChild(span);
+  }
+}
+
+function autoShrinkTitle() {
+  // Identify the currently active screen
+  const visibleScreen = document.getElementById(currentScreen);
+  if (!visibleScreen) return;
+
+  // Find the animated title within that screen
+  const title = visibleScreen.querySelector('.animated-title');
+  if (!title) return;
+
+  // Reset to default size first so we measure from the baseline
+  title.style.fontSize = '1.75rem';
+  
+  // Shrink Loop
+  let currentSize = 1.75;
+  const minSize = 0.85; // Don't let it get microscopic
+  
+  // While the content (scrollWidth) is larger than the container (offsetWidth)
+  while (title.scrollWidth > title.offsetWidth && currentSize > minSize) {
+    currentSize -= 0.1;
+    title.style.fontSize = `${currentSize}rem`;
   }
 }
 
@@ -1585,7 +1619,13 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
         drawChart();
     };
 });
-window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
+window.addEventListener('resize', () => { 
+    if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }
+    
+    // --- NEW ADDITION HERE ---
+    autoShrinkTitle();
+    // -------------------------
+});
 
 function hideAllDetails() {
   stopLeafSpawner();
@@ -1647,6 +1687,13 @@ function runTitleOnlyLogic() {
   const colorData = getExerciseColorData(selectedExercise);
   selectedExercise.colorData = colorData;
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
+
+  // --- NEW ADDITION HERE ---
+  // If the Sets screen is currently visible, refit the text
+  if (!document.getElementById('setsDiv').classList.contains('hidden')) {
+      autoShrinkTitle();
+  }
+  // -------------------------
 }
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
