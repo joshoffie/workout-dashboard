@@ -266,22 +266,46 @@ td .btn-delete {
 }
 .btn-back {
   font-family: inherit;
-  color: var(--color-red); background-color: var(--color-secondary);
-  border: none; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; padding: 0;
-  display: flex; align-items: center;
-  justify-content: center; z-index: 20;
-  animation: move-back-and-forth 1.3s ease-in-out infinite; border: 1px solid var(--color-border);
-  transition: all var(--transition); position: absolute; top: 1rem;
-  left: 1.5rem;
+  color: var(--color-red);
+  background-color: var(--color-secondary);
+  border: none;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  animation: move-back-and-forth 1.3s ease-in-out infinite;
+  border: 1px solid var(--color-border);
+  transition: all var(--transition);
+  
+  /* NEW: Lock button to the first column so it occupies real space */
+  position: relative; 
+  top: auto;
+  left: auto;
+  grid-column: 1;
+  justify-self: start;
 }
 .btn-back:hover { background-color: #444; transform: scale(1.05); animation-play-state: paused; }
 .back-arrow-svg { width: 24px; height: 24px; fill: currentColor; position: relative;
   left: -1px; }
 .card-header {
-  position: sticky; top: 16px; background-color: var(--color-card); z-index: 10;
-  padding: 1rem 1.5rem; display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center; gap: 1rem; min-height: 52px;
+  position: sticky;
+  top: 16px;
+  background-color: var(--color-card);
+  z-index: 10;
+  padding: 1rem 1rem;
+  
+  display: grid;
+  /* Left (Button), Center (Title), Right (Spacer/Action) */
+  /* Using 48px ensures the title stays perfectly centered by balancing the left/right width */
+  grid-template-columns: 48px 1fr 48px; 
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 52px;
 }
 .card-header .btn-primary, .card-header .btn-group { grid-column: 3; justify-self: end;
 }
@@ -374,22 +398,37 @@ td .btn-delete {
 
 /* ===== ANIMATED TITLE STYLES ===== */
 .animated-title {
-  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.75rem; color: var(--color-text);
+  font-family: 'Fredoka', sans-serif; 
+  font-weight: 700; 
+  font-size: 1.75rem; 
+  color: var(--color-text);
   text-align: center;
-  line-height: 36px; position: relative; user-select: none; display: block;
-  margin: 0; grid-column: 2; white-space: nowrap; 
-  overflow: visible; 
+  line-height: 36px; 
+  position: relative; 
+  user-select: none; 
+  display: block; 
+  margin: 0; 
+  
+  /* NEW: Confine title to the center column */
+  grid-column: 2;
+  white-space: nowrap;
+  
+  /* CRITICAL: These 3 lines force the text to cut off instead of overlapping */
+  overflow: hidden;
+  text-overflow: ellipsis; 
+  min-width: 0; 
 }
+
+.card-header .btn-primary, 
+.card-header .btn-group,
+.card-header > span { 
+  grid-column: 3; 
+  justify-self: end;
+}
+
 .char { display: inline-block;
   transition: color 0.3s ease; }
 #exerciseSetsTitleSpan .char { display: inline-block; transition: color 0.3s ease;
-}
-
-#exerciseSetsTitle {
-  padding-left: 40px; 
-  padding-right: 40px; /* Balance it on the right to keep it visually centered */
-  max-width: 100%;
-  box-sizing: border-box; /* Ensures padding is included in width calculation */
 }
 
 @keyframes happy-crash {
