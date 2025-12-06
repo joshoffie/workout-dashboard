@@ -374,11 +374,31 @@ td .btn-delete {
 
 /* ===== ANIMATED TITLE STYLES ===== */
 .animated-title {
-  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.75rem; color: var(--color-text);
+  font-family: 'Fredoka', sans-serif; 
+  font-weight: 700; 
+  /* Reduced font size slightly to help fit more text */
+  font-size: 1.5rem; 
+  color: var(--color-text);
   text-align: center;
-  line-height: 36px; position: relative; user-select: none; display: block;
-  margin: 0; grid-column: 2; white-space: nowrap; 
+  
+  /* UPDATED: Better line height for multi-line text */
+  line-height: 1.2; 
+  
+  position: relative; 
+  user-select: none; 
+  display: block;
+  margin: 0; 
+  grid-column: 2; 
+  
+  /* UPDATED: Allow text to wrap */
+  white-space: normal; 
+  word-wrap: break-word;
+  
   overflow: visible; 
+  
+  /* NEW: Add padding to sides so it never touches the back button */
+  /* 48px covers the button width + gap */
+  padding: 0 48px; 
 }
 .char { display: inline-block;
   transition: color 0.3s ease; }
