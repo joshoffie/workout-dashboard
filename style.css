@@ -1235,3 +1235,35 @@ input[type=range]:active::-webkit-slider-thumb {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(10px); }
 }
+
+/* ===== LAYOUT FIXES (CLIPPING & GAPS) ===== */
+
+/* 1. Stop headers from sticking to specific pixel values.
+   This allows them to stack naturally. If the title grows, 
+   the buttons will simply move down to make room. */
+.card-header, 
+.action-header {
+  position: relative !important;
+  top: auto !important;
+  z-index: 1;
+  background-color: var(--color-bg); /* Blends with the background */
+  border-bottom: none; /* Removes double borders */
+}
+
+/* 2. Adjust spacing between Title and Buttons */
+.card-header {
+  padding-bottom: 0.25rem; /* Bring buttons closer to title */
+}
+
+.action-header {
+  padding-top: 0;
+  padding-bottom: 1.5rem;
+  /* Restore the dividing line only at the bottom of the header group */
+  border-bottom: 1px solid var(--color-border); 
+}
+
+/* 3. Remove the extra space on the Sets Page */
+/* Since headers aren't floating anymore, we don't need this spacer */
+#setsDiv .sets-content-wrapper {
+  margin-top: 0 !important;
+}
