@@ -349,38 +349,6 @@ function setTextAsChars(element, text) {
   }
 }
 
-function fitTitleToScreen(elementId) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-
-    // 1. Reset to base size first to recalculate correctly
-    // (Matches the CSS default)
-    let currentSize = 28; // 1.75rem approx 28px
-    el.style.fontSize = `${currentSize}px`;
-
-    // 2. Get the container width (parent flex box usually)
-    // We use the parent because the h2 itself might have shrunk
-    const parent = el.parentElement;
-    if (!parent) return;
-
-    // Calculate available width: Parent Width - Padding - Sibling Widths
-    const computedStyle = window.getComputedStyle(parent);
-    const parentWidth = parent.clientWidth 
-        - parseFloat(computedStyle.paddingLeft) 
-        - parseFloat(computedStyle.paddingRight);
-    
-    // We account for the back button (approx 40px with gap) and right spacer
-    // Safety buffer of 20px
-    const maxAvailableWidth = parentWidth - 90; 
-
-    // 3. Loop: While text is wider than screen, shrink font
-    // We use scrollWidth to detect the full width of the text content
-    while (el.scrollWidth > maxAvailableWidth && currentSize > 12) {
-        currentSize--;
-        el.style.fontSize = `${currentSize}px`;
-    }
-}
-
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
@@ -1618,11 +1586,6 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
     };
 });
 window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
-window.addEventListener('resize', () => {
-    if (currentScreen === SCREENS.SETS) fitTitleToScreen('exerciseSetsTitle');
-    if (currentScreen === SCREENS.SESSIONS) fitTitleToScreen('sessionsScreenTitle');
-    if (currentScreen === SCREENS.EXERCISES) fitTitleToScreen('sessionExercisesTitle');
-});
 
 function hideAllDetails() {
   stopLeafSpawner();
@@ -1680,18 +1643,10 @@ function updateStatUI(statName, currentValue, previousValue) {
 function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
   if (!selectedExercise) return;
-  
-  // Existing logic
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
   const colorData = getExerciseColorData(selectedExercise);
   selectedExercise.colorData = colorData;
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
-
-  // --- NEW: Run the shrink logic on the PARENT H2 ---
-  // We target the H2 ID 'exerciseSetsTitle', not the span
-  requestAnimationFrame(() => {
-      fitTitleToScreen('exerciseSetsTitle');
-  });
 }
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
