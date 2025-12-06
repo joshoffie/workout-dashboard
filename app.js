@@ -349,6 +349,38 @@ function setTextAsChars(element, text) {
   }
 }
 
+function fitTitleToScreen(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    // 1. Reset to base size first to recalculate correctly
+    // (Matches the CSS default)
+    let currentSize = 28; // 1.75rem approx 28px
+    el.style.fontSize = `${currentSize}px`;
+
+    // 2. Get the container width (parent flex box usually)
+    // We use the parent because the h2 itself might have shrunk
+    const parent = el.parentElement;
+    if (!parent) return;
+
+    // Calculate available width: Parent Width - Padding - Sibling Widths
+    const computedStyle = window.getComputedStyle(parent);
+    const parentWidth = parent.clientWidth 
+        - parseFloat(computedStyle.paddingLeft) 
+        - parseFloat(computedStyle.paddingRight);
+    
+    // We account for the back button (approx 40px with gap) and right spacer
+    // Safety buffer of 20px
+    const maxAvailableWidth = parentWidth - 90; 
+
+    // 3. Loop: While text is wider than screen, shrink font
+    // We use scrollWidth to detect the full width of the text content
+    while (el.scrollWidth > maxAvailableWidth && currentSize > 12) {
+        currentSize--;
+        el.style.fontSize = `${currentSize}px`;
+    }
+}
+
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
