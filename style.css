@@ -385,6 +385,13 @@ td .btn-delete {
 #exerciseSetsTitleSpan .char { display: inline-block; transition: color 0.3s ease;
 }
 
+#exerciseSetsTitle {
+  padding-left: 40px; 
+  padding-right: 40px; /* Balance it on the right to keep it visually centered */
+  max-width: 100%;
+  box-sizing: border-box; /* Ensures padding is included in width calculation */
+}
+
 @keyframes happy-crash {
     0% { transform: translate(0, 0) rotate(0deg); } 15% { transform: translate(0, -6px) rotate(3deg);
   }
