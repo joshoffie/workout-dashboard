@@ -344,7 +344,15 @@ function setTextAsChars(element, text) {
     const span = document.createElement('span');
     span.className = 'char';
     span.textContent = char;
-    if (char === ' ') span.innerHTML = '&nbsp;';
+    
+    // UPDATED: Use a standard space so the browser can wrap the line
+    if (char === ' ') {
+        span.innerHTML = ' ';
+        // Ensure the space has width even if it wraps
+        span.style.display = 'inline-block';
+        span.style.whiteSpace = 'pre'; 
+    }
+    
     element.appendChild(span);
   }
 }
