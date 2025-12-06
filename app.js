@@ -190,11 +190,6 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
-function navigateTo(targetScreenId, direction = 'forward') {
-  const targetScreen = document.getElementById(targetScreenId);
-  const currentScreenEl = document.getElementById(currentScreen);
-  if (!targetScreen || targetScreen === currentScreenEl) return;
-
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
