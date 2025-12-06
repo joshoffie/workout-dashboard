@@ -355,46 +355,60 @@ function setTextAsChars(element, text) {
   }
 }
 
+// GLOBAL OBSERVER (To prevent multiple observers stacking up)
+let titleObserver = null;
+
 function autoShrinkTitle() {
-  // 1. Identify the active screen
+  // 1. Cleanup previous observer if exists
+  if (titleObserver) {
+      titleObserver.disconnect();
+      titleObserver = null;
+  }
+
+  // 2. Identify the active screen and title
   const visibleScreen = document.getElementById(currentScreen);
   if (!visibleScreen) return;
 
   const title = visibleScreen.querySelector('.animated-title');
   if (!title) return;
 
-  // 2. Define the resize logic
+  // 3. Define the Resize Logic
   const runResize = () => {
-    // Safety: If element is hidden or not laid out, stop.
-    if (title.offsetWidth === 0) return;
+      // Safety check: If element is hidden/collapsed, do nothing
+      if (title.offsetParent === null) return;
 
-    // Reset to base size
-    title.style.fontSize = '1.75rem';
-    
-    // CRITICAL: Force the browser to register the 1.75rem change immediately
-    void title.offsetWidth; 
+      // Reset to base size to measure the "true" width of content
+      title.style.fontSize = '1.75rem';
+      
+      // Force Reflow (Ask for width to force browser to calculate)
+      void title.offsetWidth; 
 
-    let currentSize = 1.75;
-    const minSize = 0.85;
+      let currentSize = 1.75;
+      const minSize = 0.85;
 
-    // Shrink loop: Check if content (scrollWidth) exceeds container (offsetWidth)
-    // We allow a 2px buffer to prevent sporadic ellipsis
-    while ((title.scrollWidth > title.offsetWidth + 2) && currentSize > minSize) {
-      currentSize -= 0.1;
-      title.style.fontSize = `${currentSize}rem`;
-    }
+      // Shrink Loop: While content (scrollWidth) overflows container (offsetWidth)
+      // Added +4 buffer for safety against sub-pixel rendering
+      while ((title.scrollWidth > title.offsetWidth + 4) && currentSize > minSize) {
+          currentSize -= 0.1;
+          title.style.fontSize = `${currentSize}rem`;
+      }
   };
 
-  // 3. Run Strategy:
-  // Attempt 1: Immediate (for edits/static updates)
+  // 4. Run immediately (Best effort)
   runResize();
 
-  // Attempt 2 & 3: Double RAF (Standard fix for "display: none" transitions)
-  // This ensures the logic runs AFTER the "hidden" class is fully removed and layout is stable.
-  requestAnimationFrame(() => {
-      runResize();
-      requestAnimationFrame(runResize); 
+  // 5. ATTACH OBSERVER: This is the "Silver Bullet"
+  // It watches the title element. If the container resizes (e.g. screen transition finishes),
+  // it triggers the logic again automatically.
+  titleObserver = new ResizeObserver(() => {
+      // Debounce slightly to prevent loop
+      requestAnimationFrame(runResize);
   });
+  
+  titleObserver.observe(title);
+  
+  // Also observe the parent container to catch layout shifts
+  titleObserver.observe(visibleScreen);
 }
 
 function applyTitleStyling(element, text, colorData) {
