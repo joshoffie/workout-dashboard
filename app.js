@@ -488,11 +488,13 @@ function applyTitleStyling(element, text, colorData) {
         if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
         if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
     }
-    // If this title belongs to a screen, resize it now.
+  });
+
+  // If this title belongs to a screen, resize it now.
   const parentScreen = element.closest('.screen');
   if (parentScreen) {
       forceTitleResize(parentScreen.id);
-  });
+  }
 }
 
 function setupListTextAnimation(element, text, colorData) {
