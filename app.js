@@ -355,60 +355,56 @@ function setTextAsChars(element, text) {
   }
 }
 
-// GLOBAL OBSERVER (To prevent multiple observers stacking up)
-let titleObserver = null;
-
 function autoShrinkTitle() {
-  // 1. Cleanup previous observer if exists
-  if (titleObserver) {
-      titleObserver.disconnect();
-      titleObserver = null;
-  }
-
-  // 2. Identify the active screen and title
   const visibleScreen = document.getElementById(currentScreen);
   if (!visibleScreen) return;
 
   const title = visibleScreen.querySelector('.animated-title');
   if (!title) return;
 
-  // 3. Define the Resize Logic
-  const runResize = () => {
-      // Safety check: If element is hidden/collapsed, do nothing
-      if (title.offsetParent === null) return;
+  // The logic to run
+  const performResize = () => {
+    // 1. Safety: If hidden, stop.
+    if (title.offsetParent === null) return;
 
-      // Reset to base size to measure the "true" width of content
-      title.style.fontSize = '1.75rem';
-      
-      // Force Reflow (Ask for width to force browser to calculate)
-      void title.offsetWidth; 
+    // 2. CRITICAL: Temporarily disable the "..." so we can measure the REAL width
+    // If we don't do this, scrollWidth reports the truncated size, breaking the logic.
+    title.style.whiteSpace = 'nowrap';
+    title.style.overflow = 'visible'; 
+    title.style.textOverflow = 'clip';
 
-      let currentSize = 1.75;
-      const minSize = 0.85;
+    // 3. Reset to max size to start fresh
+    title.style.fontSize = '1.75rem';
 
-      // Shrink Loop: While content (scrollWidth) overflows container (offsetWidth)
-      // Added +4 buffer for safety against sub-pixel rendering
-      while ((title.scrollWidth > title.offsetWidth + 4) && currentSize > minSize) {
-          currentSize -= 0.1;
-          title.style.fontSize = `${currentSize}rem`;
-      }
+    // 4. The Shrink Loop
+    let currentSize = 1.75;
+    const minSize = 0.85;
+
+    // While the text (scrollWidth) is wider than the container (offsetWidth)
+    while ((title.scrollWidth > title.offsetWidth) && currentSize > minSize) {
+      currentSize -= 0.1;
+      title.style.fontSize = `${currentSize}rem`;
+    }
+
+    // 5. Restore the "..." styling (Revert to CSS rules)
+    // We clear inline styles so the CSS file takes over again
+    title.style.overflow = ''; 
+    title.style.textOverflow = '';
   };
 
-  // 4. Run immediately (Best effort)
-  runResize();
+  // --- EXECUTION STRATEGY ---
+  
+  // Attempt 1: Immediate
+  performResize();
 
-  // 5. ATTACH OBSERVER: This is the "Silver Bullet"
-  // It watches the title element. If the container resizes (e.g. screen transition finishes),
-  // it triggers the logic again automatically.
-  titleObserver = new ResizeObserver(() => {
-      // Debounce slightly to prevent loop
-      requestAnimationFrame(runResize);
-  });
-  
-  titleObserver.observe(title);
-  
-  // Also observe the parent container to catch layout shifts
-  titleObserver.observe(visibleScreen);
+  // Attempt 2: After a split second (catches layout rendering)
+  setTimeout(performResize, 50);
+
+  // Attempt 3: Mid-animation (catches the container expanding)
+  setTimeout(performResize, 300);
+
+  // Attempt 4: Final check after animation settles
+  setTimeout(performResize, 600);
 }
 
 function applyTitleStyling(element, text, colorData) {
