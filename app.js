@@ -190,6 +190,11 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
+  // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
+  // This runs while the element is still technically 'hidden' to the user
+  forceTitleResize(targetScreenId); 
+  // ---------------------------------------------------
+
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
@@ -202,10 +207,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   
-  // --- NEW ADDITION HERE ---
-  // We must calculate size immediately after removing 'hidden' so dimensions exist
-  autoShrinkTitle(); 
-  // -------------------------
+  // Note: We don't need autoShrinkTitle here anymore because we did it above!
 
   targetScreen.classList.add(enterClass);
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
@@ -486,6 +488,10 @@ function applyTitleStyling(element, text, colorData) {
         if (colors[i] === 'var(--color-green)') char.classList.add('animate-up');
         if (colors[i] === 'var(--color-red)') char.classList.add('animate-down');
     }
+    // If this title belongs to a screen, resize it now.
+  const parentScreen = element.closest('.screen');
+  if (parentScreen) {
+      forceTitleResize(parentScreen.id);
   });
 }
 
