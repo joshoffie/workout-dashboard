@@ -374,30 +374,27 @@ td .btn-delete {
 
 /* ===== ANIMATED TITLE STYLES ===== */
 .animated-title {
-  font-family: 'Fredoka', sans-serif; 
-  font-weight: 700; 
-  /* Reduced font size slightly to help fit more text */
-  font-size: 1.5rem; 
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  
+  /* RESTORED: Original larger size */
+  font-size: 1.75rem; 
+  
   color: var(--color-text);
   text-align: center;
-  
-  /* UPDATED: Better line height for multi-line text */
-  line-height: 1.2; 
-  
-  position: relative; 
-  user-select: none; 
+  line-height: 1.2;
+  position: relative;
+  user-select: none;
   display: block;
-  margin: 0; 
-  grid-column: 2; 
+  margin: 0;
+  grid-column: 2;
   
-  /* UPDATED: Allow text to wrap */
-  white-space: normal; 
+  /* Keep text wrapping logic */
+  white-space: normal;
   word-wrap: break-word;
+  overflow: visible;
   
-  overflow: visible; 
-  
-  /* NEW: Add padding to sides so it never touches the back button */
-  /* 48px covers the button width + gap */
+  /* Keep padding to prevent text hitting the back button */
   padding: 0 48px; 
 }
 .char { display: inline-block;
@@ -1236,34 +1233,36 @@ input[type=range]:active::-webkit-slider-thumb {
   50%      { transform: translateY(10px); }
 }
 
-/* ===== LAYOUT FIXES (CLIPPING & GAPS) ===== */
+/* ===== LAYOUT FIXES (RESTORE GREY BOX) ===== */
 
-/* 1. Stop headers from sticking to specific pixel values.
-   This allows them to stack naturally. If the title grows, 
-   the buttons will simply move down to make room. */
 .card-header, 
 .action-header {
+  /* 1. Stop fixed positioning so text pushes buttons down naturally */
   position: relative !important;
   top: auto !important;
   z-index: 1;
-  background-color: var(--color-bg); /* Blends with the background */
-  border-bottom: none; /* Removes double borders */
+  
+  /* 2. RESTORED: The "Grey Box" background color */
+  background-color: var(--color-card) !important; 
 }
 
-/* 2. Adjust spacing between Title and Buttons */
+/* 3. Merge Title Area into Button Area */
 .card-header {
-  padding-bottom: 0.25rem; /* Bring buttons closer to title */
+  padding-bottom: 0.25rem; 
+  border-bottom: none !important; /* Remove line between title and buttons */
+  margin-bottom: 0;
 }
 
+/* 4. Define the bottom of the "Grey Box" */
 .action-header {
-  padding-top: 0;
-  padding-bottom: 1.5rem;
-  /* Restore the dividing line only at the bottom of the header group */
+  padding-top: 0.25rem;
+  padding-bottom: 1rem;
+  
+  /* The line goes ONLY at the very bottom of the box now */
   border-bottom: 1px solid var(--color-border); 
 }
 
-/* 3. Remove the extra space on the Sets Page */
-/* Since headers aren't floating anymore, we don't need this spacer */
+/* 5. Clean up spacer */
 #setsDiv .sets-content-wrapper {
   margin-top: 0 !important;
 }
