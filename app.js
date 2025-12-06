@@ -1618,6 +1618,11 @@ document.querySelectorAll('.toggle-text').forEach(btn => {
     };
 });
 window.addEventListener('resize', () => { if(currentScreen === SCREENS.GRAPH) { initChart(); drawChart(); }});
+window.addEventListener('resize', () => {
+    if (currentScreen === SCREENS.SETS) fitTitleToScreen('exerciseSetsTitle');
+    if (currentScreen === SCREENS.SESSIONS) fitTitleToScreen('sessionsScreenTitle');
+    if (currentScreen === SCREENS.EXERCISES) fitTitleToScreen('sessionExercisesTitle');
+});
 
 function hideAllDetails() {
   stopLeafSpawner();
@@ -1675,10 +1680,18 @@ function updateStatUI(statName, currentValue, previousValue) {
 function runTitleOnlyLogic() {
   const titleElement = document.getElementById('exerciseSetsTitleSpan');
   if (!selectedExercise) return;
+  
+  // Existing logic
   applyTitleStyling(titleElement, selectedExercise.exercise, null);
   const colorData = getExerciseColorData(selectedExercise);
   selectedExercise.colorData = colorData;
   applyTitleStyling(titleElement, selectedExercise.exercise, colorData);
+
+  // --- NEW: Run the shrink logic on the PARENT H2 ---
+  // We target the H2 ID 'exerciseSetsTitle', not the span
+  requestAnimationFrame(() => {
+      fitTitleToScreen('exerciseSetsTitle');
+  });
 }
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
