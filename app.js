@@ -356,26 +356,45 @@ function setTextAsChars(element, text) {
 }
 
 function autoShrinkTitle() {
-  // Identify the currently active screen
+  // 1. Identify the active screen
   const visibleScreen = document.getElementById(currentScreen);
   if (!visibleScreen) return;
 
-  // Find the animated title within that screen
   const title = visibleScreen.querySelector('.animated-title');
   if (!title) return;
 
-  // Reset to default size first so we measure from the baseline
-  title.style.fontSize = '1.75rem';
-  
-  // Shrink Loop
-  let currentSize = 1.75;
-  const minSize = 0.85; // Don't let it get microscopic
-  
-  // While the content (scrollWidth) is larger than the container (offsetWidth)
-  while (title.scrollWidth > title.offsetWidth && currentSize > minSize) {
-    currentSize -= 0.1;
-    title.style.fontSize = `${currentSize}rem`;
-  }
+  // 2. Define the resize logic
+  const runResize = () => {
+    // Safety: If element is hidden or not laid out, stop.
+    if (title.offsetWidth === 0) return;
+
+    // Reset to base size
+    title.style.fontSize = '1.75rem';
+    
+    // CRITICAL: Force the browser to register the 1.75rem change immediately
+    void title.offsetWidth; 
+
+    let currentSize = 1.75;
+    const minSize = 0.85;
+
+    // Shrink loop: Check if content (scrollWidth) exceeds container (offsetWidth)
+    // We allow a 2px buffer to prevent sporadic ellipsis
+    while ((title.scrollWidth > title.offsetWidth + 2) && currentSize > minSize) {
+      currentSize -= 0.1;
+      title.style.fontSize = `${currentSize}rem`;
+    }
+  };
+
+  // 3. Run Strategy:
+  // Attempt 1: Immediate (for edits/static updates)
+  runResize();
+
+  // Attempt 2 & 3: Double RAF (Standard fix for "display: none" transitions)
+  // This ensures the logic runs AFTER the "hidden" class is fully removed and layout is stable.
+  requestAnimationFrame(() => {
+      runResize();
+      requestAnimationFrame(runResize); 
+  });
 }
 
 function applyTitleStyling(element, text, colorData) {
