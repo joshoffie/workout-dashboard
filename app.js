@@ -1704,9 +1704,15 @@ function makeEditable(element, type, parentIdx, sortedSets) {
   element.addEventListener("click", (e) => {
     if (!editMode) return;
     e.stopPropagation();
-    const currentVal = element.textContent;
+    
+    // --- FIX START: Sanitize text to replace Non-Breaking Spaces with regular spaces ---
+    const rawText = element.textContent;
+    const currentVal = rawText.replace(/\u00A0/g, ' '); 
+    // --- FIX END ---
+
     const newVal = prompt(`Edit ${type}:`, currentVal);
     if (!newVal || newVal === currentVal) return;
+    
     let originalIndex = -1;
     if (type.startsWith("Set")) {
         const sortedSetObject = sortedSets[parentIdx];
@@ -1717,25 +1723,52 @@ function makeEditable(element, type, parentIdx, sortedSets) {
  
     switch(type) {
       case "Client":
-        const data = clientsData[currentVal]; delete clientsData[currentVal]; data.client_name = newVal; clientsData[newVal] = data; if (selectedClient === currentVal) selectedClient = newVal; renderClients(); break;
+        if (clientsData[currentVal]) {
+            const data = clientsData[currentVal]; 
+            delete clientsData[currentVal]; 
+            data.client_name = newVal; 
+            clientsData[newVal] = data; 
+            if (selectedClient === currentVal) selectedClient = newVal; 
+            renderClients(); 
+        }
+        break;
       case "Session":
-        const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal); if (sessionToEdit) sessionToEdit.session_name = newVal; renderSessions(); break;
+        if (clientsData[selectedClient]) {
+            const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal); 
+            if (sessionToEdit) {
+                sessionToEdit.session_name = newVal; 
+                renderSessions(); 
+            }
+        }
+        break;
       case "Exercise":
-        const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
-        if(exerciseToEdit) exerciseToEdit.exercise = newVal; renderExercises(); break;
+        if (selectedSession) {
+            const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
+            if(exerciseToEdit) {
+                exerciseToEdit.exercise = newVal; 
+                renderExercises(); 
+            }
+        }
+        break;
       case "SetReps":
         selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
+        renderSets(); 
+        break;
       case "SetWeight":
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) ||
-        selectedExercise.sets[originalIndex].weight; selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; renderSets(); break;
+        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight; 
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
+        renderSets(); 
+        break;
       case "SetNotes":
         selectedExercise.sets[originalIndex].notes = newVal;
-        renderSets(); break;
+        renderSets(); 
+        break;
     }
     saveUserJson();
   });
 }
+
 function hookEditables(sortedSets = []) {
   document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
   document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
