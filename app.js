@@ -355,56 +355,66 @@ function setTextAsChars(element, text) {
   }
 }
 
-function autoShrinkTitle() {
-  const visibleScreen = document.getElementById(currentScreen);
-  if (!visibleScreen) return;
+// --- ROBUST FONT SIZING ENGINE ---
+function forceTitleResize(targetScreenId = currentScreen) {
+  const screenEl = document.getElementById(targetScreenId);
+  if (!screenEl) return;
 
-  const title = visibleScreen.querySelector('.animated-title');
+  const title = screenEl.querySelector('.animated-title');
   if (!title) return;
 
-  // The logic to run
-  const performResize = () => {
-    // 1. Safety: If hidden, stop.
-    if (title.offsetParent === null) return;
+  // 1. SAVE ORIGINAL STATE
+  // We need to know if it was hidden so we can put it back if needed
+  const wasHidden = screenEl.classList.contains('hidden');
+  const originalPosition = screenEl.style.position;
+  const originalVisibility = screenEl.style.visibility;
+  const originalDisplay = screenEl.style.display;
 
-    // 2. CRITICAL: Temporarily disable the "..." so we can measure the REAL width
-    // If we don't do this, scrollWidth reports the truncated size, breaking the logic.
-    title.style.whiteSpace = 'nowrap';
-    title.style.overflow = 'visible'; 
-    title.style.textOverflow = 'clip';
+  // 2. THE "PEEK" TRICK
+  // We force the screen to exist in the layout, but make it invisible.
+  // This allows us to measure width without the user seeing it.
+  if (wasHidden) {
+    screenEl.classList.remove('hidden');
+    screenEl.style.visibility = 'hidden'; 
+    screenEl.style.display = 'block'; 
+    // We keep position absolute (from CSS) so it doesn't break page flow
+  }
 
-    // 3. Reset to max size to start fresh
-    title.style.fontSize = '1.75rem';
-
-    // 4. The Shrink Loop
-    let currentSize = 1.75;
-    const minSize = 0.85;
-
-    // While the text (scrollWidth) is wider than the container (offsetWidth)
-    while ((title.scrollWidth > title.offsetWidth) && currentSize > minSize) {
-      currentSize -= 0.1;
-      title.style.fontSize = `${currentSize}rem`;
-    }
-
-    // 5. Restore the "..." styling (Revert to CSS rules)
-    // We clear inline styles so the CSS file takes over again
-    title.style.overflow = ''; 
-    title.style.textOverflow = '';
-  };
-
-  // --- EXECUTION STRATEGY ---
+  // 3. PREPARE FOR MEASUREMENT
+  // Disable ellipses temporarily to get TRUE text width
+  title.style.whiteSpace = 'nowrap';
+  title.style.overflow = 'visible';
+  title.style.textOverflow = 'clip';
   
-  // Attempt 1: Immediate
-  performResize();
+  // Reset to max size
+  title.style.fontSize = '1.75rem';
 
-  // Attempt 2: After a split second (catches layout rendering)
-  setTimeout(performResize, 50);
+  // 4. THE CALCULATION LOOP
+  // Check fit. Buffer +2px handles sub-pixel rendering differences.
+  let currentSize = 1.75;
+  const minSize = 0.85;
 
-  // Attempt 3: Mid-animation (catches the container expanding)
-  setTimeout(performResize, 300);
+  // Force a browser reflow (re-measure) to ensure the remove('hidden') took effect
+  void title.offsetWidth;
 
-  // Attempt 4: Final check after animation settles
-  setTimeout(performResize, 600);
+  while ((title.scrollWidth > title.offsetWidth + 2) && currentSize > minSize) {
+    currentSize -= 0.1;
+    title.style.fontSize = `${currentSize}rem`;
+  }
+
+  // 5. CLEANUP & RESTORE
+  // Restore CSS text rules
+  title.style.whiteSpace = '';
+  title.style.overflow = '';
+  title.style.textOverflow = '';
+
+  // If we forced it open, hide it again exactly as it was
+  if (wasHidden) {
+    screenEl.classList.add('hidden');
+    screenEl.style.visibility = originalVisibility;
+    screenEl.style.display = originalDisplay;
+    screenEl.style.position = originalPosition;
+  }
 }
 
 function applyTitleStyling(element, text, colorData) {
