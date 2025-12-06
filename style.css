@@ -266,46 +266,22 @@ td .btn-delete {
 }
 .btn-back {
   font-family: inherit;
-  color: var(--color-red);
-  background-color: var(--color-secondary);
-  border: none;
-  cursor: pointer;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  animation: move-back-and-forth 1.3s ease-in-out infinite;
-  border: 1px solid var(--color-border);
-  transition: all var(--transition);
-  
-  /* NEW POSITIONING LOGIC */
-  position: relative; /* Changed from absolute */
-  top: auto;          /* Reset top */
-  left: auto;         /* Reset left */
-  flex-shrink: 0;     /* Ensures button never shrinks */
+  color: var(--color-red); background-color: var(--color-secondary);
+  border: none; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; padding: 0;
+  display: flex; align-items: center;
+  justify-content: center; z-index: 20;
+  animation: move-back-and-forth 1.3s ease-in-out infinite; border: 1px solid var(--color-border);
+  transition: all var(--transition); position: absolute; top: 1rem;
+  left: 1.5rem;
 }
 .btn-back:hover { background-color: #444; transform: scale(1.05); animation-play-state: paused; }
 .back-arrow-svg { width: 24px; height: 24px; fill: currentColor; position: relative;
   left: -1px; }
 .card-header {
-  position: sticky;
-  top: 16px;
-  background-color: var(--color-card);
-  z-index: 10;
-  padding: 1rem 1rem; /* Slightly reduced side padding for more space */
-  
-  /* NEW FLEX LAYOUT */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-height: 52px;
-  width: 100%;
-  overflow: hidden; /* Prevents scrollbars during resize */
+  position: sticky; top: 16px; background-color: var(--color-card); z-index: 10;
+  padding: 1rem 1.5rem; display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 1rem; min-height: 52px;
 }
 .card-header .btn-primary, .card-header .btn-group { grid-column: 3; justify-self: end;
 }
@@ -398,39 +374,14 @@ td .btn-delete {
 
 /* ===== ANIMATED TITLE STYLES ===== */
 .animated-title {
-  font-family: 'Fredoka', sans-serif;
-  font-weight: 700;
-  
-  /* Start with your default large size */
-  font-size: 1.75rem; 
-  color: var(--color-text);
+  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.75rem; color: var(--color-text);
   text-align: center;
-  line-height: 1.2;
-  position: relative;
-  user-select: none;
-  
-  /* NEW LAYOUT LOGIC */
-  margin: 0 auto;       /* Centers it */
-  white-space: nowrap;  /* Forces one line */
-  flex-grow: 1;         /* Takes up available space */
-  display: flex;        /* Helps center span */
-  justify-content: center;
-  min-width: 0;         /* CRITICAL: Allows flex child to shrink past content size */
-  padding: 0 4px;       /* Breathing room */
+  line-height: 36px; position: relative; user-select: none; display: block;
+  margin: 0; grid-column: 2; white-space: nowrap; 
+  overflow: visible; 
 }
-
-/* 4. Ensure the character spans inside don't break the flow */
-.animated-title span.char {
-  display: inline-block;
-}
-/* 5. Handle the right side spacer (Hidden Label) to ensure perfect centering */
-/* This mimics the width of the back button on the right side */
-#selectedClientLabel, #selectedSessionLabel, #selectedExerciseLabel {
-  width: 36px; /* Match btn-back width */
-  flex-shrink: 0;
-  display: block !important; /* Force display to act as spacer */
-  visibility: hidden; /* Keep it invisible */
-}
+.char { display: inline-block;
+  transition: color 0.3s ease; }
 #exerciseSetsTitleSpan .char { display: inline-block; transition: color 0.3s ease;
 }
 
