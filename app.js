@@ -1627,8 +1627,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   const status = calculateStatStatus(currentValue, previousValue);
   
   let arrow = '—';
-  if (status === 'increase') arrow = ''; // Up Arrow (handled by CSS/Font usually, or add symbol if needed)
-  else if (status === 'decrease') arrow = ''; // Down Arrow
+  if (status === 'increase') arrow = ''; 
+  else if (status === 'decrease') arrow = ''; 
 
   const change = currentValue - previousValue;
   let percentageChange = 0;
@@ -1637,6 +1637,7 @@ function updateStatUI(statName, currentValue, previousValue) {
   else if (currentValue > 0) percentageChange = 100;
 
   let currentString = '';
+  // Removed unused changeSign variable to keep code clean
   const changeSign = change > 0 ? '+' : '';
   
   switch(statName) {
@@ -1668,25 +1669,27 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.classList.remove(...classesToRemove); 
   dataEl.classList.add(status);
 
-  // --- NEW: SMART FIT SYSTEM ---
+  // --- UPDATED SMART FIT SYSTEM ---
   // 1. Reset base styles
   dataEl.style.fontSize = ""; 
   dataEl.style.whiteSpace = "nowrap"; 
   dataEl.style.lineHeight = "";
+  dataEl.style.maxWidth = "";
+  dataEl.style.display = "";
 
   // 2. Check Length and Adjust
   const len = fullText.length;
 
-  if (len > 35) {
-      // Scenario A: Massive data (like your screenshot) -> Shrink & Wrap
-      dataEl.style.fontSize = "0.75rem";
-      dataEl.style.whiteSpace = "normal"; // Allow wrapping to 2 lines
-      dataEl.style.lineHeight = "1.1";
-      dataEl.style.maxWidth = "180px";    // Force constraint
-  } else if (len > 25) {
-      // Scenario B: Long data -> Just Shrink
-      dataEl.style.fontSize = "0.8rem";
-  }
+  // CHANGED: Threshold lowered from 35 to 20 to catch W/R lines
+  if (len > 20) {
+      dataEl.style.fontSize = "0.75rem"; // Small font
+      dataEl.style.whiteSpace = "normal"; // Force wrapping
+      dataEl.style.lineHeight = "1.2";    // Tight line height
+      dataEl.style.maxWidth = "160px";    // Constraint width
+      dataEl.style.display = "block";     // Required for maxWidth to work
+      dataEl.style.textAlign = "right";   // Ensure alignment
+      dataEl.style.marginLeft = "auto";   // Push to right side of flex container
+  } 
   
   return status;
 }
