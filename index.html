@@ -190,6 +190,47 @@
         <div class="delete-modal-actions"><button id="deleteCancelBtn" class="btn btn-tertiary">Cancel</button><button id="deleteConfirmBtn" class="btn btn-danger">Delete</button></div>
       </div>
     </div>
+    
+    <div id="addSetModal" class="overlay hidden">
+  <div class="calculator-modal">
+    <div class="calc-header">
+      <span id="calcModeLabel">REPS</span>
+      <button id="calcCloseBtn" class="btn-icon" style="font-size: 1.5rem;">&times;</button>
+    </div>
+    
+    <div class="calc-display">
+      <span id="calcValue">0</span>
+      <span id="calcUnit" class="calc-unit"></span>
+    </div>
+
+    <div id="plateGrid" class="plate-grid hidden">
+      <button class="plate-btn small" data-weight="2.5">2.5<span class="plate-count hidden">x0</span></button>
+      <button class="plate-btn small" data-weight="5">5<span class="plate-count hidden">x0</span></button>
+      
+      <button class="plate-btn" data-weight="10">10<span class="plate-count hidden">x0</span></button>
+      <button class="plate-btn" data-weight="25">25<span class="plate-count hidden">x0</span></button>
+      <button class="plate-btn" data-weight="35">35<span class="plate-count hidden">x0</span></button>
+      <button class="plate-btn" data-weight="45">45<span class="plate-count hidden">x0</span></button>
+    </div>
+
+    <div class="numpad-grid">
+      <button class="num-btn" data-val="1">1</button>
+      <button class="num-btn" data-val="2">2</button>
+      <button class="num-btn" data-val="3">3</button>
+      <button class="num-btn" data-val="4">4</button>
+      <button class="num-btn" data-val="5">5</button>
+      <button class="num-btn" data-val="6">6</button>
+      <button class="num-btn" data-val="7">7</button>
+      <button class="num-btn" data-val="8">8</button>
+      <button class="num-btn" data-val="9">9</button>
+      <button class="num-btn" data-val=".">.</button>
+      <button class="num-btn" data-val="0">0</button>
+      <button class="num-btn btn-backspace" id="calcBackspace">⌫</button>
+    </div>
+
+    <button id="calcActionBtn" class="btn btn-primary calc-action-btn">Next</button>
+  </div>
+</div>
   </main>
   <div id="installPrompt" class="tutorial-tooltip install-prompt hidden">
     <p id="installText"></p>
