@@ -2159,7 +2159,7 @@ let calcState = {
   step: 'reps', // 'reps' or 'weight'
   repsVal: '',
   weightVal: '',
-  plates: {} // Stores counts: { '45': 1, '25': 2 }
+  plates: {}, // Stores counts: { '45': 1, '25': 2 }
   plateStack: [] // <--- NEW: Stores the history (e.g., [45, 45, 10])
 };
 
