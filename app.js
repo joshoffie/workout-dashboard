@@ -2161,7 +2161,6 @@ let calcState = {
   weightVal: '',
   plates: {} // Stores counts: { '45': 1, '25': 2 }
 };
-let lastPlateAdded = null; // <--- ADD THIS LINE
 
 function openAddSetModal() {
   // 1. Reset State
