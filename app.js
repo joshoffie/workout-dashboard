@@ -1371,6 +1371,8 @@ function renderSets() {
         showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
           selectedExercise.sets.splice(originalIndex, 1);
           saveUserJson(); renderSets();
+          // --- NEW LINE: Auto-exit edit mode after deleting ---
+          exitEditMode();
         });
       };
       deleteTd.appendChild(deleteBtn);
