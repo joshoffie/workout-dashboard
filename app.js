@@ -2219,10 +2219,19 @@ let calcState = {
 function openAddSetModal() {
   // Reset State
   calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
-  
   updateCalcUI();
   resetPlateCounters();
   if(addSetModal) addSetModal.classList.remove('hidden');
+
+  // --- NEW TUTORIAL LOGIC ---
+  if (isTutorialMode) {
+      clearTutorialTips(); // Removes "Now, tap here to log a new set."
+      // Slight delay to ensure modal animation doesn't jitter the bubble
+      setTimeout(() => {
+          showTutorialTip('calcValue', 'Enter Reps.', -20);
+      }, 300);
+  }
+  // --------------------------
 }
 
 function closeAddSetModal() {
@@ -2382,15 +2391,21 @@ function resetPlateCounters() {
 calcActionBtn.onclick = () => {
   if (calcState.step === 'reps') {
     // Validation
-    if (!calcState.repsVal) return; 
+    if (!calcState.repsVal) return;
     
     // Move to Weight
     calcState.step = 'weight';
-    
-    // If we have a previous set, maybe pre-fill weight here? 
-    // For now, let's keep it blank or strictly what they typed.
     updateCalcUI();
-    
+
+    // --- NEW TUTORIAL LOGIC ---
+    if (isTutorialMode) {
+        clearTutorialTips(); // Removes "Enter Reps"
+        setTimeout(() => {
+            showTutorialTip('calcValue', 'Enter Weight.', -20);
+        }, 300);
+    }
+    // --------------------------
+
   } else {
     // SAVE LOGIC
     finishAddSet();
