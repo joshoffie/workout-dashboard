@@ -2311,3 +2311,48 @@ function finishAddSet() {
   }
   // ----------------------------------------
 }
+
+// =====================================================
+// FINAL CONNECTION FIXES (PASTE AT BOTTOM OF APP.JS)
+// =====================================================
+
+// 1. RESTORE GRAPH BUTTON LOGIC
+document.getElementById("showGraphBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  
+  const sets = selectedExercise.sets;
+  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+  
+  navigateTo(SCREENS.GRAPH, 'forward');
+  
+  const graphTitle = document.getElementById('graphTitle');
+  // Use existing styling helper
+  if(typeof applyTitleStyling === "function") {
+      applyTitleStyling(graphTitle, selectedExercise.exercise, getExerciseColorData(selectedExercise));
+  } else {
+      graphTitle.textContent = selectedExercise.exercise;
+  }
+
+  // Draw the chart once the screen transition starts
+  requestAnimationFrame(() => {
+      if(typeof initChart === "function") initChart();
+      if(typeof drawChart === "function") drawChart();
+      
+      // Tutorial Tip Hook
+      if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+         setTimeout(() => showTutorialTip('touchLayer', 'Touch and drag across the graph to see details.', 50), 1000);
+      }
+  });
+};
+
+// 2. CONNECT THE NEW "ADD SET" BUTTON
+document.getElementById("addSetBtn").onclick = () => {
+  if (!selectedExercise) { alert("Select an exercise first"); return; }
+  
+  // Call the new modal function you added
+  if (typeof openAddSetModal === "function") {
+      openAddSetModal();
+  } else {
+      console.error("openAddSetModal function is missing!");
+  }
+};
