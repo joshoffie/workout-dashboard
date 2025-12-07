@@ -1627,8 +1627,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   const status = calculateStatStatus(currentValue, previousValue);
   
   let arrow = '—';
-  if (status === 'increase') arrow = ''; 
-  else if (status === 'decrease') arrow = ''; 
+  if (status === 'increase') arrow = '↑'; 
+  else if (status === 'decrease') arrow = '↓'; 
 
   const change = currentValue - previousValue;
   let percentageChange = 0;
