@@ -1338,65 +1338,6 @@ function getLastSet() {
     return sortedSets[0];
 }
 
-// Find the document.getElementById("addSetBtn").onclick assignment:
-
-document.getElementById("addSetBtn").onclick = () => {
-  if (!selectedExercise) { alert("Select an exercise first"); return; }
-  
-  // --- TUTORIAL PROMPT INTERCEPTION ---
-  const lastSet = getLastSet();
-  let repsPromptText = lastSet ? `Reps (last: ${lastSet.reps}):` : "Reps:";
-  let weightPromptText = lastSet ? `Weight (last: ${lastSet.weight}):` : "Weight:";
-  let notesPromptText = "Notes:";
-
-  if (isTutorialMode) {
-      repsPromptText = "TUTORIAL STEP 1:\n\nEnter number of Reps (e.g. 8):";
-      weightPromptText = "TUTORIAL STEP 2:\n\nEnter Weight (e.g. 155):";
-      notesPromptText = "TUTORIAL STEP 3:\n\nAdd a note if you want!";
-  }
-  // ------------------------------------
-
-  let reps = prompt(repsPromptText);
-  if (!reps || isNaN(reps)) return;
-  reps = parseInt(reps);
-  
-  let weight = prompt(weightPromptText);
-  if (!weight || isNaN(weight)) return;
-  weight = parseFloat(weight);
-  
-  let notes = prompt(notesPromptText) || "";
-  
-  const timestamp = new Date().toISOString();
-  const volume = reps * weight;
-
-  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson(); renderSets();
-
-// Replace the bottom section of addSetBtn.onclick
-
-  // --- UPDATED TUTORIAL FLOW POST-ADD SET ---
-  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
-      clearTutorialTips();
-      if (tutorialTimer) clearTimeout(tutorialTimer);
-          
-      // Step 1: Point to the Spiral Widget immediately
-      // Offset 20 pushes it DOWN closer to the swirl
-      setTimeout(() => {
-          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 20);
-          
-          // Step 2: Wait 3 seconds, then point to slider
-          tutorialTimer = setTimeout(() => {
-              // Mark state so the slider event listener knows to react
-              document.body.dataset.tutorialStep = "waiting-for-slider";
-              
-              // Offset 10 pushes it closer to the slider handle
-              showTutorialTip('spiralSlider', 'Drag the toggle backwards to view the history.', 10);
-          }, 3000); 
-          
-      }, 500);
-  }
-}; // End of addSetBtn.onclick
-
 function renderSets() {
   setsTable.innerHTML = "";
   if (!selectedExercise) return;
@@ -2213,3 +2154,178 @@ window.addEventListener('load', () => {
     // Slight delay so it doesn't pop up instantly over the login
     setTimeout(initInstallPrompt, 2000);
 });
+
+// =====================================================
+// NEW CALCULATOR MODAL LOGIC
+// =====================================================
+
+const addSetModal = document.getElementById('addSetModal');
+const calcValueEl = document.getElementById('calcValue');
+const calcModeLabel = document.getElementById('calcModeLabel');
+const calcActionBtn = document.getElementById('calcActionBtn');
+const plateGrid = document.getElementById('plateGrid');
+const calcUnitEl = document.getElementById('calcUnit');
+
+// State for the calculator
+let calcState = {
+  step: 'reps', // 'reps' or 'weight'
+  repsVal: '',
+  weightVal: '',
+  plates: {} // Stores counts: { '45': 1, '25': 2 }
+};
+
+function openAddSetModal() {
+  // 1. Reset State
+  calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {} };
+  
+  // 2. Pre-fill logic (Optional: you can remove this if you want it blank every time)
+  // const lastSet = getLastSet(); // Helper from your code
+  // if (lastSet) { 
+  //   calcState.repsVal = lastSet.reps.toString(); 
+  //   calcState.weightVal = lastSet.weight.toString();
+  // }
+  
+  // 3. Reset UI
+  updateCalcUI();
+  resetPlateCounters();
+  addSetModal.classList.remove('hidden');
+}
+
+function closeAddSetModal() {
+  addSetModal.classList.add('hidden');
+}
+
+document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
+
+// Update the Screen & Button Text based on State
+function updateCalcUI() {
+  if (calcState.step === 'reps') {
+    calcModeLabel.textContent = "REPS";
+    calcValueEl.textContent = calcState.repsVal || '0';
+    calcUnitEl.textContent = "";
+    plateGrid.classList.add('hidden');
+    calcActionBtn.textContent = "Next";
+    calcActionBtn.classList.remove('btn-success'); // Default blue
+    calcActionBtn.classList.add('btn-primary');
+  } else {
+    calcModeLabel.textContent = "WEIGHT";
+    calcValueEl.textContent = calcState.weightVal || '0';
+    calcUnitEl.textContent = "lbs";
+    plateGrid.classList.remove('hidden');
+    calcActionBtn.textContent = "Save Set";
+    calcActionBtn.classList.remove('btn-primary'); 
+    calcActionBtn.style.backgroundColor = "var(--color-green)"; // Make it green for save
+  }
+}
+
+// Handle Numpad Clicks
+document.querySelectorAll('.num-btn').forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation(); // Prevent ghost clicks
+    const val = btn.dataset.val;
+    
+    // Determine which value we are editing
+    let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
+
+    if (!val) {
+      // Backspace logic
+      currentStr = currentStr.slice(0, -1);
+    } else {
+      // Input logic
+      if (val === '.' && currentStr.includes('.')) return; // No double decimals
+      if (currentStr === '0' && val !== '.') currentStr = val; // Replace leading zero
+      else currentStr += val;
+    }
+
+    // Save back to state
+    if (calcState.step === 'reps') calcState.repsVal = currentStr;
+    else calcState.weightVal = currentStr;
+
+    updateCalcUI();
+  };
+});
+
+// Handle Plate Clicks
+document.querySelectorAll('.plate-btn').forEach(btn => {
+  btn.onclick = (e) => {
+    const weight = parseFloat(btn.dataset.weight);
+    
+    // 1. Update State Counter
+    if (!calcState.plates[weight]) calcState.plates[weight] = 0;
+    calcState.plates[weight]++;
+    
+    // 2. Update UI Counter (x1, x2)
+    const badge = btn.querySelector('.plate-count');
+    badge.textContent = `x${calcState.plates[weight]}`;
+    badge.classList.remove('hidden');
+
+    // 3. Add to Total Weight Logic
+    let currentWeight = parseFloat(calcState.weightVal) || 0;
+    currentWeight += weight;
+    
+    // Update State
+    calcState.weightVal = currentWeight.toString();
+    updateCalcUI();
+  };
+});
+
+function resetPlateCounters() {
+  calcState.plates = {};
+  document.querySelectorAll('.plate-count').forEach(el => el.classList.add('hidden'));
+}
+
+// Handle "Next" / "Save" Action
+calcActionBtn.onclick = () => {
+  if (calcState.step === 'reps') {
+    // Validation
+    if (!calcState.repsVal) return; 
+    
+    // Move to Weight
+    calcState.step = 'weight';
+    
+    // If we have a previous set, maybe pre-fill weight here? 
+    // For now, let's keep it blank or strictly what they typed.
+    updateCalcUI();
+    
+  } else {
+    // SAVE LOGIC
+    finishAddSet();
+  }
+};
+
+function finishAddSet() {
+  const reps = parseInt(calcState.repsVal);
+  const weight = parseFloat(calcState.weightVal);
+  
+  if (isNaN(reps) || isNaN(weight)) {
+    alert("Please enter valid numbers");
+    return;
+  }
+
+  const notes = ""; // Notes are empty by default as requested
+  const timestamp = new Date().toISOString();
+  const volume = reps * weight;
+
+  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
+  saveUserJson(); 
+  renderSets();
+  closeAddSetModal();
+
+  // --- RE-INSERTING YOUR TUTORIAL LOGIC ---
+  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+      clearTutorialTips();
+      if (tutorialTimer) clearTimeout(tutorialTimer);
+          
+      // Step 1: Point to the Spiral Widget immediately
+      setTimeout(() => {
+          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 20);
+          
+          // Step 2: Wait 3 seconds, then point to slider
+          tutorialTimer = setTimeout(() => {
+              document.body.dataset.tutorialStep = "waiting-for-slider";
+              showTutorialTip('spiralSlider', 'Drag the toggle backwards to view the history.', 10);
+          }, 3000); 
+      }, 500);
+  }
+  // ----------------------------------------
+}
