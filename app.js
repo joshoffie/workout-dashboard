@@ -2160,23 +2160,16 @@ let calcState = {
   repsVal: '',
   weightVal: '',
   plates: {} // Stores counts: { '45': 1, '25': 2 }
+  plateStack: [] // <--- NEW: Stores the history (e.g., [45, 45, 10])
 };
 
 function openAddSetModal() {
-  // 1. Reset State
-  calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {} };
+  // Reset State
+  calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
   
-  // 2. Pre-fill logic (Optional: you can remove this if you want it blank every time)
-  // const lastSet = getLastSet(); // Helper from your code
-  // if (lastSet) { 
-  //   calcState.repsVal = lastSet.reps.toString(); 
-  //   calcState.weightVal = lastSet.weight.toString();
-  // }
-  
-  // 3. Reset UI
   updateCalcUI();
   resetPlateCounters();
-  addSetModal.classList.remove('hidden');
+  if(addSetModal) addSetModal.classList.remove('hidden');
 }
 
 function closeAddSetModal() {
@@ -2207,28 +2200,25 @@ function updateCalcUI() {
 }
 
 // Handle Numpad Clicks
-// Handle Numpad Clicks
 document.querySelectorAll('.num-btn').forEach(btn => {
-  // 1. Skip the backspace button (we will handle it separately)
   if (btn.id === 'calcBackspace') return;
 
   btn.onclick = (e) => {
     e.stopPropagation(); 
     const val = btn.dataset.val;
     
-    // 2. Determine which value we are editing
     let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
 
-    // 3. Input logic
     if (val === '.' && currentStr.includes('.')) return;
     if (currentStr === '0' && val !== '.') currentStr = val;
     else currentStr += val;
 
-    // 4. Save back to state
-    if (calcState.step === 'reps') calcState.repsVal = currentStr;
-    else {
+    if (calcState.step === 'reps') {
+        calcState.repsVal = currentStr;
+    } else {
         calcState.weightVal = currentStr;
-        lastPlateAdded = null; // <--- NEW: Typing manually clears plate memory
+        // NEW: If user types manually, we clear the plate history because the number is now "custom"
+        calcState.plateStack = []; 
     }
 
     updateCalcUI();
@@ -2241,67 +2231,70 @@ document.querySelectorAll('.plate-btn').forEach(btn => {
   btn.onclick = (e) => {
     const weight = parseFloat(btn.dataset.weight);
     
-    // 1. Update State Counter
+    // 1. Update UI Counter
     if (!calcState.plates[weight]) calcState.plates[weight] = 0;
     calcState.plates[weight]++;
     
-    // 2. Update UI Counter
     const badge = btn.querySelector('.plate-count');
     if(badge) {
         badge.textContent = `x${calcState.plates[weight]}`;
         badge.classList.remove('hidden');
     }
 
-    // 3. Add to Total Weight
+    // 2. Add to Total Weight
     let currentWeight = parseFloat(calcState.weightVal) || 0;
     currentWeight += weight;
-    
-    // 4. Update State & Memory
     calcState.weightVal = currentWeight.toString();
-    lastPlateAdded = weight; // <--- NEW: Remember this plate
+
+    // 3. Add to History Stack
+    calcState.plateStack.push(weight); 
     
     updateCalcUI();
   };
 });
 
-// NEW: Smart Backspace Handler
+// Smart Backspace Handler
 const backspaceBtn = document.getElementById('calcBackspace');
 if (backspaceBtn) {
     backspaceBtn.onclick = (e) => {
         e.stopPropagation();
 
-        // 1. Check if we are undoing a plate addition
-        if (calcState.step === 'weight' && lastPlateAdded) {
-            let currentWeight = parseFloat(calcState.weightVal) || 0;
+        // SCENARIO 1: Undo a Plate (If we have history)
+        if (calcState.step === 'weight' && calcState.plateStack.length > 0) {
             
-            // Subtract the plate
-            currentWeight -= lastPlateAdded;
+            // 1. Remove the last added plate from history
+            const removedWeight = calcState.plateStack.pop(); 
+            
+            // 2. Subtract from total
+            let currentWeight = parseFloat(calcState.weightVal) || 0;
+            currentWeight -= removedWeight;
+            
+            // Floating point math safety (prevents 135 - 45 = 89.99999)
+            currentWeight = Math.round(currentWeight * 100) / 100;
+            
             calcState.weightVal = currentWeight > 0 ? currentWeight.toString() : "";
 
-            // Update the visual "x1" counter
-            if (calcState.plates[lastPlateAdded] > 0) {
-                calcState.plates[lastPlateAdded]--;
+            // 3. Decrement the visual "x1" counter for that specific plate
+            if (calcState.plates[removedWeight] > 0) {
+                calcState.plates[removedWeight]--;
                 
-                // Find the specific button to update its badge
-                const plateBtn = document.querySelector(`.plate-btn[data-weight="${lastPlateAdded}"]`);
+                const plateBtn = document.querySelector(`.plate-btn[data-weight="${removedWeight}"]`);
                 if (plateBtn) {
                     const badge = plateBtn.querySelector('.plate-count');
                     if (badge) {
-                        badge.textContent = calcState.plates[lastPlateAdded] > 0 
-                            ? `x${calcState.plates[lastPlateAdded]}` 
+                        badge.textContent = calcState.plates[removedWeight] > 0 
+                            ? `x${calcState.plates[removedWeight]}` 
                             : "";
-                        if (calcState.plates[lastPlateAdded] === 0) badge.classList.add('hidden');
+                        if (calcState.plates[removedWeight] === 0) badge.classList.add('hidden');
                     }
                 }
             }
             
-            // Reset memory so next backspace acts normal
-            lastPlateAdded = null;
             updateCalcUI();
             return;
         }
 
-        // 2. Normal Backspace Logic (Delete last character)
+        // SCENARIO 2: Normal Backspace (Delete last digit)
         let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
         currentStr = currentStr.slice(0, -1);
 
