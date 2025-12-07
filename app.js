@@ -1390,24 +1390,6 @@ const chartState = {
     dataPoints: [],
     width: 0, height: 0
 };
-document.getElementById("addSetBtn").onclick = () => {
-  if (!selectedExercise) { alert("Select an exercise first"); return; }
-  openAddSetModal();
-};
-  
-  navigateTo(SCREENS.GRAPH, 'forward');
-  const graphTitle = document.getElementById('graphTitle');
-  applyTitleStyling(graphTitle, selectedExercise.exercise, getExerciseColorData(selectedExercise));
-  requestAnimationFrame(() => {
-      initChart();
-      drawChart();
-      
-      // --- ADD THIS ---
-      if (isTutorialMode) {
-         setTimeout(() => showTutorialTip('touchLayer', 'Touch and drag across the graph to see details.', 50), 1000);
-      }
-  });
-};
 
 function initChart() {
     const stage = document.getElementById('chartStage');
