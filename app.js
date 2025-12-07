@@ -1736,6 +1736,9 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
     }
     saveUserJson();
+
+    // --- NEW LINE: Auto-exit edit mode after saving ---
+    exitEditMode();
   });
 }
 
@@ -2359,3 +2362,11 @@ document.getElementById("addSetBtn").onclick = () => {
 
 // FIX: Alias the old function name to the new one so the app doesn't freeze
 window.autoShrinkTitle = forceTitleResize;
+
+// HELPER: Auto-Exit Edit Mode
+function exitEditMode() {
+  editMode = false;
+  document.body.classList.remove('edit-mode-active');
+  const btn = document.getElementById("editToggleBtn");
+  if(btn) btn.textContent = "Edit";
+}
