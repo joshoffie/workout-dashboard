@@ -439,30 +439,31 @@ td .btn-delete {
     60% { transform: translate(0, 0) rotate(-1deg); } 100% { transform: translate(0, 0) rotate(0deg);
   }
 }
-/* 1. HAPPY CRASH (Slower: was 0.6s -> now 0.9s) */
-.char.happy-1 { 
-    animation-name: happy-crash; 
-    animation-duration: 0.9s; /* <--- CHANGED */
-    animation-iteration-count: infinite; 
-    animation-timing-function: ease-in-out; 
-    animation-delay: calc(var(--char-index) * 0.04s);
+.char.happy-1 { animation-name: happy-crash; animation-duration: 1.0s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-delay: calc(var(--char-index) * 0.04s);
 }
-
-/* 2. HAPPY BOOST (Slower: was 0.8s -> now 1.2s) */
-.char.happy-2 { 
-    animation-name: happy-boost; 
-    animation-duration: 1.2s; /* <--- CHANGED */
-    animation-iteration-count: infinite;
-    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); 
-    animation-delay: calc(var(--char-index) * 0.05s); 
+@keyframes happy-boost {
+    0%, 100% { transform: translateX(0) scaleY(1); } 20% { transform: translateX(-2px) scaleY(0.95);
+  }
+    40% { transform: translateX(3px) scaleY(1.05); } 60% { transform: translateX(-1px) scaleY(0.98);
+  }
+    80% { transform: translateX(2px) scaleY(1.02); }
 }
-
-/* 3. HAPPY JOLT (Slower: was 0.5s -> now 0.8s) */
-.char.happy-3 { 
-    animation-name: happy-jolt; 
-    animation-duration: 0.8s; /* <--- CHANGED */
-    animation-iteration-count: infinite; 
-    animation-timing-function: linear;
+.char.happy-2 { animation-name: happy-boost; animation-duration: 1.2s; animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); animation-delay: calc(var(--char-index) * 0.05s); }
+@keyframes happy-jolt {
+    0%, 100% { transform: translate(0, 0) rotate(0deg);
+  } 25% { transform: translate(3px, -5px) rotate(5deg); }
+    50% { transform: translate(-3px, 5px) rotate(-5deg);
+  } 75% { transform: translate(1px, -2px) rotate(2deg); }
+}
+.char.happy-3 { animation-name: happy-jolt; animation-duration: 1.0s; animation-iteration-count: infinite; animation-timing-function: linear;
+}
+@keyframes sad-wall {
+    0% { transform: translateX(0) scaleX(1); } 60% { transform: translateX(6px) scaleX(1);
+  }
+    65% { transform: translateX(8px) scaleX(0.6) skewX(-10deg); } 75% { transform: translateX(4px) scaleX(1.1);
+  }
+    100% { transform: translateX(0) scaleX(1); }
 }
 .char.sad-1 { animation-name: sad-wall; animation-duration: 1.5s; animation-iteration-count: infinite;
   animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1); animation-delay: calc(var(--char-index) * 0.08s); }
