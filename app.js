@@ -1626,9 +1626,11 @@ function updateStatUI(statName, currentValue, previousValue) {
   
   const status = calculateStatStatus(currentValue, previousValue);
   
+  // --- ARROWS PRESERVED ---
   let arrow = '—';
   if (status === 'increase') arrow = '↑'; 
   else if (status === 'decrease') arrow = '↓'; 
+  // ------------------------
 
   const change = currentValue - previousValue;
   let percentageChange = 0;
@@ -1637,7 +1639,6 @@ function updateStatUI(statName, currentValue, previousValue) {
   else if (currentValue > 0) percentageChange = 100;
 
   let currentString = '';
-  // Removed unused changeSign variable to keep code clean
   const changeSign = change > 0 ? '+' : '';
   
   switch(statName) {
@@ -1669,26 +1670,33 @@ function updateStatUI(statName, currentValue, previousValue) {
   dataEl.classList.remove(...classesToRemove); 
   dataEl.classList.add(status);
 
-  // --- UPDATED SMART FIT SYSTEM ---
-  // 1. Reset base styles
+  // --- RE-CALIBRATED SMART FIT SYSTEM ---
+  // 1. Reset base styles (Default behavior)
   dataEl.style.fontSize = ""; 
   dataEl.style.whiteSpace = "nowrap"; 
   dataEl.style.lineHeight = "";
   dataEl.style.maxWidth = "";
   dataEl.style.display = "";
+  dataEl.style.textAlign = "";
+  dataEl.style.marginLeft = "";
 
   // 2. Check Length and Adjust
   const len = fullText.length;
 
-  // CHANGED: Threshold lowered from 35 to 20 to catch W/R lines
-  if (len > 20) {
-      dataEl.style.fontSize = "0.75rem"; // Small font
-      dataEl.style.whiteSpace = "normal"; // Force wrapping
-      dataEl.style.lineHeight = "1.2";    // Tight line height
-      dataEl.style.maxWidth = "160px";    // Constraint width
-      dataEl.style.display = "block";     // Required for maxWidth to work
-      dataEl.style.textAlign = "right";   // Ensure alignment
-      dataEl.style.marginLeft = "auto";   // Push to right side of flex container
+  // UPDATED: Only trigger if text is REALLY long (> 29 chars)
+  // This lets "150 lb/rep (-150 / 50%)" (approx 24 chars) stay normal.
+  if (len > 29) {
+      dataEl.style.fontSize = "0.75rem"; // Shrink slightly
+      dataEl.style.whiteSpace = "normal"; // Allow stacking
+      dataEl.style.lineHeight = "1.2";
+      
+      // UPDATED: Widen the constraint to 240px. 
+      // This allows the text to extend far to the left before wrapping.
+      dataEl.style.maxWidth = "240px";    
+      
+      dataEl.style.display = "block";     
+      dataEl.style.textAlign = "right";   
+      dataEl.style.marginLeft = "auto";   
   } 
   
   return status;
