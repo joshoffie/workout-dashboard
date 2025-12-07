@@ -1621,31 +1621,73 @@ function updateStatUI(statName, currentValue, previousValue) {
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral');
   const dataEl = document.getElementById(statName + 'Data');
+  
   if (!arrowEl || !dataEl) return 'neutral';
+  
   const status = calculateStatStatus(currentValue, previousValue);
+  
   let arrow = '—';
-  if (status === 'increase') arrow = '↑'; else if (status === 'decrease') arrow = '↓';
+  if (status === 'increase') arrow = ''; // Up Arrow (handled by CSS/Font usually, or add symbol if needed)
+  else if (status === 'decrease') arrow = ''; // Down Arrow
+
   const change = currentValue - previousValue;
   let percentageChange = 0;
+  
   if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
   else if (currentValue > 0) percentageChange = 100;
+
   let currentString = '';
   const changeSign = change > 0 ? '+' : '';
+  
   switch(statName) {
     case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
     case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
     case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
     case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
   }
+  
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
   if (status === 'neutral') changeString = `(0 / 0%)`;
+
   const classesToRemove = ['increase', 'decrease', 'neutral'];
+  
   arrowEl.innerHTML = arrow;
-  arrowEl.classList.remove(...classesToRemove); arrowEl.classList.add(status);
-  if(spiralEl) { spiralEl.classList.remove(...classesToRemove); void spiralEl.offsetWidth; spiralEl.classList.add(status);
+  arrowEl.classList.remove(...classesToRemove); 
+  arrowEl.classList.add(status);
+  
+  if(spiralEl) { 
+      spiralEl.classList.remove(...classesToRemove); 
+      void spiralEl.offsetWidth; 
+      spiralEl.classList.add(status);
   }
-  dataEl.textContent = `${currentString} ${changeString}`;
-  dataEl.classList.remove(...classesToRemove); dataEl.classList.add(status);
+  
+  // Set the text
+  const fullText = `${currentString} ${changeString}`;
+  dataEl.textContent = fullText;
+  
+  dataEl.classList.remove(...classesToRemove); 
+  dataEl.classList.add(status);
+
+  // --- NEW: SMART FIT SYSTEM ---
+  // 1. Reset base styles
+  dataEl.style.fontSize = ""; 
+  dataEl.style.whiteSpace = "nowrap"; 
+  dataEl.style.lineHeight = "";
+
+  // 2. Check Length and Adjust
+  const len = fullText.length;
+
+  if (len > 35) {
+      // Scenario A: Massive data (like your screenshot) -> Shrink & Wrap
+      dataEl.style.fontSize = "0.75rem";
+      dataEl.style.whiteSpace = "normal"; // Allow wrapping to 2 lines
+      dataEl.style.lineHeight = "1.1";
+      dataEl.style.maxWidth = "180px";    // Force constraint
+  } else if (len > 25) {
+      // Scenario B: Long data -> Just Shrink
+      dataEl.style.fontSize = "0.8rem";
+  }
+  
   return status;
 }
 function runTitleOnlyLogic() {
