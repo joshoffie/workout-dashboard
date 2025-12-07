@@ -2356,3 +2356,6 @@ document.getElementById("addSetBtn").onclick = () => {
       console.error("openAddSetModal function is missing!");
   }
 };
+
+// FIX: Alias the old function name to the new one so the app doesn't freeze
+window.autoShrinkTitle = forceTitleResize;
