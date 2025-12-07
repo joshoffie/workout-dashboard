@@ -1390,10 +1390,10 @@ const chartState = {
     dataPoints: [],
     width: 0, height: 0
 };
-document.getElementById("showGraphBtn").onclick = () => {
+document.getElementById("addSetBtn").onclick = () => {
   if (!selectedExercise) { alert("Select an exercise first"); return; }
-  const sets = selectedExercise.sets;
-  if (!sets || sets.length === 0) { alert("No sets to graph"); return; }
+  openAddSetModal();
+};
   
   navigateTo(SCREENS.GRAPH, 'forward');
   const graphTitle = document.getElementById('graphTitle');
