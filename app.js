@@ -2184,18 +2184,33 @@ function updateCalcUI() {
     calcModeLabel.textContent = "REPS";
     calcValueEl.textContent = calcState.repsVal || '0';
     calcUnitEl.textContent = "";
-    plateGrid.classList.add('hidden');
-    calcActionBtn.textContent = "Next";
-    calcActionBtn.classList.remove('btn-success'); // Default blue
-    calcActionBtn.classList.add('btn-primary');
+    if (plateGrid) plateGrid.classList.add('hidden');
+    
+    if (calcActionBtn) {
+        calcActionBtn.textContent = "Next";
+        calcActionBtn.classList.remove('btn-success'); 
+        calcActionBtn.classList.add('btn-primary');
+        calcActionBtn.style.backgroundColor = "";
+    }
   } else {
+    // --- NEW SAFETY CHECK ---
+    // If the screen is empty or 0, wipe all plate counters immediately
+    if (!calcState.weightVal || parseFloat(calcState.weightVal) === 0) {
+        resetPlateCounters();
+        calcState.plateStack = []; 
+    }
+    // ------------------------
+
     calcModeLabel.textContent = "WEIGHT";
     calcValueEl.textContent = calcState.weightVal || '0';
     calcUnitEl.textContent = "lbs";
-    plateGrid.classList.remove('hidden');
-    calcActionBtn.textContent = "Save Set";
-    calcActionBtn.classList.remove('btn-primary'); 
-    calcActionBtn.style.backgroundColor = "var(--color-green)"; // Make it green for save
+    if (plateGrid) plateGrid.classList.remove('hidden');
+    
+    if (calcActionBtn) {
+        calcActionBtn.textContent = "Save Set";
+        calcActionBtn.classList.remove('btn-primary'); 
+        calcActionBtn.style.backgroundColor = "var(--color-green)"; 
+    }
   }
 }
 
