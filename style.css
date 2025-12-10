@@ -1385,92 +1385,104 @@ input[type=range]:active::-webkit-slider-thumb {
   margin-top: 0.25rem;
 }
 
-/* ===== ROBUST FIXED HEADER SOLUTION ===== */
+/* =========================================================
+   FINAL "NATIVE APP" LAYOUT ENGINE
+   locks headers, enables 1-swipe scrolling, fixes bottom cut-off
+   ========================================================= */
 
-/* 1. Lock the outer viewport to prevent double-scroll/bounce issues */
+/* 1. LOCK THE WINDOW (Prevent browser rubber-banding) */
 html, body {
   height: 100%;
-  overflow: hidden; /* Stop body from scrolling */
-  overscroll-behavior: none; /* Disables browser bounce on the window */
-  display: flex;
+  overflow: hidden; /* The window itself never scrolls */
+  overscroll-behavior: none;
+  display: flex; /* Stack the main App Header and Content */
   flex-direction: column;
 }
 
+/* 2. THE TOP LOGO BAR (Static) */
 .app-header {
-  flex: 0 0 auto;
-  position: relative; 
-  z-index: 100;
-}
-
-.app-container {
-  flex: 1;
+  flex: 0 0 auto; /* Rigid height */
   position: relative;
-  overflow: hidden; 
-  min-height: 0;
-  padding: 0;
-  margin: 0;
+  z-index: 100;
+  width: 100%;
 }
 
-/* 2. Convert the Screen to a Flex Column */
+/* 3. THE MAIN STAGE (Fills remaining space) */
+.app-container {
+  flex: 1; /* Grow to fill screen */
+  position: relative;
+  overflow: hidden; /* Stop content from spilling out */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 4. THE SCREEN (The Frame) */
 .screen {
-  position: absolute; 
+  position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  height: 100%;
   
-  /* This ensures elements stack vertically (Header -> Buttons -> List) */
+  /* FLEX COLUMN: This is the magic. It stacks items rigidly. */
   display: flex;
   flex-direction: column;
   
-  /* The screen itself NEVER scrolls. Only the list inside it does. */
+  /* CRITICAL: The screen itself DOES NOT SCROLL. */
   overflow: hidden !important; 
   
-  /* Creates the aesthetic gap at the very top */
+  /* Aesthetic Gap: This pushes the header down 16px rigidly */
   padding-top: 16px; 
+  background-color: var(--color-bg);
 }
 
-/* 3. Lock the Headers (Stop them from being sticky/moving) */
+/* 5. LOCK THE HEADERS (Title & Action Buttons) */
 .card-header, 
 .action-header {
-  /* flex: 0 0 auto means "Don't grow, don't shrink, just be your natural height" */
-  flex: 0 0 auto;
+  /* Rigid: Do not grow, do not shrink */
+  flex: 0 0 auto; 
   
-  /* Force disable the old sticky behavior */
-  position: static !important; 
-  top: auto !important;
+  /* Remove Sticky: They are now standard blocks in a fixed zone */
+  position: relative !important; 
+  top: auto !important; 
+  left: auto !important;
   
-  /* Ensure they span the full width */
+  /* Visual clean-up */
   width: 100%;
   z-index: 10;
+  margin: 0 !important;
+  background-color: var(--color-card); /* Ensure they are opaque */
 }
 
-/* 4. Make the Content Area Scrollable */
-/* These are the specific containers for your Clients, Sessions, Sets, and Graph */
+/* 6. THE SCROLL ZONE (The only part that moves) */
+/* Apply this to all lists/content containers */
 .item-list,
 .sets-content-wrapper,
-.chart-wrapper {
-  /* flex: 1 means "Fill ALL remaining vertical space" */
+.chart-wrapper,
+#sessionsDiv .item-list,
+#exercisesDiv .item-list {
+  /* Fluid: Take up all REMAINING height */
   flex: 1;
   
-  /* Enable native-feeling touch scrolling inside ONLY this box */
+  /* Enable Native Scrolling inside this box only */
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Smooth iOS Momentum */
   
-  /* Ensure content doesn't get cut off at the bottom */
+  /* The Buffer: Ensures you can swipe to the very bottom easily */
   padding-bottom: 140px !important;
   
-  /* Reset top padding/margins since they no longer need to dodge a sticky header */
-  padding-top: 1rem; 
+  /* Reset margins so it sits flush against the Action Header */
   margin-top: 0 !important;
+  padding-top: 1rem;
 }
 
-/* 5. Tiny Tweaks for Specific Screens */
-/* The sets wrapper had a large top margin we no longer need */
+/* 7. SPECIFIC FIXES */
+
+/* Fix the Sets screen internal wrapper */
 #setsDiv .sets-content-wrapper {
   margin-top: 0;
+  height: 100%;
 }
 
-/* Ensure the graph takes full height properly */
+/* Fix the Graph screen layout */
 .chart-wrapper {
-  height: 100%;
-  padding-bottom: 140px; 
+  height: auto; 
 }
