@@ -262,7 +262,8 @@ td .btn-delete {
 .screen {
   position: absolute; top: 0;
   left: 0; width: 100%; min-height: 100vh;
-  background-color: var(--color-bg); border-radius: 0; box-shadow: none; overflow-y: auto;
+  /* CHANGED: auto -> visible. This removes the nested scroll container. */
+  background-color: var(--color-bg); border-radius: 0; box-shadow: none; overflow-y: visible; 
 }
 .btn-back {
   font-family: inherit;
