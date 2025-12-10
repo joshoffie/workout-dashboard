@@ -189,15 +189,13 @@ let currentScreen = SCREENS.CLIENTS;
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
-if (!targetScreen || targetScreen === currentScreenEl) return;
+  if (!targetScreen || targetScreen === currentScreenEl) return;
 
-  // --- NEW: Reset Scroll Position ---
-  // Since we removed internal scrolling, we must reset the window scroll
-  window.scrollTo({ top: 0, behavior: 'auto' }); 
-  // ----------------------------------
+  // --- CHANGED: Scroll the TARGET SCREEN to top, not the window ---
+  targetScreen.scrollTop = 0;
+  // -------------------------------------------------------------
 
   // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
-  // This runs while the element is still technically 'hidden' to the user
   forceTitleResize(targetScreenId);
   // ---------------------------------------------------
 
