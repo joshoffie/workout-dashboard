@@ -1384,3 +1384,49 @@ input[type=range]:active::-webkit-slider-thumb {
   padding: 0.8rem;
   margin-top: 0.25rem;
 }
+
+/* ===== SCROLL FIX (SURGICAL) ===== */
+/* 1. Lock the outer viewport to prevent double-scroll/bounce issues */
+html, body {
+  height: 100%;
+  overflow: hidden; /* Stop body from scrolling */
+  overscroll-behavior: none; /* Disables browser bounce on the window */
+  
+  /* 2. Use flex column to stack Header + Main perfectly */
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  /* 3. Header becomes a solid block at the top (no longer needs sticky) */
+  flex: 0 0 auto;
+  position: relative; 
+  z-index: 100;
+}
+
+.app-container {
+  /* 4. Main container fills the EXACT remaining space */
+  flex: 1;
+  position: relative;
+  overflow: hidden; /* prevents main from spilling out */
+  min-height: 0; /* Crucial CSS fix for nested flex scrolling */
+  padding: 0; /* Reset any padding that might offset calculations */
+  margin: 0;
+}
+
+.screen {
+  /* 5. Screen becomes the designated scroll area */
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0; /* Force-fill the container */
+  height: 100%;
+  min-height: 0; /* Reset previous min-height logic */
+  
+  /* 6. Enable native-feel internal scrolling */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* iOS Native Momentum */
+  overscroll-behavior-y: contain; /* Prevents scroll chaining to parent */
+  
+  /* 7. SAFE ZONE: Ensures the last item is easily reachable with 1 swipe */
+  padding-bottom: 140px !important; 
+}
