@@ -1385,61 +1385,92 @@ input[type=range]:active::-webkit-slider-thumb {
   margin-top: 0.25rem;
 }
 
-/* ===== SCROLL FIX (SURGICAL) ===== */
+/* ===== ROBUST FIXED HEADER SOLUTION ===== */
+
 /* 1. Lock the outer viewport to prevent double-scroll/bounce issues */
 html, body {
   height: 100%;
   overflow: hidden; /* Stop body from scrolling */
   overscroll-behavior: none; /* Disables browser bounce on the window */
-  
-  /* 2. Use flex column to stack Header + Main perfectly */
   display: flex;
   flex-direction: column;
 }
 
 .app-header {
-  /* 3. Header becomes a solid block at the top (no longer needs sticky) */
   flex: 0 0 auto;
   position: relative; 
   z-index: 100;
 }
 
 .app-container {
-  /* 4. Main container fills the EXACT remaining space */
   flex: 1;
   position: relative;
-  overflow: hidden; /* prevents main from spilling out */
-  min-height: 0; /* Crucial CSS fix for nested flex scrolling */
-  padding: 0; /* Reset any padding that might offset calculations */
+  overflow: hidden; 
+  min-height: 0;
+  padding: 0;
   margin: 0;
 }
 
+/* 2. Convert the Screen to a Flex Column */
 .screen {
-  /* 5. Screen becomes the designated scroll area */
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0; /* Force-fill the container */
+  position: absolute; 
+  top: 0; left: 0; right: 0; bottom: 0;
   height: 100%;
-  min-height: 0; /* Reset previous min-height logic */
   
-  /* 6. Enable native-feel internal scrolling */
+  /* This ensures elements stack vertically (Header -> Buttons -> List) */
+  display: flex;
+  flex-direction: column;
+  
+  /* The screen itself NEVER scrolls. Only the list inside it does. */
+  overflow: hidden !important; 
+  
+  /* Creates the aesthetic gap at the very top */
+  padding-top: 16px; 
+}
+
+/* 3. Lock the Headers (Stop them from being sticky/moving) */
+.card-header, 
+.action-header {
+  /* flex: 0 0 auto means "Don't grow, don't shrink, just be your natural height" */
+  flex: 0 0 auto;
+  
+  /* Force disable the old sticky behavior */
+  position: static !important; 
+  top: auto !important;
+  
+  /* Ensure they span the full width */
+  width: 100%;
+  z-index: 10;
+}
+
+/* 4. Make the Content Area Scrollable */
+/* These are the specific containers for your Clients, Sessions, Sets, and Graph */
+.item-list,
+.sets-content-wrapper,
+.chart-wrapper {
+  /* flex: 1 means "Fill ALL remaining vertical space" */
+  flex: 1;
+  
+  /* Enable native-feeling touch scrolling inside ONLY this box */
   overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* iOS Native Momentum */
-  overscroll-behavior-y: contain; /* Prevents scroll chaining to parent */
+  -webkit-overflow-scrolling: touch;
   
-  /* 7. SAFE ZONE: Ensures the last item is easily reachable with 1 swipe */
-  padding-bottom: 140px !important; 
+  /* Ensure content doesn't get cut off at the bottom */
+  padding-bottom: 140px !important;
+  
+  /* Reset top padding/margins since they no longer need to dodge a sticky header */
+  padding-top: 1rem; 
+  margin-top: 0 !important;
 }
 
-/* ===== STICKY HEADER FIX ===== */
-/* Reset sticky offsets for the new flex-scroll layout */
-.screen .card-header {
-  top: 0 !important; /* Was 16px. Now locks instantly to the top. */
+/* 5. Tiny Tweaks for Specific Screens */
+/* The sets wrapper had a large top margin we no longer need */
+#setsDiv .sets-content-wrapper {
+  margin-top: 0;
 }
 
-.screen .action-header {
-  /* Was 84px (16px gap + 68px card height). 
-     Now we remove the 16px gap, so 84 - 16 = 68px. 
-     This ensures the buttons stick perfectly underneath the title. */
-  top: 68px !important; 
+/* Ensure the graph takes full height properly */
+.chart-wrapper {
+  height: 100%;
+  padding-bottom: 140px; 
 }
