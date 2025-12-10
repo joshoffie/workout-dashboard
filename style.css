@@ -1430,3 +1430,16 @@ html, body {
   /* 7. SAFE ZONE: Ensures the last item is easily reachable with 1 swipe */
   padding-bottom: 140px !important; 
 }
+
+/* ===== STICKY HEADER FIX ===== */
+/* Reset sticky offsets for the new flex-scroll layout */
+.screen .card-header {
+  top: 0 !important; /* Was 16px. Now locks instantly to the top. */
+}
+
+.screen .action-header {
+  /* Was 84px (16px gap + 68px card height). 
+     Now we remove the 16px gap, so 84 - 16 = 68px. 
+     This ensures the buttons stick perfectly underneath the title. */
+  top: 68px !important; 
+}
