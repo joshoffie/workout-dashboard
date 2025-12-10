@@ -53,7 +53,16 @@
   scroll-behavior: smooth;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { 
+  margin: 0; padding: 0; box-sizing: border-box;
+  background-color: var(--color-bg); 
+  color: var(--color-text); 
+  /* These lines prevent the "double scroll" and bounce effects */
+  height: 100%; 
+  width: 100%;
+  overflow: hidden; 
+  position: fixed; /* Keeps address bar stable on iOS */
+}
 body { background-color: var(--color-bg); color: var(--color-text); min-height: 100vh;
 }
 .hidden { display: none !important; }
@@ -153,8 +162,13 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   color: var(--color-text-muted); display: none; }
 
 /* ===== MAIN APP CONTAINER ===== */
-.app-container { padding: 0; margin: 0 auto; position: relative;
-  overflow-x: hidden; min-height: 100vh; }
+.app-container { 
+  padding: 0; margin: 0 auto; position: relative;
+  /* Fill the locked body */
+  height: 100%; 
+  width: 100%;
+  overflow: hidden; 
+}
 
 /* ===== ITEM LISTS ===== */
 .item-list { 
@@ -260,10 +274,18 @@ td .btn-delete {
 
 /* ===== NAVIGATION & SCREEN STYLES ===== */
 .screen {
-  position: absolute; top: 0;
-  left: 0; width: 100%; min-height: 100vh;
-  /* CHANGED: auto -> visible. This removes the nested scroll container. */
-  background-color: var(--color-bg); border-radius: 0; box-shadow: none; overflow-y: visible; 
+  position: absolute; top: 0; left: 0; width: 100%; 
+  /* Fill the container completely */
+  height: 100%;
+  
+  /* RESTORE INTERNAL SCROLLING (Fixes Sticky Headers) */
+  overflow-y: auto; 
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+  
+  background-color: var(--color-bg); border-radius: 0; box-shadow: none;
+  
+  /* ADD PADDING so content isn't hidden behind the bottom bar */
+  padding-bottom: 120px; 
 }
 .btn-back {
   font-family: inherit;
