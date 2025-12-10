@@ -191,12 +191,9 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
 
-  // --- CHANGED: Scroll the TARGET SCREEN to top, not the window ---
-  targetScreen.scrollTop = 0;
-  // -------------------------------------------------------------
-
   // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
-  forceTitleResize(targetScreenId);
+  // This runs while the element is still technically 'hidden' to the user
+  forceTitleResize(targetScreenId); 
   // ---------------------------------------------------
 
   switch (targetScreenId) {
