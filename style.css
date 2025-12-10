@@ -53,19 +53,7 @@
   scroll-behavior: smooth;
 }
 
-* { 
-  margin: 0; padding: 0; box-sizing: border-box;
-  background-color: var(--color-bg); 
-  color: var(--color-text);
-  
-  /* CRITICAL FIX: Use height 100% and hidden overflow to kill the outer scrollbar */
-  height: 100%; 
-  width: 100%;
-  overflow: hidden; 
-  
-  /* MODERN FIX: This stops the browser from "bouncing" or chaining the scroll */
-  overscroll-behavior: none;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body { background-color: var(--color-bg); color: var(--color-text); min-height: 100vh;
 }
 .hidden { display: none !important; }
@@ -165,12 +153,8 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   color: var(--color-text-muted); display: none; }
 
 /* ===== MAIN APP CONTAINER ===== */
-.app-container { 
-  padding: 0; margin: 0 auto; position: relative;
-  height: 100%; 
-  width: 100%;
-  overflow: hidden; /* Ensures screens don't spill out */
-}
+.app-container { padding: 0; margin: 0 auto; position: relative;
+  overflow-x: hidden; min-height: 100vh; }
 
 /* ===== ITEM LISTS ===== */
 .item-list { 
@@ -276,24 +260,9 @@ td .btn-delete {
 
 /* ===== NAVIGATION & SCREEN STYLES ===== */
 .screen {
-  /* PIN TO ALL SIDES - This creates a perfect scroll view inside the container */
-  position: absolute; 
-  top: 0; 
-  left: 0; 
-  right: 0; 
-  bottom: 0;
-  
-  /* INTERNAL SCROLLING */
-  overflow-y: auto; 
-  -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-  
-  /* PREVENTS SCROLL CHAINING (The "Stop/Rest" Glitch) */
-  overscroll-behavior-y: contain; 
-  
-  background-color: var(--color-bg); border-radius: 0; box-shadow: none;
-  
-  /* Padding for bottom bar clearance */
-  padding-bottom: 120px; 
+  position: absolute; top: 0;
+  left: 0; width: 100%; min-height: 100vh;
+  background-color: var(--color-bg); border-radius: 0; box-shadow: none; overflow-y: auto;
 }
 .btn-back {
   font-family: inherit;
