@@ -1,8 +1,8 @@
 /* =========================================================
-   TRUNK APP - STYLE.CSS (FIXED NATIVE LAYOUT)
+   TRUNK APP - STYLE.CSS (FULL REWRITE - NATIVE LAYOUT)
    ========================================================= */
 
-/* ===== GLOBAL VARIABLES & RESET ===== */
+/* ===== 1. CORE LAYOUT & RESET ===== */
 :root {
   /* Dark Mode Palette */
   --color-bg: #101010;
@@ -39,35 +39,32 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* CRITICAL LAYOUT FIX:
-   We lock the body so the window itself NEVER scrolls.
-   The app acts like a fixed picture frame.
+/* CRITICAL FIX: LOCK THE VIEWPORT
+   We treat the body as a fixed app window that never scrolls.
 */
 html, body {
   height: 100%;
   width: 100%;
   background-color: var(--color-bg);
   color: var(--color-text);
+  overflow: hidden; /* Disables browser window scrolling */
+  overscroll-behavior: none; /* Disables "rubber banding" on the whole page */
+  position: fixed; /* Rigidly locks the frame on mobile */
   
-  /* Disable browser window scrolling */
-  overflow: hidden; 
-  overscroll-behavior: none; 
-  position: fixed; /* Rigidly locks viewport on mobile */
-  
-  /* Stack Logo Bar (Top) and Content (Bottom) */
+  /* Stack the Logo Bar and the Main Content vertically */
   display: flex;
   flex-direction: column;
 }
 
 .hidden { display: none !important; }
 
-/* ===== APP HEADER (LOGO BAR) ===== */
+/* ===== 2. APP HEADER (LOGO BAR) ===== */
+/* This stays at the very top, rigidly. */
 .app-header {
-  /* Rigid: Don't grow or shrink */
-  flex: 0 0 auto; 
+  flex: 0 0 auto; /* Don't grow or shrink */
   background-color: var(--color-card); 
   
-  /* Safe Area Spacing */
+  /* Status Bar Spacing */
   padding-top: env(safe-area-inset-top);
   padding-top: max(1rem, env(safe-area-inset-top));
   padding-bottom: 1rem;
@@ -86,46 +83,45 @@ html, body {
 .auth-controls .btn { flex: 0 0 auto; }
 #userLabel { font-size: 0.9rem; color: var(--color-text-muted); display: none; }
 
-/* ===== MAIN CONTAINER ===== */
+/* ===== 3. MAIN CONTAINER ===== */
 .app-container { 
-  flex: 1; /* Fills all remaining screen space */
+  flex: 1; /* Take all remaining height */
   position: relative;
-  overflow: hidden; /* No scrolling here either */
+  overflow: hidden; /* Prevent spillover */
   display: flex;
   flex-direction: column;
   padding: 0; 
   margin: 0;
 }
 
-/* ===== SCREENS (THE RIGID FRAME) ===== */
-/* This replaces your old logic. The screen is now a Flex Column. */
+/* ===== 4. SCREENS (The Layout Frame) ===== */
+/* This replaces the old logic. 
+   The screen is a Flex Column that holds: 
+   [Gap] -> [Title Header] -> [Action Header] -> [Scrollable List]
+*/
 .screen {
   position: absolute; 
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
   height: 100%;
   
-  /* Stacks: [Gap] -> [Title] -> [Buttons] -> [List] */
   display: flex;
   flex-direction: column;
   
-  /* The screen itself never scrolls */
-  overflow: hidden !important; 
+  overflow: hidden !important; /* The screen itself NEVER scrolls */
   background-color: var(--color-bg);
-  border-radius: 0; 
-  box-shadow: none;
   
-  /* AESTHETIC GAP: Pushes content down 16px from top */
+  /* AESTHETIC GAP: Pushes the title card down 16px from the top bar */
   padding-top: 16px; 
 }
 
-/* ===== LOCKED HEADERS (TITLE & ACTIONS) ===== */
-/* We removed 'sticky'. They are now static blocks that cannot move. */
+/* ===== 5. HEADERS (Title & Actions) ===== */
+/* These are now RIGID blocks. They cannot move. */
 .card-header, 
 .action-header {
   flex: 0 0 auto; /* Rigid height */
-  position: relative !important; 
-  top: auto !important; 
+  position: relative !important; /* No more sticky! */
+  top: auto !important;
   left: auto !important;
   
   width: 100%;
@@ -137,13 +133,13 @@ html, body {
 .card-header {
   padding: 1rem 1rem;
   display: grid;
-  /* Balanced layout: 48px left/right keeps title centered */
-  grid-template-columns: 48px 1fr 48px; 
+  grid-template-columns: 48px 1fr 48px; /* Balanced centering */
   align-items: center;
   gap: 0.5rem;
   min-height: 52px;
 }
 
+/* Fix spacing for the action buttons */
 .action-header {
   padding: 0 1.5rem 1rem 1.5rem; 
   display: flex; 
@@ -156,8 +152,8 @@ html, body {
 .action-header .btn-group { width: 100%; max-width: 500px; }
 .action-header .btn { flex: 1; }
 
-/* ===== SCROLLABLE LIST AREAS ===== */
-/* This is the ONLY place scrolling happens */
+/* ===== 6. SCROLLABLE CONTENT AREAS ===== */
+/* This is the ONLY place scrolling is allowed */
 .item-list,
 .sets-content-wrapper,
 .chart-wrapper,
@@ -165,15 +161,15 @@ html, body {
 #exercisesDiv .item-list {
   flex: 1; /* Fill all remaining space */
   
-  /* Enable Scrolling Here */
+  /* Enable Native Momentum Scrolling */
   overflow-y: auto !important;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* iOS Momentum */
+  -webkit-overflow-scrolling: touch; 
   
-  /* Bottom Buffer ensures last item is visible */
+  /* Bottom Buffer so items aren't hidden behind screen edges */
   padding-bottom: 140px !important;
   
-  /* Visual Resets */
+  /* Visual Reset */
   width: 100%;
   margin-top: 0 !important;
   padding-top: 1rem;
@@ -181,10 +177,9 @@ html, body {
   z-index: 1;
 }
 
-/* Specific Tweak for Sets Screen */
+/* Fix for Sets Screen Layout */
 #setsDiv .sets-content-wrapper { margin-top: 0; }
-/* Allow chart wrapper to be flexible */
-.chart-wrapper { height: auto; display: flex; flex-direction: column; }
+.chart-wrapper { height: auto; display: flex; flex-direction: column; } 
 
 /* ===== ITEM LIST STYLING ===== */
 .item-list li {
@@ -219,19 +214,21 @@ html, body {
 .btn-secondary:hover { background-color: #444; }
 #modalLoginBtn { width: 100%; font-size: 1rem; padding: 0.9rem 1.25rem; flex: 1; }
 
-/* Back Button with Animation */
 .btn-back {
-  font-family: inherit; color: var(--color-red);
+  font-family: inherit;
+  color: var(--color-red);
   background-color: var(--color-secondary);
-  border: none; cursor: pointer;
-  width: 36px; height: 36px; border-radius: 50%; padding: 0;
+  border: none;
+  cursor: pointer;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  padding: 0;
   display: flex; align-items: center; justify-content: center;
   z-index: 20;
   animation: move-back-and-forth 1.3s ease-in-out infinite;
   border: 1px solid var(--color-border);
   transition: all var(--transition);
   
-  /* Positioning reset for grid */
   position: relative; top: auto; left: auto;
   grid-column: 1; justify-self: start;
 }
@@ -243,10 +240,11 @@ html, body {
   60% { transform: translateX(-4px); } 100% { transform: translateX(0); }
 }
 
-/* ===== DELETE & EDIT ACTIONS ===== */
-.edit-actions { display: none; align-items: center; gap: 0.5rem; margin-left: auto; }
+/* ===== DELETE & MOVE ACTIONS ===== */
+.edit-actions {
+  display: none; align-items: center; gap: 0.5rem; margin-left: auto;
+}
 .edit-mode-active .edit-actions { display: flex; }
-
 .btn-icon {
   font-family: inherit; font-size: 1.1rem; font-weight: 700;
   background: none; border: none; cursor: pointer;
@@ -260,7 +258,7 @@ html, body {
 .btn-move:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.1); }
 .edit-mode-active .editable { color: var(--color-primary) !important; text-decoration: underline dashed 1px; }
 
-/* Sets Table Delete Button */
+/* Table specific delete button */
 td .btn-delete {
   background: none; border: none; cursor: pointer;
   font-size: 1.5rem; line-height: 1; padding: 0 0.5rem; margin: 0;
@@ -309,7 +307,7 @@ tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6); }
 .btn-danger { background-color: var(--color-red); color: white; }
 .btn-tertiary { background-color: var(--color-secondary); color: var(--color-text); }
 
-/* Calculator UI */
+/* Calculator Specifics */
 .calc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
 #calcModeLabel { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; color: var(--color-text-muted); letter-spacing: 1px; }
 .calc-display {
@@ -340,25 +338,16 @@ tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6); }
 .calc-action-btn { width: 100%; font-size: 1rem; padding: 0.8rem; margin-top: 0.25rem; }
 .btn-backspace { color: var(--color-red); }
 
-/* ===== ANIMATIONS: SCREEN SLIDES ===== */
-@keyframes slideInFromRight { from { transform: translateX(100%); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } }
-@keyframes slideOutToLeft { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-25%); opacity: 0; } }
-@keyframes slideInFromLeft { from { transform: translateX(-25%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-@keyframes slideOutToRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0.5; } }
-.slide-in-right { animation: slideInFromRight 0.3s forwards ease-out; z-index: 2; }
-.slide-out-left { animation: slideOutToLeft 0.3s forwards ease-out; z-index: 1; }
-.slide-in-left { animation: slideInFromLeft 0.3s forwards ease-out; z-index: 2; }
-.slide-out-right { animation: slideOutToRight 0.3s forwards ease-out; z-index: 1; }
-
-/* ===== ANIMATIONS: LOGO & TRUNK ===== */
+/* ===== ANIMATIONS & DECORATION ===== */
+/* Tree Animation */
 .tree-animation-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; viewBox: 0 0 100 100; overflow: visible; animation: trunkContainerSpin 14s linear infinite; }
 .mask-animator { stroke-dasharray: var(--spiral-len); stroke-dashoffset: var(--spiral-len); animation: trunkSnaking 14s ease-in-out infinite; }
 @keyframes trunkSnaking { 0% { stroke-dashoffset: var(--spiral-len); } 71.4% { stroke-dashoffset: 0; } 78.5% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: var(--spiral-len); } }
 @keyframes trunkContainerSpin { 0% { transform: rotate(-90deg); } 78.5% { transform: rotate(-90deg); } 100% { transform: rotate(270deg); } }
 
+/* Logo Animation */
 #animated-logo { height: 50px; width: auto; overflow: visible; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 38px; display: block; margin-top: auto; margin-bottom: auto; }
 #logo-t, #logo-r, #logo-u, #logo-n, #logo-k { transform-origin: center; transform-box: view-box; }
-
 /* Master Loops */
 @keyframes master-spin-float-loop { 0% { transform: rotate(0deg) translate(0, 0); } 18% { transform: rotate(720deg) translate(0, 0); } 24.8% { transform: rotate(720deg) translate(-1px, -2px); } 31.6% { transform: rotate(720deg) translate(0, 0); } 38.4% { transform: rotate(720deg) translate(1px, 2px); } 45.2% { transform: rotate(720deg) translate(0, 0); } 52.0% { transform: rotate(720deg) translate(-1px, -2px); } 58.8% { transform: rotate(720deg) translate(0, 0); } 65.6% { transform: rotate(720deg) translate(1px, 2px); } 72.4% { transform: rotate(720deg) translate(0, 0); } 79.2% { transform: rotate(720deg) translate(-1px, -2px); } 86.0% { transform: rotate(720deg) translate(0, 0); } 92.8% { transform: rotate(720deg) translate(1px, 2px); } 100% { transform: rotate(720deg) translate(0, 0); } }
 @keyframes master-spin-reverse-float-loop { 0% { transform: rotate(0deg) translate(0, 0); } 18% { transform: rotate(-720deg) translate(0, 0); } 24.8% { transform: rotate(-720deg) translate(-1px, -2px); } 31.6% { transform: rotate(-720deg) translate(0, 0); } 38.4% { transform: rotate(-720deg) translate(1px, 2px); } 45.2% { transform: rotate(-720deg) translate(0, 0); } 52.0% { transform: rotate(-720deg) translate(-1px, -2px); } 58.8% { transform: rotate(-720deg) translate(0, 0); } 65.6% { transform: rotate(-720deg) translate(1px, 2px); } 72.4% { transform: rotate(-720deg) translate(0, 0); } 79.2% { transform: rotate(-720deg) translate(-1px, -2px); } 86.0% { transform: rotate(-720deg) translate(0, 0); } 92.8% { transform: rotate(-720deg) translate(1px, 2px); } 100% { transform: rotate(-720deg) translate(0, 0); } }
@@ -377,8 +366,7 @@ tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6); }
   grid-column: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; 
 }
 .char { display: inline-block; transition: color 0.3s ease; }
-
-/* Happy/Sad/Calm Character Animations */
+/* Title Animations (Happy/Sad/Calm) */
 @keyframes happy-crash { 0% { transform: translate(0, 0) rotate(0deg); } 15% { transform: translate(0, -6px) rotate(3deg); } 30% { transform: translate(0, 0) rotate(-3deg); } 45% { transform: translate(0, -3px) rotate(1deg); } 60% { transform: translate(0, 0) rotate(-1deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
 .char.happy-1 { animation-name: happy-crash; animation-duration: 1.0s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-delay: calc(var(--char-index) * 0.04s); }
 @keyframes happy-boost { 0%, 100% { transform: translateX(0) scaleY(1); } 20% { transform: translateX(-2px) scaleY(0.95); } 40% { transform: translateX(3px) scaleY(1.05); } 60% { transform: translateX(-1px) scaleY(0.98); } 80% { transform: translateX(2px) scaleY(1.02); } }
@@ -403,7 +391,17 @@ tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6); }
 .char:nth-child(5) { --char-index: 5; } .char:nth-child(6) { --char-index: 6; } .char:nth-child(7) { --char-index: 7; } .char:nth-child(8) { --char-index: 8; }
 .char:nth-child(9) { --char-index: 9; } .char:nth-child(10) { --char-index: 10; } .char:nth-child(11) { --char-index: 11; } .char:nth-child(12) { --char-index: 12; }
 
-/* ===== SPIRAL WIDGET ===== */
+/* Screen Transitions */
+@keyframes slideInFromRight { from { transform: translateX(100%); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOutToLeft { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-25%); opacity: 0; } }
+@keyframes slideInFromLeft { from { transform: translateX(-25%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOutToRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0.5; } }
+.slide-in-right { animation: slideInFromRight 0.3s forwards ease-out; z-index: 2; }
+.slide-out-left { animation: slideOutToLeft 0.3s forwards ease-out; z-index: 1; }
+.slide-in-left { animation: slideInFromLeft 0.3s forwards ease-out; z-index: 2; }
+.slide-out-right { animation: slideOutToRight 0.3s forwards ease-out; z-index: 1; }
+
+/* ===== GRAPH & SPIRAL WIDGETS ===== */
 .spiral-container {
     margin: 0 1rem 1rem 1rem; background: var(--color-card); border: 1px solid var(--color-border);
     border-radius: var(--radius-md); height: 400px; position: relative; display: flex;
@@ -444,7 +442,7 @@ input[type=range]:active::-webkit-slider-thumb { transform: scale(1.1); }
 .stat-data { font-size: 0.9rem; font-weight: 500; margin-left: auto; text-align: right; white-space: nowrap; }
 .stat-data.increase { color: var(--color-green); } .stat-data.decrease { color: var(--color-red); } .stat-data.neutral { color: var(--color-yellow); }
 
-/* ===== CHART STYLING ===== */
+/* Chart Styling */
 .chart-data-header { text-align: center; margin-top: 1rem; margin-bottom: 1rem; }
 .data-primary { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
 .big-stat { font-family: 'Fredoka', sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
