@@ -56,12 +56,15 @@
 * { 
   margin: 0; padding: 0; box-sizing: border-box;
   background-color: var(--color-bg); 
-  color: var(--color-text); 
-  /* These lines prevent the "double scroll" and bounce effects */
+  color: var(--color-text);
+  
+  /* CRITICAL FIX: Use height 100% and hidden overflow to kill the outer scrollbar */
   height: 100%; 
   width: 100%;
   overflow: hidden; 
-  position: fixed; /* Keeps address bar stable on iOS */
+  
+  /* MODERN FIX: This stops the browser from "bouncing" or chaining the scroll */
+  overscroll-behavior: none;
 }
 body { background-color: var(--color-bg); color: var(--color-text); min-height: 100vh;
 }
@@ -164,10 +167,9 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 /* ===== MAIN APP CONTAINER ===== */
 .app-container { 
   padding: 0; margin: 0 auto; position: relative;
-  /* Fill the locked body */
   height: 100%; 
   width: 100%;
-  overflow: hidden; 
+  overflow: hidden; /* Ensures screens don't spill out */
 }
 
 /* ===== ITEM LISTS ===== */
@@ -274,17 +276,23 @@ td .btn-delete {
 
 /* ===== NAVIGATION & SCREEN STYLES ===== */
 .screen {
-  position: absolute; top: 0; left: 0; width: 100%; 
-  /* Fill the container completely */
-  height: 100%;
+  /* PIN TO ALL SIDES - This creates a perfect scroll view inside the container */
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0;
   
-  /* RESTORE INTERNAL SCROLLING (Fixes Sticky Headers) */
+  /* INTERNAL SCROLLING */
   overflow-y: auto; 
-  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+  -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+  
+  /* PREVENTS SCROLL CHAINING (The "Stop/Rest" Glitch) */
+  overscroll-behavior-y: contain; 
   
   background-color: var(--color-bg); border-radius: 0; box-shadow: none;
   
-  /* ADD PADDING so content isn't hidden behind the bottom bar */
+  /* Padding for bottom bar clearance */
   padding-bottom: 120px; 
 }
 .btn-back {
