@@ -306,6 +306,8 @@ td .btn-delete {
 .card-header {
   position: relative;
   top: 0;
+  /* 2. ADD THIS LINE to create the physical space */
+  margin-top: 1rem;
   background-color: var(--color-card);
   z-index: 10;
   padding: 1rem 1rem;
