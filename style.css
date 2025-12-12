@@ -274,7 +274,15 @@ td .btn-delete {
   
   /* CHANGED: Adds buffer so bottom items aren't cut off */
   padding-bottom: 150px; 
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.screen::-webkit-scrollbar {
+  display: none;
+}
+
 .btn-back {
   font-family: inherit;
   color: var(--color-red);
