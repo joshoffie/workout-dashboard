@@ -305,7 +305,7 @@ td .btn-delete {
   left: -1px; }
 .card-header {
   position: relative;
-  top: 16px;
+  top: 0;
   background-color: var(--color-card);
   z-index: 10;
   padding: 1rem 1rem;
