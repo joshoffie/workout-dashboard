@@ -346,7 +346,7 @@ td .btn-delete {
 }
 
 .action-header {
-  position: sticky; top: 84px; background-color: var(--color-card); z-index: 9;
+  position: relative; top: 84px; background-color: var(--color-card); z-index: 9;
   padding: 0 1.5rem 1rem 1.5rem; display: flex; justify-content: center;
   border-bottom: 1px solid var(--color-border);
 }
