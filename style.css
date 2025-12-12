@@ -346,8 +346,17 @@ td .btn-delete {
 }
 
 .action-header {
-  position: relative; top: 0px; background-color: var(--color-card); z-index: 9;
-  padding: 0 1.5rem 1rem 1.5rem; display: flex; justify-content: center;
+  /* CHANGED: sticky -> relative (Scrolls away with the page) */
+  position: relative; 
+  
+  /* CHANGED: Reset top to 0 (Prevents it from shifting down 84px) */
+  top: 0; 
+  
+  background-color: var(--color-card); 
+  z-index: 9;
+  padding: 0 1.5rem 1rem 1.5rem; 
+  display: flex; 
+  justify-content: center;
   border-bottom: 1px solid var(--color-border);
 }
 .action-header .btn-group { width: 100%; max-width: 500px; }
