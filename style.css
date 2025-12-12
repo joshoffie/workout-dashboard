@@ -13,7 +13,7 @@
   padding-right: 1.5rem;
   
   border-bottom: 1px solid var(--color-border); 
-  position: sticky; 
+  position: relative; 
   top: 0; 
   z-index: 100;
 }
@@ -263,17 +263,17 @@ td .btn-delete {
   position: absolute; top: 0;
   left: 0; width: 100%; 
   
-  /* CHANGE 1: Fix height to viewport so scrolling happens INSIDE the div */
-  height: 100vh;  /* Changed from min-height: 100vh */
-  
-  background-color: var(--color-bg); border-radius: 0; box-shadow: none; 
+  /* CHANGED: Fixed height + Scroll = Native Momentum Feel */
+  height: 100vh; 
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Critical for iOS momentum */
   
-  /* CHANGE 2: Enable "Native" momentum scrolling on iOS */
-  -webkit-overflow-scrolling: touch;
+  background-color: var(--color-bg); 
+  border-radius: 0; 
+  box-shadow: none; 
   
-  /* CHANGE 3: Add buffer so the bottom of the list clears the header/URL bar */
-  padding-bottom: 120px; 
+  /* CHANGED: Adds buffer so bottom items aren't cut off */
+  padding-bottom: 150px; 
 }
 .btn-back {
   font-family: inherit;
@@ -304,7 +304,7 @@ td .btn-delete {
 .back-arrow-svg { width: 24px; height: 24px; fill: currentColor; position: relative;
   left: -1px; }
 .card-header {
-  position: sticky;
+  position: relative;
   top: 16px;
   background-color: var(--color-card);
   z-index: 10;
