@@ -324,7 +324,7 @@ td .btn-delete {
 }
 .card-header .btn-group { flex-wrap: nowrap; width: auto; }
 #setsDiv .sets-content-wrapper { 
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 @keyframes move-back-and-forth {
