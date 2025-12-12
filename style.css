@@ -261,8 +261,19 @@ td .btn-delete {
 /* ===== NAVIGATION & SCREEN STYLES ===== */
 .screen {
   position: absolute; top: 0;
-  left: 0; width: 100%; min-height: 100vh;
-  background-color: var(--color-bg); border-radius: 0; box-shadow: none; overflow-y: auto;
+  left: 0; width: 100%; 
+  
+  /* CHANGE 1: Fix height to viewport so scrolling happens INSIDE the div */
+  height: 100vh;  /* Changed from min-height: 100vh */
+  
+  background-color: var(--color-bg); border-radius: 0; box-shadow: none; 
+  overflow-y: auto;
+  
+  /* CHANGE 2: Enable "Native" momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  
+  /* CHANGE 3: Add buffer so the bottom of the list clears the header/URL bar */
+  padding-bottom: 120px; 
 }
 .btn-back {
   font-family: inherit;
