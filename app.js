@@ -374,67 +374,71 @@ function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
+  if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Reset
+  clientsData = {}; // Clear memory to prevent duplicates
 
-  // 1. Try fetching from the NEW optimized collection
-  const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-  const snapshot = await newCollectionRef.get();
+  try {
+      // 1. CHECK THE NEW "SHARDED" LOCATION FIRST
+      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+      const newSnap = await newCollectionRef.get();
 
-  if (!snapshot.empty) {
-      // NEW SYSTEM FOUND: Load and expand data
-      snapshot.forEach(doc => {
-          let clientObj = doc.data();
-          // Fix: Ensure order exists
-          if (clientObj.order === undefined) clientObj.order = 999;
-          // Hydrate compressed data
-          clientsData[clientObj.client_name] = expandClientData(clientObj);
-      });
-  } 
-  else { 
-      // 2. FALLBACK: Check Legacy System (Migration)
-      console.log("No new data found. Checking legacy database...");
-      const oldDocRef = db.collection("clients").doc(uid);
-      const oldDocSnap = await oldDocRef.get();
-
-      if (oldDocSnap.exists) {
-          console.log("Migrating data to new optimization system...");
-          const legacyData = oldDocSnap.data();
-          
-          // Convert, Save to New System, and Load
-          const batch = db.batch();
-          
-          Object.keys(legacyData).forEach(key => {
-              let clientObj = legacyData[key];
-              if (clientObj.order === undefined) clientObj.order = 0;
-              
-              // Add to memory
-              clientsData[key] = clientObj;
-              
-              // Prepare for Batch Save (Clean & Compress)
-              const optimizedClient = cleanAndMinifyClient(clientObj);
-              const newDocRef = newCollectionRef.doc(key);
-              batch.set(newDocRef, optimizedClient);
-          });
-
-          // Execute Migration Save
-          await batch.commit();
-          console.log("Migration Complete.");
-      } else {
-          // 3. NEW USER (No data at all)
-          const fullName = auth.currentUser.displayName || "User";
-          const firstName = fullName.split(' ')[0];
-          
-          clientsData = {
-              [firstName]: {
-                  client_name: firstName,
-                  sessions: [],
-                  order: 0
+      if (!newSnap.empty) {
+          console.log("Loaded data from NEW optimized system.");
+          newSnap.forEach(doc => {
+              let clientObj = doc.data();
+              // Hydrate: Convert compressed 'r', 'w' back to 'reps', 'weight'
+              // expandClientData handles both compressed and uncompressed formats safely
+              if (typeof expandClientData === "function") {
+                  clientObj = expandClientData(clientObj);
               }
-          };
-          // Save the new user immediately to the new system
-          await saveUserJson();
+              
+              // Ensure order property exists
+              if (clientObj.order === undefined) clientObj.order = 999;
+              
+              clientsData[clientObj.client_name] = clientObj;
+          });
+      } 
+      else { 
+          // 2. FALLBACK: LOAD FROM LEGACY LOCATION (clients/{uid})
+          // This ensures existing users see their data immediately without waiting for migration
+          console.log("New system empty. Loading from LEGACY system...");
+          const oldDocRef = db.collection("clients").doc(uid);
+          const oldDocSnap = await oldDocRef.get();
+
+          if (oldDocSnap.exists) {
+              const legacyData = oldDocSnap.data();
+              
+              // Load legacy data directly into memory
+              // We don't change the structure here, we just let the app read it
+              clientsData = legacyData;
+
+              // Legacy Fix: Ensure 'order' property exists for sorting
+              Object.keys(clientsData).forEach((key, index) => {
+                  if (clientsData[key].order === undefined) clientsData[key].order = index;
+              });
+              
+              console.log("Legacy data loaded successfully.");
+          } else {
+              // 3. BRAND NEW USER (No data anywhere)
+              console.log("No data found. Initializing new user.");
+              const fullName = auth.currentUser.displayName || "User";
+              const firstName = fullName.split(' ')[0];
+              
+              clientsData = {
+                  [firstName]: {
+                      client_name: firstName,
+                      sessions: [],
+                      order: 0
+                  }
+              };
+              // Save immediately to establish the file in the NEW system
+              await saveUserJson();
+          }
       }
+  } catch (err) {
+      console.error("Error loading user data:", err);
+      alert("Error loading data. Check console for details.");
   }
 }
 
