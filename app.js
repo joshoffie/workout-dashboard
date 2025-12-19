@@ -376,54 +376,47 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 async function loadUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Clear memory to prevent duplicates
+  clientsData = {}; // Clear memory
 
   try {
-      // 1. CHECK THE NEW "SHARDED" LOCATION FIRST
+      // 1. CHECK NEW SYSTEM FIRST (users/{uid}/clients)
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       const newSnap = await newCollectionRef.get();
 
       if (!newSnap.empty) {
-          console.log("Loaded data from NEW optimized system.");
+          console.log("Loaded data from optimized system.");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              // Hydrate: Convert compressed 'r', 'w' back to 'reps', 'weight'
-              // expandClientData handles both compressed and uncompressed formats safely
+              // Hydrate compressed data if necessary
               if (typeof expandClientData === "function") {
                   clientObj = expandClientData(clientObj);
               }
-              
-              // Ensure order property exists
               if (clientObj.order === undefined) clientObj.order = 999;
-              
               clientsData[clientObj.client_name] = clientObj;
           });
       } 
       else { 
-          // 2. FALLBACK: LOAD FROM LEGACY LOCATION (clients/{uid})
-          // This ensures existing users see their data immediately without waiting for migration
-          console.log("New system empty. Loading from LEGACY system...");
+          // 2. CHECK LEGACY SYSTEM (clients/{uid})
+          console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
           const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
-              const legacyData = oldDocSnap.data();
+              // Load legacy data so user sees it immediately
+              clientsData = oldDocSnap.data();
               
-              // Load legacy data directly into memory
-              // We don't change the structure here, we just let the app read it
-              clientsData = legacyData;
-
-              // Legacy Fix: Ensure 'order' property exists for sorting
+              // Ensure order exists
               Object.keys(clientsData).forEach((key, index) => {
                   if (clientsData[key].order === undefined) clientsData[key].order = index;
               });
-              
-              console.log("Legacy data loaded successfully.");
+              console.log("Legacy data loaded.");
           } else {
-              // 3. BRAND NEW USER (No data anywhere)
-              console.log("No data found. Initializing new user.");
+              // 3. BRAND NEW USER (Restore Auto-Profile Creation)
+              console.log("No data found. Creating default profile from Google Name...");
+              
+              // --- RESTORED LOGIC START ---
               const fullName = auth.currentUser.displayName || "User";
-              const firstName = fullName.split(' ')[0];
+              const firstName = fullName.split(' ')[0]; // Get "Josh" from "Josh Hoffman"
               
               clientsData = {
                   [firstName]: {
@@ -432,13 +425,17 @@ async function loadUserJson() {
                       order: 0
                   }
               };
-              // Save immediately to establish the file in the NEW system
+              
+              // Save immediately so the file is created in the NEW system
               await saveUserJson();
+              // --- RESTORED LOGIC END ---
           }
       }
+      // Always refresh the UI after loading
+      renderClients();
+      
   } catch (err) {
       console.error("Error loading user data:", err);
-      alert("Error loading data. Check console for details.");
   }
 }
 
