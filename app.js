@@ -1910,17 +1910,17 @@ function makeEditable(element, type, parentIdx, sortedSets) {
             }
         }
         break;
-      case "SetReps":
+      case "Set Reps":
         selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
         renderSets(); 
         break;
-      case "SetWeight":
+      case "Set Weight":
         selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight; 
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
         renderSets(); 
         break;
-      case "SetNotes":
+      case "Set Notes":
         selectedExercise.sets[originalIndex].notes = newVal;
         renderSets(); 
         break;
@@ -1940,9 +1940,9 @@ function hookEditables(sortedSets = []) {
   setsTable.querySelectorAll("tr").forEach((tr) => {
     const tds = tr.querySelectorAll("td");
     if (tds.length < 5) return;
-    makeEditable(tds[1], "SetReps", setRowIdx, sortedSets);
-    makeEditable(tds[2], "SetWeight", setRowIdx, sortedSets);
-    makeEditable(tds[4], "SetNotes", setRowIdx, sortedSets);
+    makeEditable(tds[1], "Set Reps", setRowIdx, sortedSets);
+    makeEditable(tds[2], "Set Weight", setRowIdx, sortedSets);
+    makeEditable(tds[4], "Set Notes", setRowIdx, sortedSets);
     setRowIdx++;
   });
 }
