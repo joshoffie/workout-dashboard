@@ -1,3 +1,79 @@
+
+// =====================================================
+// DATA OPTIMIZATION & COMPRESSION HELPERS
+// =====================================================
+
+// Minify a single set (Long keys -> Short keys)
+function minifySet(s) {
+    return {
+        r: s.reps,
+        w: s.weight,
+        v: s.volume,
+        n: s.notes || "",
+        t: s.timestamp
+    };
+}
+
+// Expand a single set (Short keys -> Long keys)
+function expandSet(s) {
+    // Handle both legacy (long) and new (short) formats for robustness
+    return {
+        reps: s.r ?? s.reps,
+        weight: s.w ?? s.weight,
+        volume: s.v ?? s.volume,
+        notes: s.n ?? s.notes ?? "",
+        timestamp: s.t ?? s.timestamp
+    };
+}
+
+// Prepare a client object for saving (Strip junk, compress sets)
+function cleanAndMinifyClient(clientObj) {
+    const cleanClient = JSON.parse(JSON.stringify(clientObj)); // Deep copy
+    
+    if (cleanClient.sessions) {
+        cleanClient.sessions.forEach(session => {
+            if (session.exercises) {
+                session.exercises.forEach(ex => {
+                    // 1. Remove calculated colorData (save space)
+                    delete ex.colorData; 
+                    // 2. Minify sets
+                    if (ex.sets) {
+                        ex.sets = ex.sets.map(minifySet);
+                    }
+                });
+            }
+        });
+    }
+    return cleanClient;
+}
+
+// Hydrate a client object on load (Expand sets)
+function expandClientData(clientObj) {
+    if (clientObj.sessions) {
+        clientObj.sessions.forEach(session => {
+            if (session.exercises) {
+                session.exercises.forEach(ex => {
+                    if (ex.sets) {
+                        ex.sets = ex.sets.map(expandSet);
+                    }
+                });
+            }
+        });
+    }
+    return clientObj;
+}
+
+// Helper to delete a specific client doc (used during rename/delete)
+async function deleteClientFromFirestore(clientName) {
+    if (!auth.currentUser) return;
+    const uid = auth.currentUser.uid;
+    try {
+        await db.collection("users").doc(uid).collection("clients").doc(clientName).delete();
+    } catch (err) {
+        console.error("Error deleting client doc:", err);
+    }
+}
+
 // =====================================================
 // TUTORIAL ENGINE
 // =====================================================
@@ -299,44 +375,93 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
   const uid = auth.currentUser.uid;
-  const docRef = db.collection("clients").doc(uid);
-  const docSnap = await docRef.get();
+  clientsData = {}; // Reset
 
-  if (docSnap.exists) {
-      clientsData = docSnap.data();
-      // Ensure all clients have an order property to prevent jitter
-      Object.keys(clientsData).forEach((key, index) => {
-          if (clientsData[key].order === undefined) clientsData[key].order = index;
+  // 1. Try fetching from the NEW optimized collection
+  const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+  const snapshot = await newCollectionRef.get();
+
+  if (!snapshot.empty) {
+      // NEW SYSTEM FOUND: Load and expand data
+      snapshot.forEach(doc => {
+          let clientObj = doc.data();
+          // Fix: Ensure order exists
+          if (clientObj.order === undefined) clientObj.order = 999;
+          // Hydrate compressed data
+          clientsData[clientObj.client_name] = expandClientData(clientObj);
       });
-  } else { 
-      // --- NEW LOGIC STARTS HERE ---
-      // 1. Get the full name from Google (or fallback to "User")
-      const fullName = auth.currentUser.displayName || "User";
-      
-      // 2. Extract just the first name (split by space and take the first part)
-      const firstName = fullName.split(' ')[0];
+  } 
+  else { 
+      // 2. FALLBACK: Check Legacy System (Migration)
+      console.log("No new data found. Checking legacy database...");
+      const oldDocRef = db.collection("clients").doc(uid);
+      const oldDocSnap = await oldDocRef.get();
 
-      // 3. Create the default profile object
-      clientsData = {
-          [firstName]: {
-              client_name: firstName,
-              sessions: [],
-              order: 0
-          }
-      };
+      if (oldDocSnap.exists) {
+          console.log("Migrating data to new optimization system...");
+          const legacyData = oldDocSnap.data();
+          
+          // Convert, Save to New System, and Load
+          const batch = db.batch();
+          
+          Object.keys(legacyData).forEach(key => {
+              let clientObj = legacyData[key];
+              if (clientObj.order === undefined) clientObj.order = 0;
+              
+              // Add to memory
+              clientsData[key] = clientObj;
+              
+              // Prepare for Batch Save (Clean & Compress)
+              const optimizedClient = cleanAndMinifyClient(clientObj);
+              const newDocRef = newCollectionRef.doc(key);
+              batch.set(newDocRef, optimizedClient);
+          });
 
-      // 4. Save this new profile to the database immediately
-      await docRef.set(clientsData);
-      // --- NEW LOGIC ENDS HERE ---
+          // Execute Migration Save
+          await batch.commit();
+          console.log("Migration Complete.");
+      } else {
+          // 3. NEW USER (No data at all)
+          const fullName = auth.currentUser.displayName || "User";
+          const firstName = fullName.split(' ')[0];
+          
+          clientsData = {
+              [firstName]: {
+                  client_name: firstName,
+                  sessions: [],
+                  order: 0
+              }
+          };
+          // Save the new user immediately to the new system
+          await saveUserJson();
+      }
   }
 }
 
 async function saveUserJson() {
-  if (isTutorialMode) return; // <--- ADD THIS LINE. Prevents saving fake data.
-  
+  if (isTutorialMode) return;
   if (!auth.currentUser) return;
+  
   const uid = auth.currentUser.uid;
-  await db.collection("clients").doc(uid).set(clientsData);
+  const batch = db.batch();
+  const profilesRef = db.collection("users").doc(uid).collection("clients");
+
+  // Loop through all clients in memory
+  Object.values(clientsData).forEach(clientObj => {
+      // 1. Optimize (Strip ColorData, Compress Sets)
+      const optimizedData = cleanAndMinifyClient(clientObj);
+      
+      // 2. Queue Update
+      const docRef = profilesRef.doc(clientObj.client_name);
+      batch.set(docRef, optimizedData);
+  });
+
+  // 3. Commit all writes at once
+  try {
+      await batch.commit();
+  } catch (err) {
+      console.error("Save failed:", err);
+  }
 }
 
 // ------------------ ANIMATED TITLE HELPERS ------------------
@@ -725,8 +850,12 @@ function renderClients() {
     deleteBtn.innerHTML = '&times;';
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
-      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, () => {
-        delete clientsData[name]; saveUserJson(); renderClients();
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, async () => {
+        // OPTIMIZED DELETE
+        await deleteClientFromFirestore(name); // <--- Add this
+        delete clientsData[name]; 
+        saveUserJson(); 
+        renderClients();
         if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
       });
     };
@@ -1750,11 +1879,15 @@ function makeEditable(element, type, parentIdx, sortedSets) {
     switch(type) {
       case "Client":
         if (clientsData[currentVal]) {
-            const data = clientsData[currentVal]; 
+            const data = clientsData[currentVal];
+            
+            // OPTIMIZED RENAME: Delete the old ID from Firestore
+            deleteClientFromFirestore(currentVal); // <--- Add this
+
             delete clientsData[currentVal]; 
             data.client_name = newVal; 
             clientsData[newVal] = data; 
-            if (selectedClient === currentVal) selectedClient = newVal; 
+            if (selectedClient === currentVal) selectedClient = newVal;
             renderClients(); 
         }
         break;
