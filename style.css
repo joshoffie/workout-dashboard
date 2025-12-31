@@ -182,24 +182,6 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 .item-list li > span { flex: 1; padding-right: 1rem;
   transition: color 0.3s ease; }
 
-/* ===== SETS TABLE ===== */
-.table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 1rem 2rem 1rem;
-}
-table { width: 100%; border-collapse: collapse; }
-table th, table td {
-  text-align: left; padding: 1rem; border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
-  white-space: nowrap; color: var(--color-text-muted); vertical-align: middle;
-}
-table th { background-color: var(--color-bg); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;
-}
-table tbody tr { background-color: var(--color-card); }
-table tbody tr:hover { background-color: #2a2a2a; }
-table tbody td { color: var(--color-text); font-weight: 500;
-}
-table th:last-child, table td:last-child { text-align: right; padding: 0.5rem; }
-tr.day-end-row td { border-bottom: 2px solid rgba(255, 204, 0, 0.6);
-}
 
 /* ===== DELETE & MOVE BUTTONS (UPDATED) ===== */
 .edit-actions {
@@ -1444,4 +1426,123 @@ input[type=range]:active::-webkit-slider-thumb {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+
+.set-list {
+  list-style: none;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.set-card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  overflow: hidden; /* Essential for expanding animation */
+  transition: all 0.2s ease;
+}
+
+/* 1. COLLAPSED VIEW (Main Line) */
+.set-summary {
+  display: grid;
+  /* Columns: IndexBadge | MainData(RepsxWeight) | MetaData(Vol/Date) */
+  grid-template-columns: 32px 1fr auto; 
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.set-index-badge {
+  width: 32px; height: 32px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700;
+  border: 1px solid var(--color-border);
+}
+
+.set-main-data {
+  display: flex; align-items: baseline; gap: 4px;
+}
+.set-reps-val {
+  font-size: 1.2rem; font-weight: 700; color: var(--color-green);
+  font-family: 'Fredoka', sans-serif;
+}
+.set-weight-val {
+  font-size: 1.1rem; font-weight: 600; color: var(--color-text);
+}
+.set-x { color: var(--color-text-muted); font-size: 0.9rem; margin: 0 2px; }
+
+.set-meta-data {
+  text-align: right;
+  display: flex; flex-direction: column;
+  justify-content: center;
+}
+.set-vol { font-size: 0.8rem; color: var(--color-red); font-weight: 600; }
+.set-date { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+
+/* 2. EXPANDED VIEW (Hidden by default) */
+.set-details {
+  max-height: 0;
+  opacity: 0;
+  background-color: rgba(0, 0, 0, 0.2); /* Slightly darker for contrast */
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  border-top: 1px solid transparent;
+}
+
+.set-card.expanded .set-details {
+  max-height: 300px; /* Arbitrary limit enough for content */
+  opacity: 1;
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.set-details-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem; color: var(--color-text-muted);
+}
+
+/* NOTES INPUT (The "Window") */
+.note-input-wrapper {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+.set-note-input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none; /* Prevent manual resize */
+}
+.set-note-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+.char-count {
+  position: absolute;
+  bottom: 6px; right: 8px;
+  font-size: 0.7rem; color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.set-actions-row {
+  display: flex; justify-content: flex-end; gap: 1rem;
+  margin-top: 0.5rem;
+}
+/* Re-use your existing delete button styles, just sized for this view */
+.btn-delete-set {
+  color: var(--color-red);
+  background: none; border: none;
+  font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; padding: 4px 8px;
 }
