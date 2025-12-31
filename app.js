@@ -490,60 +490,57 @@ function setTextAsChars(element, text) {
   }
 }
 
-// --- ROBUST FONT SIZING ENGINE ---
+// --- ROBUST FONT SIZING ENGINE (FIXED) ---
 function forceTitleResize(targetScreenId = currentScreen) {
   const screenEl = document.getElementById(targetScreenId);
   if (!screenEl) return;
-
   const title = screenEl.querySelector('.animated-title');
   if (!title) return;
 
   // 1. SAVE ORIGINAL STATE
-  // We need to know if it was hidden so we can put it back if needed
   const wasHidden = screenEl.classList.contains('hidden');
   const originalPosition = screenEl.style.position;
   const originalVisibility = screenEl.style.visibility;
   const originalDisplay = screenEl.style.display;
 
-  // 2. THE "PEEK" TRICK
-  // We force the screen to exist in the layout, but make it invisible.
-  // This allows us to measure width without the user seeing it.
+  // 2. THE "PEEK" TRICK (Measure invisible elements)
   if (wasHidden) {
     screenEl.classList.remove('hidden');
     screenEl.style.visibility = 'hidden'; 
     screenEl.style.display = 'block'; 
-    // We keep position absolute (from CSS) so it doesn't break page flow
   }
 
   // 3. PREPARE FOR MEASUREMENT
-  // Disable ellipses temporarily to get TRUE text width
+  // We explicitly turn off ellipsis during measurement AND for the final result
   title.style.whiteSpace = 'nowrap';
   title.style.overflow = 'visible';
-  title.style.textOverflow = 'clip';
+  title.style.textOverflow = 'clip'; // <--- CHANGED: Enforce clip to kill dots
   
   // Reset to max size
   title.style.fontSize = '1.75rem';
-
+  
   // 4. THE CALCULATION LOOP
-  // Check fit. Buffer +2px handles sub-pixel rendering differences.
   let currentSize = 1.75;
   const minSize = 0.85;
 
-  // Force a browser reflow (re-measure) to ensure the remove('hidden') took effect
+  // Force reflow
   void title.offsetWidth;
 
-  while ((title.scrollWidth > title.offsetWidth + 2) && currentSize > minSize) {
+  // <--- CHANGED: Added "- 4" buffer. 
+  // If the text is within 4px of the edge, we shrink it. 
+  // This prevents "just barely fitting" text from triggering ellipsis later.
+  while ((title.scrollWidth > (title.offsetWidth - 4)) && currentSize > minSize) {
     currentSize -= 0.1;
     title.style.fontSize = `${currentSize}rem`;
   }
 
   // 5. CLEANUP & RESTORE
-  // Restore CSS text rules
-  title.style.whiteSpace = '';
-  title.style.overflow = '';
-  title.style.textOverflow = '';
+  // We do NOT restore textOverflow to '' (which would bring back ellipsis from CSS)
+  title.style.whiteSpace = 'nowrap'; // Keep this locked
+  title.style.overflow = 'hidden';   // standard overflow hidden
+  title.style.textOverflow = 'clip'; // <--- CRITICAL FIX: Ensures "..." never appears
 
-  // If we forced it open, hide it again exactly as it was
+  // Restore screen visibility
   if (wasHidden) {
     screenEl.classList.add('hidden');
     screenEl.style.visibility = originalVisibility;
@@ -1005,10 +1002,18 @@ function selectSession(sessionObject) {
 
 const exerciseList = document.getElementById("exerciseList");
 document.getElementById("addExerciseBtn").onclick = () => {
-  if (!selectedSession) { alert("Select a session first"); return;
-  }
+  if (!selectedSession) { alert("Select a session first"); return; }
+  
   const name = prompt("Enter exercise name:");
   if (!name) return;
+
+  // <--- NEW: Validation Logic
+  if (name.length > 41) {
+    alert(`Exercise name is too long (${name.length} chars).\nPlease keep it under 41 characters.`);
+    return;
+  }
+  // -------------------------
+
   const ex = { exercise: name, sets: [] };
   selectedSession.exercises.push(ex);
   saveUserJson(); renderExercises();
@@ -1912,9 +1917,16 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
       case "Exercise":
         if (selectedSession) {
+            // <--- NEW: Validation Logic for Rename
+            if (newVal.length > 41) {
+                alert(`Exercise name is too long (${newVal.length} chars).\nPlease keep it under 41 characters.`);
+                return;
+            }
+            // -----------------------------------
+
             const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
             if(exerciseToEdit) {
-                exerciseToEdit.exercise = newVal; 
+                exerciseToEdit.exercise = newVal;
                 renderExercises(); 
             }
         }
