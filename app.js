@@ -1486,54 +1486,150 @@ function getLastSet() {
     return sortedSets[0];
 }
 
+// - Replace existing renderSets()
+
 function renderSets() {
-  setsTable.innerHTML = "";
+  const setsContainer = document.getElementById("setsList");
+  setsContainer.innerHTML = "";
+  
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
-  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  const setsByDay = new Map();
-  sortedSets.forEach(set => {
-    const setDate = new Date(set.timestamp);
-    const dayString = setDate.toDateString();
-    if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
-    setsByDay.get(dayString).push(set);
-  });
-  const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
-  const renderedSetsInOrder = [];
-  sortedDays.forEach((dayString, dayIndex) => {
-    const daySets = setsByDay.get(dayString);
-    daySets.forEach((s, setIdx) => {
-      const tr = document.createElement("tr");
-      if (setIdx === daySets.length - 1 && dayIndex < sortedDays.length - 1) {
-        tr.classList.add("day-end-row");
-      }
-      const originalIndex = selectedExercise.sets.indexOf(s);
-      tr.innerHTML = `<td>${setIdx + 1}</td><td>${s.reps}</td><td>${s.weight}</td><td>${s.volume}</td><td>${s.notes}</td><td>${new Date(s.timestamp).toLocaleString()}</td>`;
-      const deleteTd = document.createElement('td');
-      const deleteBtn = document.createElement('button');
+  
+  // Sort sets: Newest first
+  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  // NOTE: We are removing the "Group by Day" headers to save vertical space as requested.
+  // The date is now displayed on every card.
+
+  sortedSets.forEach((s, loopIdx) => {
+    // Determine the "visual index" (Set 1, Set 2...) based on reverse chronological order
+    // Or we can calculate true index based on the original array if you prefer chronological numbering.
+    // Let's stick to chronological numbering for the badge #.
+    const originalIndex = selectedExercise.sets.indexOf(s);
+    // Find how many sets are BEFORE this one in time to get its #
+    const setNumber = selectedExercise.sets.filter(x => new Date(x.timestamp) < new Date(s.timestamp)).length + 1;
+
+    // Format Date: "12/30"
+    const dateObj = new Date(s.timestamp);
+    const dateStr = dateObj.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' });
+    const fullTimeStr = dateObj.toLocaleString();
+
+    // Create Card
+    const li = document.createElement("li");
+    li.className = "set-card";
+
+    // 1. SUMMARY (Visible)
+    const summary = document.createElement("div");
+    summary.className = "set-summary";
+    summary.innerHTML = `
+      <div class="set-index-badge">${setNumber}</div>
+      <div class="set-main-data">
+        <span class="set-reps-val">${s.reps}</span>
+        <span class="set-x">x</span>
+        <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
+      </div>
+      <div class="set-meta-data">
+        <span class="set-vol">${s.volume} v</span>
+        <span class="set-date">${dateStr}</span>
+      </div>
+    `;
+
+    // 2. DETAILS (Hidden until expanded)
+    const details = document.createElement("div");
+    details.className = "set-details";
     
-      deleteBtn.className = 'btn-delete';
-      deleteBtn.innerHTML = '&times;';
-      deleteBtn.onclick = (e) => {
-        e.stopPropagation();
-        showDeleteConfirm(`Are you sure you want to delete set ${setIdx + 1} from this day?`, () => {
-          selectedExercise.sets.splice(originalIndex, 1);
-          saveUserJson(); renderSets();
-          // --- NEW LINE: Auto-exit edit mode after deleting ---
-          exitEditMode();
-        });
-      };
-      deleteTd.appendChild(deleteBtn);
-      tr.appendChild(deleteTd);
-      setsTable.appendChild(tr);
-      renderedSetsInOrder.push(s);
+    // Notes Logic
+    const currentNotes = s.notes || "";
+    
+    details.innerHTML = `
+      <div class="set-details-header">
+        <span>${fullTimeStr}</span>
+      </div>
+      <div class="note-input-wrapper">
+        <textarea class="set-note-input" placeholder="Add notes..." maxlength="40" rows="1">${currentNotes}</textarea>
+        <div class="char-count">${currentNotes.length}/40</div>
+      </div>
+      <div class="set-actions-row">
+        <button class="btn-delete-set">Delete Set</button>
+      </div>
+    `;
+
+    // --- INTERACTION LOGIC ---
+
+    // A. Expand Toggle (Clicking summary)
+    summary.onclick = () => {
+      // If Global Edit Mode is ON, we might want to trigger the old Reps/Weight edit prompts
+      if (editMode) {
+        // Trigger generic edit logic manually here if desired, 
+        // OR just allow expansion to edit notes. 
+        // Let's allow expansion because it offers a "Delete" button which is useful in Edit Mode.
+        li.classList.toggle("expanded");
+      } else {
+        // Normal behavior
+        // Collapse others? Optional. For now, just toggle this one.
+        li.classList.toggle("expanded");
+      }
+    };
+
+    // B. Note Saving (Auto-save on blur/change)
+    const noteInput = details.querySelector(".set-note-input");
+    const charCount = details.querySelector(".char-count");
+    
+    noteInput.addEventListener("input", (e) => {
+       const len = e.target.value.length;
+       charCount.textContent = `${len}/40`;
     });
+
+    noteInput.addEventListener("change", (e) => {
+       const newNote = e.target.value;
+       selectedExercise.sets[originalIndex].notes = newNote;
+       saveUserJson();
+       // Note: We don't re-render here to keep the UI stable while typing
+    });
+
+    // C. Delete Button
+    const delBtn = details.querySelector(".btn-delete-set");
+    delBtn.onclick = (e) => {
+       e.stopPropagation(); // Stop bubble
+       showDeleteConfirm(`Delete Set #${setNumber}?`, () => {
+         selectedExercise.sets.splice(originalIndex, 1);
+         saveUserJson();
+         renderSets();
+       });
+    };
+    
+    // D. Edit Reps/Weight (Legacy Edit Mode Hook)
+    // If user clicks the NUMBERS specifically while in Edit Mode
+    const mainDataDiv = summary.querySelector(".set-main-data");
+    mainDataDiv.onclick = (e) => {
+        if(editMode) {
+            e.stopPropagation(); // Don't expand
+            // Trigger edit flows
+            const newReps = prompt("Edit Reps:", s.reps);
+            if(newReps && newReps !== String(s.reps)) {
+                selectedExercise.sets[originalIndex].reps = parseInt(newReps);
+                selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+                saveUserJson(); renderSets();
+                return;
+            }
+            const newWeight = prompt("Edit Weight:", s.weight);
+            if(newWeight && newWeight !== String(s.weight)) {
+                selectedExercise.sets[originalIndex].weight = parseFloat(newWeight);
+                selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+                saveUserJson(); renderSets();
+            }
+        }
+    };
+
+    li.appendChild(summary);
+    li.appendChild(details);
+    setsContainer.appendChild(li);
   });
-  hookEditables(renderedSetsInOrder);
+
+  // Call the title logic
   runTitleOnlyLogic();
-    // --- NEW: Resume Timer if it exists ---
-  startRestTimer(false); // false = don't reset, just pick up where we left off
-  // -------------------------------------
+  // Resume timer logic
+  startRestTimer(false);
 }
 
 // ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
@@ -1963,15 +2059,9 @@ function hookEditables(sortedSets = []) {
   document.querySelectorAll("#clientList li > span").forEach(span => makeEditable(span, "Client"));
   document.querySelectorAll("#sessionList li > span").forEach((span, idx) => makeEditable(span, "Session"));
   document.querySelectorAll("#exerciseList li > span").forEach((span, idx) => makeEditable(span, "Exercise"));
-  let setRowIdx = 0;
-  setsTable.querySelectorAll("tr").forEach((tr) => {
-    const tds = tr.querySelectorAll("td");
-    if (tds.length < 5) return;
-    makeEditable(tds[1], "Set Reps", setRowIdx, sortedSets);
-    makeEditable(tds[2], "Set Weight", setRowIdx, sortedSets);
-    makeEditable(tds[4], "Set Notes", setRowIdx, sortedSets);
-    setRowIdx++;
-  });
+
+  // REMOVED THE SETS TABLE LOOP HERE
+  // Because renderSets() now handles its own edit logic internally (lines 142-160 in the code above).
 }
 let touchStartX = 0; let touchStartY = 0; let touchMoveX = 0; let touchMoveY = 0;
 const MIN_SWIPE_DISTANCE = 85;
