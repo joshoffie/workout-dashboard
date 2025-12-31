@@ -524,14 +524,6 @@ td .btn-delete {
   } }
 .char.animate-up { animation: float-up 2s ease-in-out !important; }
 .char.animate-down { animation: sink-down 2s ease-in-out !important; }
-.char:nth-child(1) { --char-index: 1;
-} .char:nth-child(2) { --char-index: 2; } .char:nth-child(3) { --char-index: 3; }
-.char:nth-child(4) { --char-index: 4; } .char:nth-child(5) { --char-index: 5;
-} .char:nth-child(6) { --char-index: 6; }
-.char:nth-child(7) { --char-index: 7; } .char:nth-child(8) { --char-index: 8; } .char:nth-child(9) { --char-index: 9;
-}
-.char:nth-child(10) { --char-index: 10; } .char:nth-child(11) { --char-index: 11; } .char:nth-child(12) { --char-index: 12;
-}
 
 
 /* =========================================
