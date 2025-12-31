@@ -1,4 +1,3 @@
-
 // =====================================================
 // DATA OPTIMIZATION & COMPRESSION HELPERS
 // =====================================================
@@ -2475,45 +2474,22 @@ let calcState = {
   plateStack: [] // <--- NEW: Stores the history (e.g., [45, 45, 10])
 };
 
-// - Replace openAddSetModal
-
 function openAddSetModal() {
-  // 1. Get Previous Data
-  const lastSet = getLastSet();
-  let initReps = '';
-  let initWeight = '';
-  let rAuto = false;
-  let wAuto = false;
-
-  if (lastSet) {
-      initReps = String(lastSet.reps);
-      initWeight = String(lastSet.weight);
-      rAuto = true;
-      wAuto = true;
-  }
-
-  // 2. Initialize State with Auto-Fill Flags
-  calcState = { 
-      step: 'reps', 
-      repsVal: initReps, 
-      weightVal: initWeight, 
-      plates: {}, 
-      plateStack: [],
-      repsAutoFilled: rAuto,   // <--- NEW FLAG
-      weightAutoFilled: wAuto  // <--- NEW FLAG
-  };
-
+  // Reset State
+  calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
   updateCalcUI();
   resetPlateCounters();
   if(addSetModal) addSetModal.classList.remove('hidden');
 
-  // --- TUTORIAL LOGIC ---
+  // --- NEW TUTORIAL LOGIC ---
   if (isTutorialMode) {
-      clearTutorialTips();
+      clearTutorialTips(); // Removes "Now, tap here to log a new set."
+      // Slight delay to ensure modal animation doesn't jitter the bubble
       setTimeout(() => {
           showTutorialTip('calcValue', 'Enter Reps.', -20);
       }, 300);
   }
+  // --------------------------
 }
 
 function closeAddSetModal() {
@@ -2625,43 +2601,25 @@ function updateCalcUI() {
 }
 
 // Handle Numpad Clicks
-ddocument.querySelectorAll('.num-btn').forEach(btn => {
+document.querySelectorAll('.num-btn').forEach(btn => {
   if (btn.id === 'calcBackspace') return;
 
   btn.onclick = (e) => {
     e.stopPropagation(); 
     const val = btn.dataset.val;
     
-    // Check which value we are editing
     let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
-    
-    // Check if we are in "Auto-Filled" mode for this step
-    const isAuto = calcState.step === 'reps' ? calcState.repsAutoFilled : calcState.weightAutoFilled;
 
-    if (isAuto) {
-        // <--- OVERWRITE BEHAVIOR
-        // If auto-filled, the first keypress wipes the old value entirely
-        currentStr = val;
-        
-        // Turn off the flag immediately
-        if (calcState.step === 'reps') calcState.repsAutoFilled = false;
-        else calcState.weightAutoFilled = false;
-        
-        // Clear plate stack if they typed manually on weight step
-        if (calcState.step === 'weight') calcState.plateStack = [];
-    } else {
-        // <--- STANDARD APPEND BEHAVIOR
-        if (val === '.' && currentStr.includes('.')) return;
-        if (currentStr === '0' && val !== '.') currentStr = val;
-        else currentStr += val;
-    }
+    if (val === '.' && currentStr.includes('.')) return;
+    if (currentStr === '0' && val !== '.') currentStr = val;
+    else currentStr += val;
 
-    // Save back to state
     if (calcState.step === 'reps') {
         calcState.repsVal = currentStr;
     } else {
         calcState.weightVal = currentStr;
-        if (!isAuto) calcState.plateStack = []; // Clear stack if manual typing occurs
+        // NEW: If user types manually, we clear the plate history because the number is now "custom"
+        calcState.plateStack = []; 
     }
 
     updateCalcUI();
@@ -2670,19 +2628,10 @@ ddocument.querySelectorAll('.num-btn').forEach(btn => {
 
 
 // Handle Plate Clicks
-// - Replace the plate-btn forEach block
-
 document.querySelectorAll('.plate-btn').forEach(btn => {
   btn.onclick = (e) => {
     const weight = parseFloat(btn.dataset.weight);
     
-    // <--- NEW: If Weight was Auto-Filled, clear it first
-    if (calcState.weightAutoFilled) {
-        calcState.weightVal = '0';
-        calcState.weightAutoFilled = false; 
-        // We don't need to clear calcState.plates because they are already empty on modal open
-    }
-
     // 1. Update UI Counter
     if (!calcState.plates[weight]) calcState.plates[weight] = 0;
     calcState.plates[weight]++;
@@ -2710,10 +2659,6 @@ const backspaceBtn = document.getElementById('calcBackspace');
 if (backspaceBtn) {
     backspaceBtn.onclick = (e) => {
         e.stopPropagation();
-        // <--- NEW: CLEAR AUTO FLAGS ON INTERACTION
-        if (calcState.step === 'reps') calcState.repsAutoFilled = false;
-        else calcState.weightAutoFilled = false;
-        // -----------------------------------------
 
         // SCENARIO 1: Undo a Plate (If we have history)
         if (calcState.step === 'weight' && calcState.plateStack.length > 0) {
