@@ -1486,8 +1486,6 @@ function getLastSet() {
     return sortedSets[0];
 }
 
-// - Replace renderSets()
-
 function renderSets() {
   const setsContainer = document.getElementById("setsList");
   setsContainer.innerHTML = "";
@@ -1495,35 +1493,30 @@ function renderSets() {
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
 
-  // 1. Sort sets Oldest -> Newest first so we can number them 1, 2, 3... correctly
+  // 1. Sort sets Oldest -> Newest (to determine chronological set #)
   const ascendingSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  // 2. Group by Day (Logic restored from your original code)
+  // 2. Group by Day
   const setsByDay = new Map();
   ascendingSets.forEach(set => {
     const dateObj = new Date(set.timestamp);
-    // Use simple date string for grouping key
     const dayString = dateObj.toDateString(); 
     if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
     setsByDay.get(dayString).push(set);
   });
 
-  // 3. Sort Days Newest -> Oldest (So top of list is today)
+  // 3. Sort Days Newest -> Oldest (Display order)
   const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
 
   // 4. Render
   sortedDays.forEach((dayString, dayIndex) => {
     const daySets = setsByDay.get(dayString);
 
-    // Render sets for this specific day
     daySets.forEach((s, setIdx) => {
       const originalIndex = selectedExercise.sets.indexOf(s);
       
-      // Date formatting
       const dateObj = new Date(s.timestamp);
-      // Short date (Dec 12)
       const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      // Full time string for expanded view
       const fullTimeStr = dateObj.toLocaleString();
 
       const li = document.createElement("li");
@@ -1533,7 +1526,8 @@ function renderSets() {
       const summary = document.createElement("div");
       summary.className = "set-summary";
       summary.innerHTML = `
-        <div class="set-index-badge">${setIdx + 1}</div> <div class="set-main-data">
+        <div class="set-index-badge">${setIdx + 1}</div>
+        <div class="set-main-data">
           <span class="set-reps-val">${s.reps}</span>
           <span class="set-x">x</span>
           <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
@@ -1563,21 +1557,16 @@ function renderSets() {
 
       // --- LOGIC: Expand Toggle ---
       summary.onclick = (e) => {
-        // IMPORTANT: If clicking the numbers in Edit Mode, DO NOT expand.
         if (editMode && e.target.closest('.set-main-data')) return;
-        
         li.classList.toggle("expanded");
       };
 
       // --- LOGIC: Editable Numbers (Reps/Weight) ---
-      // We attach the click listener to the container of the numbers
       const mainDataDiv = summary.querySelector('.set-main-data');
       mainDataDiv.onclick = (e) => {
           if (!editMode) return;
-          e.stopPropagation(); // Prevent card expansion
+          e.stopPropagation();
 
-          // Determine which number was clicked (Reps or Weight)
-          // We default to Reps if they miss the specific span, but try to be specific
           let type = 'reps';
           if (e.target.closest('.set-weight-val')) type = 'weight';
 
@@ -1585,17 +1574,19 @@ function renderSets() {
              const newReps = prompt("Edit Reps:", s.reps);
              if (newReps && newReps !== String(s.reps)) {
                  selectedExercise.sets[originalIndex].reps = parseInt(newReps);
-                 // Recalc Volume
                  selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-                 saveUserJson(); renderSets();
+                 saveUserJson(); 
+                 renderSets();
+                 exitEditMode(); // <--- AUTO-EXIT EDIT MODE
              }
           } else {
              const newWeight = prompt("Edit Weight:", s.weight);
              if (newWeight && newWeight !== String(s.weight)) {
                  selectedExercise.sets[originalIndex].weight = parseFloat(newWeight);
-                 // Recalc Volume
                  selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-                 saveUserJson(); renderSets();
+                 saveUserJson(); 
+                 renderSets();
+                 exitEditMode(); // <--- AUTO-EXIT EDIT MODE
              }
           }
       };
@@ -1626,7 +1617,6 @@ function renderSets() {
     });
 
     // 5. SEPARATOR LOGIC
-    // If this is NOT the last day in the list, add a yellow divider
     if (dayIndex < sortedDays.length - 1) {
       const divider = document.createElement("li");
       divider.className = "session-divider";
