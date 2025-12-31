@@ -490,7 +490,7 @@ function setTextAsChars(element, text) {
   }
 }
 
-// --- ROBUST FONT SIZING ENGINE (FIXED) ---
+// --- ROBUST FONT SIZING ENGINE (FIXED V2) ---
 function forceTitleResize(targetScreenId = currentScreen) {
   const screenEl = document.getElementById(targetScreenId);
   if (!screenEl) return;
@@ -503,22 +503,23 @@ function forceTitleResize(targetScreenId = currentScreen) {
   const originalVisibility = screenEl.style.visibility;
   const originalDisplay = screenEl.style.display;
 
-  // 2. THE "PEEK" TRICK (Measure invisible elements)
+  // 2. THE "PEEK" TRICK
   if (wasHidden) {
     screenEl.classList.remove('hidden');
-    screenEl.style.visibility = 'hidden'; 
-    screenEl.style.display = 'block'; 
+    screenEl.style.visibility = 'hidden';
+    screenEl.style.display = 'block';
   }
 
   // 3. PREPARE FOR MEASUREMENT
-  // We explicitly turn off ellipsis during measurement AND for the final result
+  // We MUST use 'hidden' here so offsetWidth represents the CONTAINER limit,
+  // not the content width.
   title.style.whiteSpace = 'nowrap';
-  title.style.overflow = 'visible';
-  title.style.textOverflow = 'clip'; // <--- CHANGED: Enforce clip to kill dots
+  title.style.overflow = 'hidden'; 
+  title.style.textOverflow = 'clip'; // Kills the "..." permanently
   
   // Reset to max size
   title.style.fontSize = '1.75rem';
-  
+
   // 4. THE CALCULATION LOOP
   let currentSize = 1.75;
   const minSize = 0.85;
@@ -526,21 +527,19 @@ function forceTitleResize(targetScreenId = currentScreen) {
   // Force reflow
   void title.offsetWidth;
 
-  // <--- CHANGED: Added "- 4" buffer. 
-  // If the text is within 4px of the edge, we shrink it. 
-  // This prevents "just barely fitting" text from triggering ellipsis later.
-  while ((title.scrollWidth > (title.offsetWidth - 4)) && currentSize > minSize) {
+  // Logic: If content (scrollWidth) is wider than container (offsetWidth), shrink.
+  // We allow a 1px buffer to prevent aggressive shrinking on perfect fits.
+  while ((title.scrollWidth > title.offsetWidth + 1) && currentSize > minSize) {
     currentSize -= 0.1;
     title.style.fontSize = `${currentSize}rem`;
   }
 
-  // 5. CLEANUP & RESTORE
-  // We do NOT restore textOverflow to '' (which would bring back ellipsis from CSS)
-  title.style.whiteSpace = 'nowrap'; // Keep this locked
-  title.style.overflow = 'hidden';   // standard overflow hidden
-  title.style.textOverflow = 'clip'; // <--- CRITICAL FIX: Ensures "..." never appears
+  // 5. RESTORE
+  // Ensure styles remain locked to prevent dots from returning
+  title.style.whiteSpace = 'nowrap';
+  title.style.overflow = 'hidden';
+  title.style.textOverflow = 'clip';
 
-  // Restore screen visibility
   if (wasHidden) {
     screenEl.classList.add('hidden');
     screenEl.style.visibility = originalVisibility;
@@ -1007,12 +1006,11 @@ document.getElementById("addExerciseBtn").onclick = () => {
   const name = prompt("Enter exercise name:");
   if (!name) return;
 
-  // <--- NEW: Validation Logic
+  // NEW: Character Limit Check
   if (name.length > 41) {
-    alert(`Exercise name is too long (${name.length} chars).\nPlease keep it under 41 characters.`);
+    alert(`Exercise name is too long (${name.length} chars).\nPlease limit to 41 characters.`);
     return;
   }
-  // -------------------------
 
   const ex = { exercise: name, sets: [] };
   selectedSession.exercises.push(ex);
