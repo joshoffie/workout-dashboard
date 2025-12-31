@@ -1486,7 +1486,7 @@ function getLastSet() {
     return sortedSets[0];
 }
 
-// - Replace existing renderSets()
+// - Replace renderSets()
 
 function renderSets() {
   const setsContainer = document.getElementById("setsList");
@@ -1494,141 +1494,147 @@ function renderSets() {
   
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
-  
-  // Sort sets: Newest first
-  const sortedSets = selectedExercise.sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
-  // NOTE: We are removing the "Group by Day" headers to save vertical space as requested.
-  // The date is now displayed on every card.
 
-  sortedSets.forEach((s, loopIdx) => {
-    // Determine the "visual index" (Set 1, Set 2...) based on reverse chronological order
-    // Or we can calculate true index based on the original array if you prefer chronological numbering.
-    // Let's stick to chronological numbering for the badge #.
-    const originalIndex = selectedExercise.sets.indexOf(s);
-    // Find how many sets are BEFORE this one in time to get its #
-    const setNumber = selectedExercise.sets.filter(x => new Date(x.timestamp) < new Date(s.timestamp)).length + 1;
+  // 1. Sort sets Oldest -> Newest first so we can number them 1, 2, 3... correctly
+  const ascendingSets = selectedExercise.sets.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-    // Format Date: "12/30"
-    const dateObj = new Date(s.timestamp);
-    const dateStr = dateObj.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' });
-    const fullTimeStr = dateObj.toLocaleString();
-
-    // Create Card
-    const li = document.createElement("li");
-    li.className = "set-card";
-
-    // 1. SUMMARY (Visible)
-    const summary = document.createElement("div");
-    summary.className = "set-summary";
-    summary.innerHTML = `
-      <div class="set-index-badge">${setNumber}</div>
-      <div class="set-main-data">
-        <span class="set-reps-val">${s.reps}</span>
-        <span class="set-x">x</span>
-        <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
-      </div>
-      <div class="set-meta-data">
-        <span class="set-vol">${s.volume} v</span>
-        <span class="set-date">${dateStr}</span>
-      </div>
-    `;
-
-    // 2. DETAILS (Hidden until expanded)
-    const details = document.createElement("div");
-    details.className = "set-details";
-    
-    // Notes Logic
-    const currentNotes = s.notes || "";
-    
-    details.innerHTML = `
-      <div class="set-details-header">
-        <span>${fullTimeStr}</span>
-      </div>
-      <div class="note-input-wrapper">
-        <textarea class="set-note-input" placeholder="Add notes..." maxlength="40" rows="1">${currentNotes}</textarea>
-        <div class="char-count">${currentNotes.length}/40</div>
-      </div>
-      <div class="set-actions-row">
-        <button class="btn-delete-set">Delete Set</button>
-      </div>
-    `;
-
-    // --- INTERACTION LOGIC ---
-
-    // A. Expand Toggle (Clicking summary)
-    summary.onclick = () => {
-      // If Global Edit Mode is ON, we might want to trigger the old Reps/Weight edit prompts
-      if (editMode) {
-        // Trigger generic edit logic manually here if desired, 
-        // OR just allow expansion to edit notes. 
-        // Let's allow expansion because it offers a "Delete" button which is useful in Edit Mode.
-        li.classList.toggle("expanded");
-      } else {
-        // Normal behavior
-        // Collapse others? Optional. For now, just toggle this one.
-        li.classList.toggle("expanded");
-      }
-    };
-
-    // B. Note Saving (Auto-save on blur/change)
-    const noteInput = details.querySelector(".set-note-input");
-    const charCount = details.querySelector(".char-count");
-    
-    noteInput.addEventListener("input", (e) => {
-       const len = e.target.value.length;
-       charCount.textContent = `${len}/40`;
-    });
-
-    noteInput.addEventListener("change", (e) => {
-       const newNote = e.target.value;
-       selectedExercise.sets[originalIndex].notes = newNote;
-       saveUserJson();
-       // Note: We don't re-render here to keep the UI stable while typing
-    });
-
-    // C. Delete Button
-    const delBtn = details.querySelector(".btn-delete-set");
-    delBtn.onclick = (e) => {
-       e.stopPropagation(); // Stop bubble
-       showDeleteConfirm(`Delete Set #${setNumber}?`, () => {
-         selectedExercise.sets.splice(originalIndex, 1);
-         saveUserJson();
-         renderSets();
-       });
-    };
-    
-    // D. Edit Reps/Weight (Legacy Edit Mode Hook)
-    // If user clicks the NUMBERS specifically while in Edit Mode
-    const mainDataDiv = summary.querySelector(".set-main-data");
-    mainDataDiv.onclick = (e) => {
-        if(editMode) {
-            e.stopPropagation(); // Don't expand
-            // Trigger edit flows
-            const newReps = prompt("Edit Reps:", s.reps);
-            if(newReps && newReps !== String(s.reps)) {
-                selectedExercise.sets[originalIndex].reps = parseInt(newReps);
-                selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-                saveUserJson(); renderSets();
-                return;
-            }
-            const newWeight = prompt("Edit Weight:", s.weight);
-            if(newWeight && newWeight !== String(s.weight)) {
-                selectedExercise.sets[originalIndex].weight = parseFloat(newWeight);
-                selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
-                saveUserJson(); renderSets();
-            }
-        }
-    };
-
-    li.appendChild(summary);
-    li.appendChild(details);
-    setsContainer.appendChild(li);
+  // 2. Group by Day (Logic restored from your original code)
+  const setsByDay = new Map();
+  ascendingSets.forEach(set => {
+    const dateObj = new Date(set.timestamp);
+    // Use simple date string for grouping key
+    const dayString = dateObj.toDateString(); 
+    if (!setsByDay.has(dayString)) setsByDay.set(dayString, []);
+    setsByDay.get(dayString).push(set);
   });
 
-  // Call the title logic
+  // 3. Sort Days Newest -> Oldest (So top of list is today)
+  const sortedDays = Array.from(setsByDay.keys()).sort((a, b) => new Date(b) - new Date(a));
+
+  // 4. Render
+  sortedDays.forEach((dayString, dayIndex) => {
+    const daySets = setsByDay.get(dayString);
+
+    // Render sets for this specific day
+    daySets.forEach((s, setIdx) => {
+      const originalIndex = selectedExercise.sets.indexOf(s);
+      
+      // Date formatting
+      const dateObj = new Date(s.timestamp);
+      // Short date (Dec 12)
+      const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      // Full time string for expanded view
+      const fullTimeStr = dateObj.toLocaleString();
+
+      const li = document.createElement("li");
+      li.className = "set-card";
+
+      // --- CARD HTML ---
+      const summary = document.createElement("div");
+      summary.className = "set-summary";
+      summary.innerHTML = `
+        <div class="set-index-badge">${setIdx + 1}</div> <div class="set-main-data">
+          <span class="set-reps-val">${s.reps}</span>
+          <span class="set-x">x</span>
+          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
+        </div>
+        <div class="set-meta-data">
+          <span class="set-vol">${s.volume} v</span>
+          <span class="set-date">${dateStr}</span>
+        </div>
+      `;
+
+      const details = document.createElement("div");
+      details.className = "set-details";
+      const currentNotes = s.notes || "";
+      
+      details.innerHTML = `
+        <div class="set-details-header">
+          <span>${fullTimeStr}</span>
+        </div>
+        <div class="note-input-wrapper">
+          <textarea class="set-note-input" placeholder="Add notes..." maxlength="40" rows="1">${currentNotes}</textarea>
+          <div class="char-count">${currentNotes.length}/40</div>
+        </div>
+        <div class="set-actions-row">
+          <button class="btn-delete-set">Delete Set</button>
+        </div>
+      `;
+
+      // --- LOGIC: Expand Toggle ---
+      summary.onclick = (e) => {
+        // IMPORTANT: If clicking the numbers in Edit Mode, DO NOT expand.
+        if (editMode && e.target.closest('.set-main-data')) return;
+        
+        li.classList.toggle("expanded");
+      };
+
+      // --- LOGIC: Editable Numbers (Reps/Weight) ---
+      // We attach the click listener to the container of the numbers
+      const mainDataDiv = summary.querySelector('.set-main-data');
+      mainDataDiv.onclick = (e) => {
+          if (!editMode) return;
+          e.stopPropagation(); // Prevent card expansion
+
+          // Determine which number was clicked (Reps or Weight)
+          // We default to Reps if they miss the specific span, but try to be specific
+          let type = 'reps';
+          if (e.target.closest('.set-weight-val')) type = 'weight';
+
+          if (type === 'reps') {
+             const newReps = prompt("Edit Reps:", s.reps);
+             if (newReps && newReps !== String(s.reps)) {
+                 selectedExercise.sets[originalIndex].reps = parseInt(newReps);
+                 // Recalc Volume
+                 selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+                 saveUserJson(); renderSets();
+             }
+          } else {
+             const newWeight = prompt("Edit Weight:", s.weight);
+             if (newWeight && newWeight !== String(s.weight)) {
+                 selectedExercise.sets[originalIndex].weight = parseFloat(newWeight);
+                 // Recalc Volume
+                 selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
+                 saveUserJson(); renderSets();
+             }
+          }
+      };
+
+      // --- LOGIC: Note Autosave ---
+      const noteInput = details.querySelector(".set-note-input");
+      const charCount = details.querySelector(".char-count");
+      noteInput.addEventListener("input", (e) => { charCount.textContent = `${e.target.value.length}/40`; });
+      noteInput.addEventListener("change", (e) => {
+         selectedExercise.sets[originalIndex].notes = e.target.value;
+         saveUserJson();
+      });
+
+      // --- LOGIC: Delete ---
+      const delBtn = details.querySelector(".btn-delete-set");
+      delBtn.onclick = (e) => {
+         e.stopPropagation();
+         showDeleteConfirm(`Delete Set ${setIdx + 1} from ${dateStr}?`, () => {
+           selectedExercise.sets.splice(originalIndex, 1);
+           saveUserJson();
+           renderSets();
+         });
+      };
+
+      li.appendChild(summary);
+      li.appendChild(details);
+      setsContainer.appendChild(li);
+    });
+
+    // 5. SEPARATOR LOGIC
+    // If this is NOT the last day in the list, add a yellow divider
+    if (dayIndex < sortedDays.length - 1) {
+      const divider = document.createElement("li");
+      divider.className = "session-divider";
+      setsContainer.appendChild(divider);
+    }
+  });
+
   runTitleOnlyLogic();
-  // Resume timer logic
   startRestTimer(false);
 }
 
