@@ -1546,3 +1546,38 @@ input[type=range]:active::-webkit-slider-thumb {
   font-size: 0.9rem; font-weight: 600;
   cursor: pointer; padding: 4px 8px;
 }
+
+/* - Add to the bottom */
+
+/* 1. VOLUME COLOR CHANGE (Red -> Green) */
+.set-vol { 
+  font-size: 0.8rem; 
+  color: var(--color-green); /* CHANGED FROM RED */
+  font-weight: 600; 
+}
+
+/* 2. YELLOW SESSION DIVIDER */
+/* This mimics your original tr.day-end-row logic but for cards */
+.session-divider {
+  height: 2px;
+  background-color: rgba(255, 204, 0, 0.6); /* Your original yellow */
+  margin: 1rem 0.5rem 1rem 0.5rem; /* Spacing around the line */
+  border-radius: 2px;
+}
+
+/* 3. EDIT MODE VISUAL CUES */
+/* When body has .edit-mode-active, show these elements are clickable */
+.edit-mode-active .set-reps-val,
+.edit-mode-active .set-weight-val {
+  color: var(--color-primary);
+  text-decoration: underline dashed 2px var(--color-primary);
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* Optional: Dim the things that AREN'T editable to focus attention */
+.edit-mode-active .set-index-badge,
+.edit-mode-active .set-vol,
+.edit-mode-active .set-date {
+  opacity: 0.5;
+}
