@@ -472,6 +472,7 @@ async function saveUserJson() {
 }
 
 // ------------------ ANIMATED TITLE HELPERS ------------------
+// 
 function setTextAsChars(element, text) {
   element.innerHTML = '';
   if (!text || text.trim() === '') {
@@ -481,13 +482,20 @@ function setTextAsChars(element, text) {
       element.appendChild(span);
       return;
   }
-  for (let char of text) {
+  
+  // UPDATED: Use forEach with index (i) to handle infinite length
+  text.split('').forEach((char, i) => {
     const span = document.createElement('span');
     span.className = 'char';
     span.textContent = char;
     if (char === ' ') span.innerHTML = '&nbsp;';
+    
+    // --- THE FIX: Inject the index variable directly ---
+    span.style.setProperty('--char-index', i + 1);
+    // --------------------------------------------------
+    
     element.appendChild(span);
-  }
+  });
 }
 
 // --- ROBUST FONT SIZING ENGINE (FIXED V2) ---
