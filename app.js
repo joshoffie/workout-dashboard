@@ -80,6 +80,7 @@ async function deleteClientFromFirestore(clientName) {
 let isTutorialMode = false;
 let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
 let tutorialStep = 0;
+let restTimerInterval = null; // Tracks the background interval
 
 // 1. FAKE DATA GENERATOR (8 Weeks of History)
 function generateTutorialData() {
@@ -266,6 +267,11 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
+    // --- NEW: Stop Timer UI when leaving Sets screen ---
+  if (currentScreen === SCREENS.SETS && targetScreenId !== SCREENS.SETS) {
+      stopRestTimerUI();
+  }
+  // ---------------------------------------------------
 
   // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
   // This runs while the element is still technically 'hidden' to the user
@@ -1514,6 +1520,9 @@ function renderSets() {
   });
   hookEditables(renderedSetsInOrder);
   runTitleOnlyLogic();
+    // --- NEW: Resume Timer if it exists ---
+  startRestTimer(false); // false = don't reset, just pick up where we left off
+  // -------------------------------------
 }
 
 // ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
@@ -2374,6 +2383,72 @@ function closeAddSetModal() {
 
 document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 
+// =====================================================
+// REST TIMER ENGINE
+// =====================================================
+
+function startRestTimer(reset = false) {
+    if (!selectedExercise) return;
+    
+    // Unique ID for this exercise's timer in LocalStorage
+    const timerKey = `restTimer_${selectedExercise.exercise}`;
+    
+    if (reset) {
+        // CASE 1: New Set Added -> Save NOW as the start time
+        const now = Date.now();
+        localStorage.setItem(timerKey, now);
+    }
+
+    // Clear any existing loop so we don't have doubles
+    if (restTimerInterval) clearInterval(restTimerInterval);
+
+    const timerEl = document.getElementById('restTimer');
+    const textEl = document.getElementById('restTimerText');
+    
+    // Immediate Update (Run once before interval starts to avoid 1s delay)
+    updateTimerUI(timerKey, timerEl, textEl);
+
+    // Start Loop
+    restTimerInterval = setInterval(() => {
+        updateTimerUI(timerKey, timerEl, textEl);
+    }, 1000);
+}
+
+function updateTimerUI(key, container, textSpan) {
+    const startTime = localStorage.getItem(key);
+    
+    // If no time saved, or user deleted it, hide timer
+    if (!startTime) {
+        container.classList.add('hidden');
+        if (restTimerInterval) clearInterval(restTimerInterval);
+        return;
+    }
+
+    const diff = Date.now() - parseInt(startTime);
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    // TIMEOUT: If > 30 minutes, stop tracking to save battery/sanity
+    if (minutes >= 30) {
+        container.classList.add('hidden');
+        if (restTimerInterval) clearInterval(restTimerInterval);
+        localStorage.removeItem(key); // Cleanup
+        return;
+    }
+
+    // Formatting: 00:00
+    const mStr = minutes.toString().padStart(2, '0');
+    const sStr = seconds.toString().padStart(2, '0');
+    
+    textSpan.textContent = `${mStr}:${sStr}`;
+    container.classList.remove('hidden');
+}
+
+function stopRestTimerUI() {
+    // Stops the visual update (CPU) but KEEPS the timestamp in storage
+    if (restTimerInterval) clearInterval(restTimerInterval);
+}
+
 // Update the Screen & Button Text based on State
 function updateCalcUI() {
   if (calcState.step === 'reps') {
@@ -2563,6 +2638,9 @@ function finishAddSet() {
   saveUserJson(); 
   renderSets();
   closeAddSetModal();
+    // --- NEW: Start/Reset Timer ---
+  startRestTimer(true); // true = reset to 00:00
+  // -----------------------------
 
   // --- RE-INSERTING YOUR TUTORIAL LOGIC ---
   if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
