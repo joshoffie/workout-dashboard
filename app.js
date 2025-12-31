@@ -1,3 +1,4 @@
+
 // =====================================================
 // DATA OPTIMIZATION & COMPRESSION HELPERS
 // =====================================================
@@ -1312,16 +1313,8 @@ function updateSpiralData(sets) {
     initSpiralElements();
     spiralState.fullHistory = processSetsForSpiral(sets);
 
-    // --- Check for empty history and reset UI to zeros ---
+    // --- NEW: Check for empty history and reset UI to zeros ---
     if (spiralState.fullHistory.length === 0) {
-        
-        // <--- FIX: Clear internal state arrays so interaction doesn't find old data --->
-        spiralState.visibleHistory = [];
-        spiralState.workoutVisualPoints = [];
-        spiralState.hitPathLookup = [];
-        spiralState.totalLen = 0;
-        // -----------------------------------------------------------------------------
-
         // 1. Reset Text Stats (Banner)
         const stats = ['sets', 'reps', 'volume', 'wpr'];
         stats.forEach(stat => {
@@ -1337,12 +1330,9 @@ function updateSpiralData(sets) {
                 spiralEl.setAttribute('class', 'comparison-spiral neutral'); 
             }
             if (dataEl) { 
+                // Display zeros as requested
                 dataEl.textContent = '0 (0 / 0%)'; 
                 dataEl.className = 'stat-data neutral'; 
-                // Reset Smart Fit styles
-                dataEl.style.fontSize = "";
-                dataEl.style.whiteSpace = "nowrap"; 
-                dataEl.style.display = "";
             }
         });
 
@@ -1351,10 +1341,9 @@ function updateSpiralData(sets) {
         if (spiralState.markersGroup) spiralState.markersGroup.innerHTML = '';
         if (spiralState.timeBall) spiralState.timeBall.style.display = 'none';
         if (spiralState.dateDisplay) spiralState.dateDisplay.textContent = 'No Data';
-
+        
         // 3. Ensure banner is visible but neutral
         document.getElementById('comparisonBanner').classList.remove('hidden');
-        
         return;
     }
     // ----------------------------------------------------------
