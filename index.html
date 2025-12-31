@@ -109,7 +109,10 @@
         <h2 id="exerciseSetsTitle" class="animated-title" aria-label="Exercise"><span id="exerciseSetsTitleSpan">Exercise</span></h2>
         <span id="selectedExerciseLabel" class="hidden"></span>
       </div>
-      <div class="action-header">
+      <div class="action-header" style="flex-direction: column; gap: 0.5rem; padding-bottom: 0.5rem;">
+          <div id="restTimer" class="rest-timer hidden">
+            <span class="timer-icon">⏱</span> <span id="restTimerText">00:00</span>
+        </div>
         <div class="btn-group">
           <button id="showGraphBtn" class="btn btn-secondary">Show Graph</button>
           <button id="addSetBtn" class="btn btn-primary">+ Add Set</button>
