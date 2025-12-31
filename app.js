@@ -1202,7 +1202,7 @@ function setSpiralRange(range) {
     if(range === '12w') days = 84;
     const cutoff = now - (days * 24 * 60 * 60 * 1000);
     spiralState.visibleHistory = spiralState.fullHistory.filter(w => w.timestamp >= cutoff);
-    if (range === 'all') { spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.2;
+    if (range === 'all') { spiralState.RADIAL_PITCH = 52; spiralState.TURNS = 3.1;
     } 
     else {
         spiralState.RADIAL_PITCH = 90;
