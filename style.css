@@ -178,6 +178,9 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   }
 }
 
+.item-list li:active {
+  background-color: var(--color-primary-light);
+}
 /* --- UPDATED: REMOVED GREY > SYMBOL --- */
 .item-list li::after {
   content: none !important;
