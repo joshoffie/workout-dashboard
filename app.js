@@ -2456,29 +2456,28 @@ const calcUnitEl = document.getElementById('calcUnit');
 
 // State for the calculator
 let calcState = {
-  step: 'reps', // 'reps' or 'weight'
+  activeField: 'reps', // Changed from 'step'. Now 'reps' or 'weight'
   repsVal: '',
   weightVal: '',
-  plates: {}, // Stores counts: { '45': 1, '25': 2 }
-  plateStack: [] // <--- NEW: Stores the history (e.g., [45, 45, 10])
+  plates: {}, 
+  plateStack: [] 
 };
 
 function openAddSetModal() {
-  // Reset State
-  calcState = { step: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
+  // Initialize with Reps selected
+  calcState = { activeField: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
+  
+  // Set default weight if previous sets exist (Quality of Life)
+  const lastSet = getLastSet(); // You have this helper already
+  if (lastSet) {
+      calcState.weightVal = String(lastSet.weight);
+      // If we autofilled weight, maybe user just wants to type reps?
+      // Keeps focus on 'reps' by default.
+  }
+
   updateCalcUI();
   resetPlateCounters();
   if(addSetModal) addSetModal.classList.remove('hidden');
-
-  // --- NEW TUTORIAL LOGIC ---
-  if (isTutorialMode) {
-      clearTutorialTips(); // Removes "Now, tap here to log a new set."
-      // Slight delay to ensure modal animation doesn't jitter the bubble
-      setTimeout(() => {
-          showTutorialTip('calcValue', 'Enter Reps.', -20);
-      }, 300);
-  }
-  // --------------------------
 }
 
 function closeAddSetModal() {
@@ -2555,39 +2554,54 @@ function stopRestTimerUI() {
 
 // Update the Screen & Button Text based on State
 function updateCalcUI() {
-  if (calcState.step === 'reps') {
-    calcModeLabel.textContent = "REPS";
-    calcValueEl.textContent = calcState.repsVal || '0';
-    calcUnitEl.textContent = "";
-    if (plateGrid) plateGrid.classList.add('hidden');
+    // 1. Update Text Displays
+    const rDisp = document.getElementById('repsDisplay');
+    const wDisp = document.getElementById('weightDisplay');
     
-    if (calcActionBtn) {
-        calcActionBtn.textContent = "Next";
-        calcActionBtn.classList.remove('btn-success'); 
-        calcActionBtn.classList.add('btn-primary');
-        calcActionBtn.style.backgroundColor = "";
-    }
-  } else {
-    // --- NEW SAFETY CHECK ---
-    // If the screen is empty or 0, wipe all plate counters immediately
-    if (!calcState.weightVal || parseFloat(calcState.weightVal) === 0) {
-        resetPlateCounters();
-        calcState.plateStack = []; 
-    }
-    // ------------------------
+    if(rDisp) rDisp.textContent = calcState.repsVal || '0';
+    if(wDisp) wDisp.textContent = calcState.weightVal || '0';
 
-    calcModeLabel.textContent = "WEIGHT";
-    calcValueEl.textContent = calcState.weightVal || '0';
-    calcUnitEl.textContent = "lbs";
-    if (plateGrid) plateGrid.classList.remove('hidden');
+    // 2. Highlight Active Field
+    const rBox = document.getElementById('repsBox');
+    const wBox = document.getElementById('weightBox');
     
+    // Reset classes
+    if(rBox) rBox.className = 'calc-field-box';
+    if(wBox) wBox.className = 'calc-field-box';
+
+    // Apply Active State
+    if (calcState.activeField === 'reps' && rBox) {
+        rBox.classList.add('active');
+    } else if (calcState.activeField === 'weight' && wBox) {
+        wBox.classList.add('active');
+    }
+
+    // 3. Update Save Button Style
+    // We always show "Save Set" now, no more "Next"
     if (calcActionBtn) {
         calcActionBtn.textContent = "Save Set";
-        calcActionBtn.classList.remove('btn-primary'); 
-        calcActionBtn.style.backgroundColor = "var(--color-green)"; 
+        // Check if valid to visually indicate readiness
+        const isValid = calcState.repsVal && calcState.weightVal;
+        
+        if (isValid) {
+             calcActionBtn.style.backgroundColor = "var(--color-green)";
+             calcActionBtn.classList.remove('btn-primary');
+        } else {
+             calcActionBtn.style.backgroundColor = "";
+             calcActionBtn.classList.add('btn-primary');
+        }
     }
-  }
 }
+
+// NEW: Add Click Listeners for the Split Boxes (Add this right after updateCalcUI)
+document.getElementById('repsBox').onclick = () => {
+    calcState.activeField = 'reps';
+    updateCalcUI();
+};
+document.getElementById('weightBox').onclick = () => {
+    calcState.activeField = 'weight';
+    updateCalcUI();
+};
 
 // Handle Numpad Clicks
 document.querySelectorAll('.num-btn').forEach(btn => {
@@ -2597,18 +2611,22 @@ document.querySelectorAll('.num-btn').forEach(btn => {
     e.stopPropagation(); 
     const val = btn.dataset.val;
     
-    let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
+    // Determine which value we are editing based on activeField
+    let currentStr = calcState.activeField === 'reps' ? calcState.repsVal : calcState.weightVal;
 
     if (val === '.' && currentStr.includes('.')) return;
+    
+    // Prevent multiple leading zeros
     if (currentStr === '0' && val !== '.') currentStr = val;
     else currentStr += val;
 
-    if (calcState.step === 'reps') {
-        calcState.repsVal = currentStr;
+    // Save back to state
+    if (calcState.activeField === 'reps') {
+        // Validation: Cap reps at 999 to prevent UI break
+        if (currentStr.length <= 3) calcState.repsVal = currentStr;
     } else {
         calcState.weightVal = currentStr;
-        // NEW: If user types manually, we clear the plate history because the number is now "custom"
-        calcState.plateStack = []; 
+        calcState.plateStack = []; // Clear plates if manually typing weight
     }
 
     updateCalcUI();
@@ -2619,25 +2637,22 @@ document.querySelectorAll('.num-btn').forEach(btn => {
 // Handle Plate Clicks
 document.querySelectorAll('.plate-btn').forEach(btn => {
   btn.onclick = (e) => {
+    calcState.activeField = 'weight';
+
     const weight = parseFloat(btn.dataset.weight);
     
     // 1. Update UI Counter
     if (!calcState.plates[weight]) calcState.plates[weight] = 0;
     calcState.plates[weight]++;
-    
-    const badge = btn.querySelector('.plate-count');
-    if(badge) {
-        badge.textContent = `x${calcState.plates[weight]}`;
-        badge.classList.remove('hidden');
-    }
+    // ... existing badge logic ...
 
     // 2. Add to Total Weight
     let currentWeight = parseFloat(calcState.weightVal) || 0;
     currentWeight += weight;
     calcState.weightVal = currentWeight.toString();
 
-    // 3. Add to History Stack
-    calcState.plateStack.push(weight); 
+    // 3. Add to History
+    calcState.plateStack.push(weight);
     
     updateCalcUI();
   };
@@ -2702,35 +2717,21 @@ function resetPlateCounters() {
 
 // Handle "Next" / "Save" Action
 calcActionBtn.onclick = () => {
-  if (calcState.step === 'reps') {
-    // Validation
-    if (!calcState.repsVal) return;
-    
-    // Move to Weight
-    calcState.step = 'weight';
-    updateCalcUI();
-
-    // --- NEW TUTORIAL LOGIC ---
-    if (isTutorialMode) {
-        clearTutorialTips(); // Removes "Enter Reps"
-        setTimeout(() => {
-            showTutorialTip('calcValue', 'Enter Weight.', -20);
-        }, 300);
-    }
-    // --------------------------
-
-  } else {
-    // SAVE LOGIC
+    // Direct Save
     finishAddSet();
-  }
 };
 
 function finishAddSet() {
   const reps = parseInt(calcState.repsVal);
   const weight = parseFloat(calcState.weightVal);
   
+  // Validation: Ensure both are entered
   if (isNaN(reps) || isNaN(weight)) {
-    alert("Please enter valid numbers");
+    // Visual feedback: shake or alert
+    if (isNaN(reps)) calcState.activeField = 'reps';
+    else calcState.activeField = 'weight';
+    updateCalcUI();
+    alert("Please enter both Reps and Weight.");
     return;
   }
 
