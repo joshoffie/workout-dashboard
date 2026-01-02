@@ -2456,28 +2456,62 @@ const calcUnitEl = document.getElementById('calcUnit');
 
 // State for the calculator
 let calcState = {
-  activeField: 'reps', // Changed from 'step'. Now 'reps' or 'weight'
+  activeField: 'reps', 
   repsVal: '',
   weightVal: '',
   plates: {}, 
-  plateStack: [] 
+  plateStack: [],
+  // NEW: Track if the current values are auto-filled
+  isAutoFilled: { reps: false, weight: false }
 };
 
 function openAddSetModal() {
   // Initialize with Reps selected
-  calcState = { activeField: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
-  
-  // Set default weight if previous sets exist (Quality of Life)
-  const lastSet = getLastSet(); // You have this helper already
+  calcState = { 
+      activeField: 'reps', 
+      repsVal: '', 
+      weightVal: '', 
+      plates: {}, 
+      plateStack: [],
+      isAutoFilled: { reps: false, weight: false } 
+  };
+
+  // Set default weight AND reps if previous sets exist
+  const lastSet = getLastSet();
+
   if (lastSet) {
-      calcState.weightVal = String(lastSet.weight);
-      // If we autofilled weight, maybe user just wants to type reps?
-      // Keeps focus on 'reps' by default.
+      calcState.repsVal = String(lastSet.reps);     // NEW: Auto-fill Reps
+      calcState.weightVal = String(lastSet.weight); // Existing: Auto-fill Weight
+      
+      // NEW: Mark both as auto-filled so next interaction clears them
+      calcState.isAutoFilled.reps = true;
+      calcState.isAutoFilled.weight = true;
   }
 
   updateCalcUI();
   resetPlateCounters();
   if(addSetModal) addSetModal.classList.remove('hidden');
+}
+
+// HELPER: surgical clear of auto-filled data on first touch
+function checkAndClearAutoFill() {
+    const field = calcState.activeField;
+    
+    // Only proceed if this specific field is currently flagged as auto-filled
+    if (calcState.isAutoFilled && calcState.isAutoFilled[field]) {
+        
+        // 1. Clear the values
+        if (field === 'reps') {
+            calcState.repsVal = '';
+        } else {
+            calcState.weightVal = '';
+            calcState.plateStack = [];
+            resetPlateCounters(); // Visual reset for plates
+        }
+
+        // 2. Remove the flag so subsequent typing works normally
+        calcState.isAutoFilled[field] = false;
+    }
 }
 
 function closeAddSetModal() {
@@ -2609,6 +2643,7 @@ document.querySelectorAll('.num-btn').forEach(btn => {
 
   btn.onclick = (e) => {
     e.stopPropagation(); 
+    checkAndClearAutoFill();
     const val = btn.dataset.val;
     
     // Determine which value we are editing based on activeField
@@ -2638,6 +2673,7 @@ document.querySelectorAll('.num-btn').forEach(btn => {
 document.querySelectorAll('.plate-btn').forEach(btn => {
   btn.onclick = (e) => {
     calcState.activeField = 'weight';
+    checkAndClearAutoFill();
 
     const weight = parseFloat(btn.dataset.weight);
     
@@ -2663,6 +2699,13 @@ const backspaceBtn = document.getElementById('calcBackspace');
 if (backspaceBtn) {
     backspaceBtn.onclick = (e) => {
         e.stopPropagation();
+        
+        // 1. SURGICAL ADDITION: If auto-filled, backspace clears EVERYTHING instantly.
+        if (calcState.isAutoFilled && calcState.isAutoFilled[calcState.activeField]) {
+            checkAndClearAutoFill(); // This clears the value to ""
+            updateCalcUI();          // Render the empty state
+            return;                  // Stop execution here
+        }
 
         // SCENARIO 1: Undo a Plate (If we have history)
         if (calcState.step === 'weight' && calcState.plateStack.length > 0) {
