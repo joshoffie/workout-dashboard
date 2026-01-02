@@ -2455,24 +2455,40 @@ const plateGrid = document.getElementById('plateGrid');
 const calcUnitEl = document.getElementById('calcUnit');
 
 // State for the calculator
+// State for the calculator
 let calcState = {
-  activeField: 'reps', // Changed from 'step'. Now 'reps' or 'weight'
+  activeField: 'reps', 
   repsVal: '',
   weightVal: '',
   plates: {}, 
-  plateStack: [] 
+  plateStack: [],
+  // NEW: Flags to track if values are auto-filled ("Ghost" values)
+  isRepsGhost: false, 
+  isWeightGhost: false
 };
 
 function openAddSetModal() {
-  // Initialize with Reps selected
-  calcState = { activeField: 'reps', repsVal: '', weightVal: '', plates: {}, plateStack: [] };
+  // 1. Initialize State
+  calcState = { 
+      activeField: 'reps', 
+      repsVal: '', 
+      weightVal: '', 
+      plates: {}, 
+      plateStack: [],
+      isRepsGhost: false,
+      isWeightGhost: false
+  };
   
-  // Set default weight if previous sets exist (Quality of Life)
-  const lastSet = getLastSet(); // You have this helper already
+  // 2. Auto-fill Data from Last Set
+  const lastSet = getLastSet();
   if (lastSet) {
+      [cite_start]// Fill BOTH Reps and Weight [cite: 305, 908]
+      calcState.repsVal = String(lastSet.reps);
       calcState.weightVal = String(lastSet.weight);
-      // If we autofilled weight, maybe user just wants to type reps?
-      // Keeps focus on 'reps' by default.
+      
+      // Mark them as "Ghosts" so they disappear on first touch
+      calcState.isRepsGhost = true;
+      calcState.isWeightGhost = true;
   }
 
   updateCalcUI();
@@ -2607,26 +2623,38 @@ document.getElementById('weightBox').onclick = () => {
 document.querySelectorAll('.num-btn').forEach(btn => {
   if (btn.id === 'calcBackspace') return;
 
-  btn.onclick = (e) => {
+btn.onclick = (e) => {
     e.stopPropagation(); 
     const val = btn.dataset.val;
     
-    // Determine which value we are editing based on activeField
+    // --- GHOST LOGIC START ---
+    // If this field is a "ghost" (auto-filled), clear it instantly on first press
+    if (calcState.activeField === 'reps' && calcState.isRepsGhost) {
+        calcState.repsVal = ''; 
+        calcState.isRepsGhost = false; // Flag consumed
+    }
+    else if (calcState.activeField === 'weight' && calcState.isWeightGhost) {
+        calcState.weightVal = '';
+        calcState.plateStack = []; // Clear internal history
+        calcState.isWeightGhost = false; // Flag consumed
+    }
+    // --- GHOST LOGIC END ---
+
+    // Standard Logic (Appends the number)
     let currentStr = calcState.activeField === 'reps' ? calcState.repsVal : calcState.weightVal;
 
     if (val === '.' && currentStr.includes('.')) return;
     
-    // Prevent multiple leading zeros
-    if (currentStr === '0' && val !== '.') currentStr = val;
+    // Prevent multiple leading zeros (unless typing decimal)
+    if ((currentStr === '0' || currentStr === '') && val !== '.') currentStr = val;
     else currentStr += val;
 
     // Save back to state
     if (calcState.activeField === 'reps') {
-        // Validation: Cap reps at 999 to prevent UI break
         if (currentStr.length <= 3) calcState.repsVal = currentStr;
     } else {
         calcState.weightVal = currentStr;
-        calcState.plateStack = []; // Clear plates if manually typing weight
+        calcState.plateStack = []; // Clear plates if manually typing
     }
 
     updateCalcUI();
@@ -2639,12 +2667,27 @@ document.querySelectorAll('.plate-btn').forEach(btn => {
   btn.onclick = (e) => {
     calcState.activeField = 'weight';
 
+    // --- GHOST LOGIC START ---
+    if (calcState.isWeightGhost) {
+        calcState.weightVal = '0'; // Reset to 0 so we add fresh
+        calcState.plateStack = [];
+        calcState.plates = {}; // Reset counts
+        resetPlateCounters();  // Clear visual badges
+        calcState.isWeightGhost = false;
+    }
+    // --- GHOST LOGIC END ---
+
     const weight = parseFloat(btn.dataset.weight);
     
     // 1. Update UI Counter
     if (!calcState.plates[weight]) calcState.plates[weight] = 0;
     calcState.plates[weight]++;
-    // ... existing badge logic ...
+    
+    const badge = btn.querySelector('.plate-count');
+    if (badge) {
+        badge.textContent = `x${calcState.plates[weight]}`;
+        badge.classList.remove('hidden');
+    }
 
     // 2. Add to Total Weight
     let currentWeight = parseFloat(calcState.weightVal) || 0;
@@ -2663,6 +2706,19 @@ const backspaceBtn = document.getElementById('calcBackspace');
 if (backspaceBtn) {
     backspaceBtn.onclick = (e) => {
         e.stopPropagation();
+        // If backspace is hit on a ghost value, clear it entirely
+        if (calcState.activeField === 'reps' && calcState.isRepsGhost) {
+            calcState.repsVal = '';
+            calcState.isRepsGhost = false;
+            updateCalcUI();
+            return;
+        }
+        if (calcState.activeField === 'weight' && calcState.isWeightGhost) {
+            calcState.weightVal = '';
+            calcState.isWeightGhost = false;
+            updateCalcUI();
+            return;
+        }
 
         // SCENARIO 1: Undo a Plate (If we have history)
         if (calcState.step === 'weight' && calcState.plateStack.length > 0) {
