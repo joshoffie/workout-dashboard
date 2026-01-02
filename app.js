@@ -2877,3 +2877,296 @@ function exitEditMode() {
   const btn = document.getElementById("editToggleBtn");
   if(btn) btn.textContent = "Edit";
 }
+
+// =====================================================
+// CALCULATOR & ADD SET LOGIC
+// =====================================================
+
+const addSetModal = document.getElementById('addSetModal');
+const calcCloseBtn = document.getElementById('calcCloseBtn');
+const calcActionBtn = document.getElementById('calcActionBtn');
+const backspaceBtn = document.getElementById('calcBackspaceBtn');
+
+// State for the calculator
+let calcState = {
+  activeField: 'reps', 
+  repsVal: '',
+  weightVal: '',
+  plates: {}, 
+  plateStack: [],
+  isRepsGhost: false, 
+  isWeightGhost: false
+};
+
+// 1. OPEN MODAL
+const addSetBtn = document.getElementById("addSetBtn");
+if (addSetBtn) {
+    addSetBtn.onclick = () => {
+      openAddSetModal();
+    };
+}
+
+function openAddSetModal() {
+  if (!addSetModal) return;
+
+  // Initialize State
+  calcState = { 
+      activeField: 'reps', 
+      repsVal: '', 
+      weightVal: '', 
+      plates: {}, 
+      plateStack: [],
+      isRepsGhost: false,
+      isWeightGhost: false
+  };
+  
+  // Auto-fill Data from Last Set
+  const lastSet = getLastSet();
+  if (lastSet) {
+      calcState.repsVal = String(lastSet.reps);
+      calcState.weightVal = String(lastSet.weight);
+      calcState.isRepsGhost = true;
+      calcState.isWeightGhost = true;
+  }
+
+  updateCalcUI();
+  resetPlateCounters();
+  addSetModal.classList.remove('hidden');
+}
+
+// 2. CLOSE MODAL
+if (calcCloseBtn) {
+    calcCloseBtn.onclick = () => {
+        addSetModal.classList.add('hidden');
+    };
+}
+
+// 3. SWITCH FOCUS (Reps vs Weight)
+const repsBox = document.getElementById('repsBox');
+const weightBox = document.getElementById('weightBox');
+
+if (repsBox) {
+    repsBox.onclick = () => {
+        calcState.activeField = 'reps';
+        updateCalcUI();
+    };
+}
+if (weightBox) {
+    weightBox.onclick = () => {
+        calcState.activeField = 'weight';
+        updateCalcUI();
+    };
+}
+
+// 4. UPDATE UI
+function updateCalcUI() {
+    // A. Update Text Displays
+    const rDisp = document.getElementById('repsDisplay');
+    const wDisp = document.getElementById('weightDisplay');
+    
+    if(rDisp) rDisp.textContent = calcState.repsVal || '0';
+    if(wDisp) wDisp.textContent = calcState.weightVal || '0';
+
+    // B. Highlight Active Field
+    if(repsBox) repsBox.className = 'calc-field-box';
+    if(weightBox) weightBox.className = 'calc-field-box';
+
+    if (calcState.activeField === 'reps' && repsBox) {
+        repsBox.classList.add('active');
+    } else if (calcState.activeField === 'weight' && weightBox) {
+        weightBox.classList.add('active');
+    }
+
+    // C. Update Save Button
+    if (calcActionBtn) {
+        calcActionBtn.textContent = "Save Set";
+        const isValid = calcState.repsVal && calcState.weightVal;
+        
+        if (isValid) {
+             calcActionBtn.style.backgroundColor = "var(--color-green)";
+             calcActionBtn.classList.remove('btn-primary');
+        } else {
+             calcActionBtn.style.backgroundColor = "";
+             calcActionBtn.classList.add('btn-primary');
+        }
+    }
+}
+
+// 5. NUMPAD HANDLER
+document.querySelectorAll('.num-btn').forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation(); 
+    const val = btn.dataset.val;
+    
+    // --- GHOST LOGIC START ---
+    if (calcState.activeField === 'reps' && calcState.isRepsGhost) {
+        calcState.repsVal = ''; 
+        calcState.isRepsGhost = false; 
+    }
+    else if (calcState.activeField === 'weight' && calcState.isWeightGhost) {
+        calcState.weightVal = '';
+        calcState.plateStack = []; 
+        calcState.isWeightGhost = false; 
+    }
+    // --- GHOST LOGIC END ---
+
+    let currentStr = calcState.activeField === 'reps' ? calcState.repsVal : calcState.weightVal;
+
+    if (val === '.' && currentStr.includes('.')) return;
+    
+    // Prevent multiple leading zeros
+    if ((currentStr === '0' || currentStr === '') && val !== '.') currentStr = val;
+    else currentStr += val;
+
+    // Save back to state
+    if (calcState.activeField === 'reps') {
+        if (currentStr.length <= 3) calcState.repsVal = currentStr;
+    } else {
+        calcState.weightVal = currentStr;
+        calcState.plateStack = []; 
+    }
+
+    updateCalcUI();
+  };
+});
+
+// 6. PLATE HANDLER
+document.querySelectorAll('.plate-btn').forEach(btn => {
+  btn.onclick = (e) => {
+    calcState.activeField = 'weight';
+
+    // --- GHOST LOGIC START ---
+    if (calcState.isWeightGhost) {
+        calcState.weightVal = '0'; 
+        calcState.plateStack = [];
+        calcState.plates = {}; 
+        resetPlateCounters();  
+        calcState.isWeightGhost = false;
+    }
+    // --- GHOST LOGIC END ---
+
+    const weight = parseFloat(btn.dataset.weight);
+    
+    // Update Counter UI
+    if (!calcState.plates[weight]) calcState.plates[weight] = 0;
+    calcState.plates[weight]++;
+    
+    const badge = btn.querySelector('.plate-count');
+    if (badge) {
+        badge.textContent = `x${calcState.plates[weight]}`;
+        badge.classList.remove('hidden');
+    }
+
+    // Add to Total Weight
+    let currentWeight = parseFloat(calcState.weightVal) || 0;
+    currentWeight += weight;
+    calcState.weightVal = currentWeight.toString();
+
+    // Add to History
+    calcState.plateStack.push(weight);
+    
+    updateCalcUI();
+  };
+});
+
+function resetPlateCounters() {
+    document.querySelectorAll('.plate-count').forEach(el => el.classList.add('hidden'));
+}
+
+// 7. BACKSPACE HANDLER
+if (backspaceBtn) {
+    backspaceBtn.onclick = (e) => {
+        e.stopPropagation();
+
+        // --- GHOST LOGIC START ---
+        if (calcState.activeField === 'reps' && calcState.isRepsGhost) {
+            calcState.repsVal = '';
+            calcState.isRepsGhost = false;
+            updateCalcUI();
+            return;
+        }
+        if (calcState.activeField === 'weight' && calcState.isWeightGhost) {
+            calcState.weightVal = '';
+            calcState.isWeightGhost = false;
+            updateCalcUI();
+            return;
+        }
+        // --- GHOST LOGIC END ---
+
+        // SCENARIO 1: Undo a Plate
+        if (calcState.activeField === 'weight' && calcState.plateStack.length > 0) {
+            const lastPlate = calcState.plateStack.pop();
+            let currentWeight = parseFloat(calcState.weightVal) || 0;
+            currentWeight -= lastPlate;
+            calcState.weightVal = currentWeight > 0 ? currentWeight.toString() : '';
+            
+            // Decrement Badge
+            if (calcState.plates[lastPlate] > 0) {
+                calcState.plates[lastPlate]--;
+                const plateBtn = document.querySelector(`.plate-btn[data-weight="${lastPlate}"]`);
+                if (plateBtn) {
+                    const badge = plateBtn.querySelector('.plate-count');
+                    if (calcState.plates[lastPlate] > 0) {
+                        badge.textContent = `x${calcState.plates[lastPlate]}`;
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            }
+        } 
+        // SCENARIO 2: Normal Character Delete
+        else {
+            let currentStr = calcState.activeField === 'reps' ? calcState.repsVal : calcState.weightVal;
+            currentStr = currentStr.slice(0, -1);
+            
+            if (calcState.activeField === 'reps') calcState.repsVal = currentStr;
+            else calcState.weightVal = currentStr;
+        }
+        
+        updateCalcUI();
+    };
+}
+
+// 8. SAVE SET HANDLER
+if (calcActionBtn) {
+    calcActionBtn.onclick = () => {
+        finishAddSet();
+    };
+}
+
+function finishAddSet() {
+  const reps = parseInt(calcState.repsVal);
+  const weight = parseFloat(calcState.weightVal);
+  
+  if (isNaN(reps) || isNaN(weight)) {
+    if (isNaN(reps)) calcState.activeField = 'reps';
+    else calcState.activeField = 'weight';
+    updateCalcUI();
+    alert("Please enter both Reps and Weight.");
+    return;
+  }
+  
+  const newSet = {
+    reps: reps,
+    weight: weight,
+    volume: reps * weight,
+    notes: "",
+    timestamp: new Date().toISOString()
+  };
+  
+  if (!selectedExercise.sets) selectedExercise.sets = [];
+  selectedExercise.sets.push(newSet);
+  
+  saveUserJson();
+  renderSets();
+  
+  addSetModal.classList.add('hidden');
+  
+  // Tutorial Logic
+  if (isTutorialMode && tutorialStep === 0) {
+      tutorialStep = 1;
+      clearTutorialTips();
+      document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => showTutorialTip('showGraphBtn', 'Great! Now tap "Show Graph" to see your progress.', 20), 500);
+  }
+}
