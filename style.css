@@ -1303,6 +1303,57 @@ input[type=range]:active::-webkit-slider-thumb {
   letter-spacing: 1px;
 }
 
+/* SPLIT HEADER STYLES */
+.calc-split-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.calc-field-box {
+  flex: 1;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 70px; /* Tall enough for easy tapping */
+}
+
+/* The Active "Selected" State */
+.calc-field-box.active {
+  border-color: var(--color-primary);
+  background: rgba(0, 122, 255, 0.1); /* Subtle blue tint */
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.field-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.field-value {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.75rem;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+/* Adjust the existing header to only hold the close button */
+.calc-header {
+  justify-content: flex-end !important; /* Push close button to right */
+  margin-bottom: 0.5rem !important;
+  min-height: 30px;
+}
+
 .calc-display {
   background: var(--color-bg);
   padding: 0.5rem 1rem; /* Slimmer display */
