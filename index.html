@@ -199,25 +199,28 @@
     <div id="addSetModal" class="overlay hidden">
   <div class="calculator-modal">
     <div class="calc-header">
-      <span id="calcModeLabel">REPS</span>
       <button id="calcCloseBtn" class="btn-icon" style="font-size: 1.5rem;">&times;</button>
     </div>
     
-    <div class="calc-display">
-      <span id="calcValue">0</span>
-      <span id="calcUnit" class="calc-unit"></span>
+    <div class="calc-split-row">
+      <div id="repsBox" class="calc-field-box active">
+        <span class="field-label">REPS</span>
+        <span id="repsDisplay" class="field-value">0</span>
+      </div>
+      <div id="weightBox" class="calc-field-box">
+        <span class="field-label">WEIGHT (lbs)</span>
+        <span id="weightDisplay" class="field-value">0</span>
+      </div>
     </div>
 
-    <div id="plateGrid" class="plate-grid hidden">
-      <button class="plate-btn small" data-weight="2.5">2.5<span class="plate-count hidden">x0</span></button>
-      <button class="plate-btn small" data-weight="5">5<span class="plate-count hidden">x0</span></button>
-      
-      <button class="plate-btn" data-weight="10">10<span class="plate-count hidden">x0</span></button>
-      <button class="plate-btn" data-weight="25">25<span class="plate-count hidden">x0</span></button>
-      <button class="plate-btn" data-weight="35">35<span class="plate-count hidden">x0</span></button>
-      <button class="plate-btn" data-weight="45">45<span class="plate-count hidden">x0</span></button>
+    <div id="plateGrid" class="plate-grid">
+       <button class="plate-btn small" data-weight="2.5">2.5<span class="plate-count hidden">x0</span></button>
+       <button class="plate-btn small" data-weight="5">5<span class="plate-count hidden">x0</span></button>
+       <button class="plate-btn" data-weight="10">10<span class="plate-count hidden">x0</span></button>
+       <button class="plate-btn" data-weight="25">25<span class="plate-count hidden">x0</span></button>
+       <button class="plate-btn" data-weight="35">35<span class="plate-count hidden">x0</span></button>
+       <button class="plate-btn" data-weight="45">45<span class="plate-count hidden">x0</span></button>
     </div>
-
     <div class="numpad-grid">
       <button class="num-btn" data-val="1">1</button>
       <button class="num-btn" data-val="2">2</button>
