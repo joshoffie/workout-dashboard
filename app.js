@@ -2699,33 +2699,32 @@ const backspaceBtn = document.getElementById('calcBackspace');
 if (backspaceBtn) {
     backspaceBtn.onclick = (e) => {
         e.stopPropagation();
-        
-        // 1. SURGICAL ADDITION: If auto-filled, backspace clears EVERYTHING instantly.
+
+        // 1. AUTO-FILL CHECK (From previous step)
         if (calcState.isAutoFilled && calcState.isAutoFilled[calcState.activeField]) {
-            checkAndClearAutoFill(); // This clears the value to ""
-            updateCalcUI();          // Render the empty state
-            return;                  // Stop execution here
+            checkAndClearAutoFill();
+            updateCalcUI();
+            return;
         }
 
-        // SCENARIO 1: Undo a Plate (If we have history)
-        if (calcState.step === 'weight' && calcState.plateStack.length > 0) {
+        // SCENARIO 1: Undo a Plate (Only if Weight is active AND we have plate history)
+        // FIX: Changed 'calcState.step' to 'calcState.activeField'
+        if (calcState.activeField === 'weight' && calcState.plateStack.length > 0) {
             
             // 1. Remove the last added plate from history
-            const removedWeight = calcState.plateStack.pop(); 
-            
+            const removedWeight = calcState.plateStack.pop();
+
             // 2. Subtract from total
             let currentWeight = parseFloat(calcState.weightVal) || 0;
             currentWeight -= removedWeight;
             
-            // Floating point math safety (prevents 135 - 45 = 89.99999)
+            // Floating point math safety
             currentWeight = Math.round(currentWeight * 100) / 100;
-            
             calcState.weightVal = currentWeight > 0 ? currentWeight.toString() : "";
 
-            // 3. Decrement the visual "x1" counter for that specific plate
+            // 3. Decrement the visual "x1" counter
             if (calcState.plates[removedWeight] > 0) {
                 calcState.plates[removedWeight]--;
-                
                 const plateBtn = document.querySelector(`.plate-btn[data-weight="${removedWeight}"]`);
                 if (plateBtn) {
                     const badge = plateBtn.querySelector('.plate-count');
@@ -2743,11 +2742,19 @@ if (backspaceBtn) {
         }
 
         // SCENARIO 2: Normal Backspace (Delete last digit)
-        let currentStr = calcState.step === 'reps' ? calcState.repsVal : calcState.weightVal;
+        // FIX: Changed 'calcState.step' to 'calcState.activeField'
+        let currentStr = calcState.activeField === 'reps' ? calcState.repsVal : calcState.weightVal;
+        
+        // Safety check to ensure it's a string
+        currentStr = String(currentStr || "");
         currentStr = currentStr.slice(0, -1);
 
-        if (calcState.step === 'reps') calcState.repsVal = currentStr;
-        else calcState.weightVal = currentStr;
+        // FIX: Changed 'calcState.step' to 'calcState.activeField'
+        if (calcState.activeField === 'reps') {
+            calcState.repsVal = currentStr;
+        } else {
+            calcState.weightVal = currentStr;
+        }
 
         updateCalcUI();
     };
