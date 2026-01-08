@@ -82,6 +82,23 @@ let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
 let tutorialStep = 0;
 let restTimerInterval = null; // Tracks the background interval
 
+// =====================================================
+// SETTINGS STATE MANAGEMENT (NEW)
+// =====================================================
+let userSettings = {
+    units: 'lbs',         // 'lbs' or 'kg'
+    enableColors: true,   // true = Logic On, false = All White
+    enableAnimations: true // true = Dancing, false = Static
+};
+
+// Helper to get unit label
+function getUnitLabel() {
+    return userSettings.units === 'lbs' ? 'lbs' : 'kg';
+}
+function getUnitRatioLabel() {
+    return userSettings.units === 'lbs' ? 'lb/r' : 'kg/r';
+}
+
 // 1. FAKE DATA GENERATOR (8 Weeks of History)
 function generateTutorialData() {
   const now = new Date();
@@ -385,6 +402,15 @@ async function loadUserJson() {
   clientsData = {}; // Clear memory
 
   try {
+      // 1. LOAD SETTINGS FIRST (NEW)
+      const settingsDoc = await db.collection("users").doc(uid).get();
+      if (settingsDoc.exists && settingsDoc.data().settings) {
+          userSettings = { ...userSettings, ...settingsDoc.data().settings };
+      } else {
+          // Default if no settings found
+          userSettings = { units: 'lbs', enableColors: true, enableAnimations: true };
+      }
+      if(typeof updateSettingsUI === 'function') updateSettingsUI();
       // 1. CHECK NEW SYSTEM FIRST (users/{uid}/clients)
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       const newSnap = await newCollectionRef.get();
@@ -448,27 +474,56 @@ async function loadUserJson() {
 async function saveUserJson() {
   if (isTutorialMode) return;
   if (!auth.currentUser) return;
-  
+
   const uid = auth.currentUser.uid;
   const batch = db.batch();
+
+  // 1. Save Settings (Root Doc) - NEW
+  const userDocRef = db.collection("users").doc(uid);
+  batch.set(userDocRef, { settings: userSettings }, { merge: true });
+
+  // 2. Save Clients (Subcollection)
   const profilesRef = db.collection("users").doc(uid).collection("clients");
 
   // Loop through all clients in memory
   Object.values(clientsData).forEach(clientObj => {
-      // 1. Optimize (Strip ColorData, Compress Sets)
       const optimizedData = cleanAndMinifyClient(clientObj);
-      
-      // 2. Queue Update
       const docRef = profilesRef.doc(clientObj.client_name);
       batch.set(docRef, optimizedData);
   });
 
-  // 3. Commit all writes at once
   try {
       await batch.commit();
   } catch (err) {
       console.error("Save failed:", err);
   }
+}
+
+// NEW: Helper to Wipe All Data (For Unit Switch)
+async function wipeAllUserData() {
+    if (!auth.currentUser) return;
+    const uid = auth.currentUser.uid;
+    const batch = db.batch();
+
+    // 1. Delete all client docs in Firestore
+    const profilesRef = db.collection("users").doc(uid).collection("clients");
+    const snapshot = await profilesRef.get();
+    snapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    // 2. Clear Local Memory
+    clientsData = {};
+    selectedClient = null;
+    selectedSession = null;
+    selectedExercise = null;
+
+    // 3. Save Settings (Unit change needs to persist)
+    const userDocRef = db.collection("users").doc(uid);
+    batch.set(userDocRef, { settings: userSettings }, { merge: true });
+
+    await batch.commit();
+    renderClients(); 
 }
 
 // ------------------ ANIMATED TITLE HELPERS ------------------
@@ -559,6 +614,21 @@ function forceTitleResize(targetScreenId = currentScreen) {
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
+        // LOGIC CHECK: Colors Off?
+    if (!userSettings.enableColors) {
+       element.querySelectorAll('.char').forEach(char => {
+           char.style.color = 'var(--color-text)';
+       });
+       // If animations are ALSO off, we return here.
+       if (!userSettings.enableAnimations) return;
+    }
+    
+    // If animations are OFF (but colors might be on)
+    if (!userSettings.enableAnimations) {
+        // We continue to apply colors, but we force the "mood" to calm 
+        // or prevent adding the animation classes below.
+        // Easiest fix: Just allow the code to run, but strip animation classes at the end.
+    }
 
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
@@ -575,7 +645,9 @@ function applyTitleStyling(element, text, colorData) {
   }
 
   const animClass = getRandomAnimationClass(mood);
-  targetElement.classList.add(mood);
+  if (userSettings.enableAnimations) {
+    targetElement.classList.add(mood);
+}   
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -883,6 +955,28 @@ function renderClients() {
     clientList.appendChild(li);
   });
   const clientsTitle = document.getElementById('clientsScreenTitle');
+    // === NEW: APPEND SETTINGS ROW AT THE BOTTOM ===
+  const settingsLi = document.createElement("li");
+  settingsLi.className = "settings-row"; 
+  settingsLi.style.cursor = "pointer";
+
+  const iconDiv = document.createElement("div");
+  iconDiv.className = "settings-icon";
+  iconDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+
+  const textDiv = document.createElement("div");
+  textDiv.className = "settings-text";
+  textDiv.textContent = "Settings";
+
+  settingsLi.appendChild(iconDiv);
+  settingsLi.appendChild(textDiv);
+
+  settingsLi.onclick = (e) => {
+      e.stopPropagation();
+      openSettingsModal(); // We will define this next
+  };
+
+  clientList.appendChild(settingsLi);
   applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
   hookEditables();
 }
@@ -1530,7 +1624,7 @@ function renderSets() {
         <div class="set-main-data">
           <span class="set-reps-val">${s.reps}</span>
           <span class="set-x">x</span>
-          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
+          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">${getUnitLabel()}</span></span>
         </div>
         <div class="set-meta-data">
           <span class="set-vol">${s.volume} v</span>
@@ -1886,8 +1980,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   switch(statName) {
     case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
     case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
-    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
-    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} ${getUnitLabel()}`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} ${getUnitRatioLabel()}`; break;
   }
   
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
@@ -2624,6 +2718,8 @@ function updateCalcUI() {
              calcActionBtn.style.backgroundColor = "";
              calcActionBtn.classList.add('btn-primary');
         }
+    const weightLabel = document.querySelector('#weightBox .field-label');
+    if (weightLabel) weightLabel.textContent = `WEIGHT (${getUnitLabel()})`;
     }
 }
 
@@ -2870,4 +2966,68 @@ function exitEditMode() {
   document.body.classList.remove('edit-mode-active');
   const btn = document.getElementById("editToggleBtn");
   if(btn) btn.textContent = "Edit";
+}
+
+// =====================================================
+// SETTINGS UI LOGIC
+// =====================================================
+const settingsModal = document.getElementById('settingsModal');
+const unitToggle = document.getElementById('unitToggle');
+const colorToggle = document.getElementById('colorToggle');
+const animToggle = document.getElementById('animToggle');
+
+function openSettingsModal() {
+    updateSettingsUI();
+    settingsModal.classList.remove('hidden');
+}
+
+document.getElementById('closeSettingsBtn').onclick = () => {
+    settingsModal.classList.add('hidden');
+};
+
+function updateSettingsUI() {
+    unitToggle.checked = (userSettings.units === 'kg'); // Checked = KG
+    colorToggle.checked = userSettings.enableColors;
+    animToggle.checked = userSettings.enableAnimations;
+}
+
+// 1. UNIT TOGGLE (DANGER)
+unitToggle.onclick = async (e) => {
+    e.preventDefault(); // Stop immediate toggle, wait for confirmation
+    const willBeKg = !unitToggle.checked; // If it WAS unchecked (lbs), it WILL be checked (kg)
+
+    const confirmWipe = confirm(`WARNING: Switching to ${willBeKg ? 'Kilograms' : 'Pounds'} will DELETE ALL existing profile data to prevent unit conflicts.\n\nAre you sure you want to proceed?`);
+
+    if (confirmWipe) {
+        userSettings.units = willBeKg ? 'kg' : 'lbs';
+        unitToggle.checked = willBeKg;
+        await wipeAllUserData();
+    }
+};
+
+// 2. COLOR TOGGLE
+colorToggle.onclick = () => {
+    userSettings.enableColors = colorToggle.checked;
+    saveUserJson(); 
+    refreshCurrentView();
+};
+
+// 3. ANIMATION TOGGLE
+animToggle.onclick = () => {
+    userSettings.enableAnimations = animToggle.checked;
+    saveUserJson(); 
+    refreshCurrentView();
+};
+
+// 4. NEW LOGOUT HANDLER
+document.getElementById('settingsLogoutBtn').onclick = async () => {
+    settingsModal.classList.add('hidden');
+    await auth.signOut();
+};
+
+function refreshCurrentView() {
+    if (currentScreen === SCREENS.CLIENTS) renderClients();
+    else if (currentScreen === SCREENS.SESSIONS) renderSessions();
+    else if (currentScreen === SCREENS.EXERCISES) renderExercises();
+    else if (currentScreen === SCREENS.SETS) { renderSets(); runTitleOnlyLogic(); }
 }
