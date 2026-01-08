@@ -259,7 +259,8 @@ const SCREENS = {
   SESSIONS: 'sessionsDiv',
   EXERCISES: 'exercisesDiv',
   SETS: 'setsDiv',
-  GRAPH: 'graphContainer'
+  GRAPH: 'graphContainer',
+  SETTINGS: 'settingsDiv' // <--- ADD THIS
 };
 let currentScreen = SCREENS.CLIENTS;
 
@@ -283,6 +284,12 @@ function navigateTo(targetScreenId, direction = 'forward') {
     case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
+    case SCREENS.SETTINGS: // <--- ADD THIS CASE
+      const settingsTitle = document.getElementById('settingsScreenTitle');
+      if(settingsTitle && typeof applyTitleStyling === 'function') {
+         applyTitleStyling(settingsTitle, 'Settings', null);
+      }
+      break;
   }
 
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
@@ -326,6 +333,33 @@ document.getElementById('backToSetsFromGraphBtn').onclick = () => {
   navigateTo(SCREENS.SETS, 'back');
 };
 
+// [app.js] Add this logic for the new Settings system
+
+// 1. Open Settings
+if(settingsBtn) {
+    settingsBtn.onclick = () => {
+        // Prevent opening if in Tutorial mode
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) return;
+        navigateTo(SCREENS.SETTINGS, 'forward');
+    };
+}
+
+// 2. Back Button in Settings (Returns to Profile list)
+document.getElementById('backToClientsFromSettingsBtn').onclick = () => {
+    navigateTo(SCREENS.CLIENTS, 'back');
+};
+
+// 3. Logout Action (Inside Settings)
+document.getElementById('settingsLogoutBtn').onclick = async () => {
+    try {
+        await auth.signOut();
+        // Return to home screen, Auth listener will handle the Login Modal appearing
+        navigateTo(SCREENS.CLIENTS, 'back'); 
+    } catch (err) {
+        console.error("Logout failed", err);
+    }
+};
+
 // ------------------ AUTH ------------------
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -341,15 +375,17 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     modal.classList.add("hidden");
-    loginBtn.classList.add("hidden");
-    logoutBtn.classList.remove("hidden");
+    // Show Settings button when logged in
+    if(settingsBtn) settingsBtn.classList.remove("hidden");
+    
     userLabel.textContent = `Logged in as ${user.displayName}`;
     await loadUserJson();
     renderClients();
   } else {
     modal.classList.remove("hidden");
-    loginBtn.classList.remove("hidden");
-    logoutBtn.classList.add("hidden");
+    // Hide Settings button when logged out
+    if(settingsBtn) settingsBtn.classList.add("hidden");
+    
     userLabel.textContent = "";
     clientsData = {};
     selectedClient = null;
