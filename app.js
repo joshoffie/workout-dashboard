@@ -2936,3 +2936,68 @@ function exitEditMode() {
   const btn = document.getElementById("editToggleBtn");
   if(btn) btn.textContent = "Edit";
 }
+
+// =====================================================
+// SETTINGS ENGINE (COLORS & ANIMATIONS)
+// =====================================================
+
+const settingColorToggle = document.getElementById('settingColorToggle');
+const settingAnimToggle = document.getElementById('settingAnimToggle');
+
+// 1. Initialize Settings (Run on App Load)
+function initSettings() {
+    // Check LocalStorage (Default to 'true' if null)
+    const savedColors = localStorage.getItem('trunk_setting_colors');
+    const savedAnims = localStorage.getItem('trunk_setting_anims');
+
+    // Logic: If the value is "false", we DISABLE features. 
+    // Defaults: We assume enabled unless specifically set to "false".
+    
+    // --- COLORS ---
+    if (savedColors === 'false') {
+        document.body.classList.add('no-colors');
+        if(settingColorToggle) settingColorToggle.checked = false;
+    } else {
+        document.body.classList.remove('no-colors');
+        if(settingColorToggle) settingColorToggle.checked = true;
+    }
+
+    // --- ANIMATIONS ---
+    if (savedAnims === 'false') {
+        document.body.classList.add('no-animations');
+        if(settingAnimToggle) settingAnimToggle.checked = false;
+    } else {
+        document.body.classList.remove('no-animations');
+        if(settingAnimToggle) settingAnimToggle.checked = true;
+    }
+}
+
+// 2. Event Listeners for Toggles
+if (settingColorToggle) {
+    settingColorToggle.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            document.body.classList.remove('no-colors');
+            localStorage.setItem('trunk_setting_colors', 'true');
+        } else {
+            document.body.classList.add('no-colors');
+            localStorage.setItem('trunk_setting_colors', 'false');
+        }
+    });
+}
+
+if (settingAnimToggle) {
+    settingAnimToggle.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            document.body.classList.remove('no-animations');
+            localStorage.setItem('trunk_setting_anims', 'true');
+        } else {
+            document.body.classList.add('no-animations');
+            localStorage.setItem('trunk_setting_anims', 'false');
+        }
+    });
+}
+
+// 3. Run Initialization immediately
+initSettings();
