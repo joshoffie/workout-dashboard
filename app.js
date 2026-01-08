@@ -332,7 +332,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
-  }
+  
   // ---------------------------------------------------
 
   // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
