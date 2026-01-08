@@ -151,6 +151,26 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 #userLabel { font-size: 0.9rem;
   color: var(--color-text-muted); display: none; }
 
+#settingsBtn {
+  color: var(--color-text);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+#settingsBtn:hover {
+  transform: rotate(45deg); /* Nice little rotation effect */
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+/* Ensure settings items (like Logout) justify space properly */
+#settingsDiv .item-list li {
+  justify-content: space-between;
+}
+
 /* ===== MAIN APP CONTAINER ===== */
 .app-container { padding: 0; margin: 0 auto; position: relative;
   overflow-x: hidden; min-height: 100vh; }
