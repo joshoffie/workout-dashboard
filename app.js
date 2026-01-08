@@ -2026,17 +2026,14 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
   if (!arrowEl || !dataEl) return 'neutral';
   
   // 1. CALCULATE STATUS (Using Base Unit LBS)
-  // We use LBS here so the red/green logic is always consistent with the database
   const status = calculateStatStatus(currentValueLBS, previousValueLBS);
 
-    // 2. RESTORE ARROWS (Fixing the blank arrow issue)
+  // 2. RESTORE ARROWS (Fixing the blank arrow issue)
   let arrow = '—';
   if (status === 'increase') arrow = '↑';
-  else if (status === 'decrease') arrow = '↓';
+  else if (status === 'decrease') arrow = '↓'; 
 
-  // 2. CONVERT FOR DISPLAY
-  // Sets and Reps are just counts (no unit conversion needed)
-  // Volume and W/R are weights (need LBS -> KG conversion if mode is active)
+  // 3. CONVERT FOR DISPLAY
   const isWeightMetric = (statName === 'volume' || statName === 'wpr');
   
   const displayCurrent = isWeightMetric 
@@ -2044,13 +2041,11 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
       : currentValueLBS;
 
   const diffLBS = currentValueLBS - previousValueLBS;
-  
-  // Convert the difference too (e.g. "+5 lbs" becomes "+2.27 kg")
   const displayDiff = isWeightMetric
       ? UNIT_mode.toDisplay(diffLBS)
       : diffLBS;
 
-  // 3. CALCULATE PERCENTAGE (Unit Independent)
+  // 4. CALCULATE PERCENTAGE
   let percentageChange = 0;
   if (previousValueLBS !== 0) {
       percentageChange = (diffLBS / previousValueLBS) * 100;
@@ -2058,8 +2053,8 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
       percentageChange = 100;
   }
 
-  // 4. FORMAT STRINGS
-  const unitLabel = UNIT_mode.getLabel(); // Returns 'kg' or 'lbs'
+  // 5. FORMAT STRINGS
+  const unitLabel = UNIT_mode.getLabel(); // 'kg' or 'lbs'
   const changeSign = displayDiff > 0 ? '+' : '';
   
   let currentString = '';
@@ -2071,7 +2066,7 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
         currentString = `${formatNum(displayCurrent)} Reps`; 
         break;
     case 'volume': 
-        // Use toLocaleString() for volume (e.g. "1,200") to make it readable
+        // Readable volume (e.g. "1,200")
         currentString = `${Math.round(displayCurrent).toLocaleString()} ${unitLabel}`; 
         break;
     case 'wpr': 
@@ -2080,33 +2075,31 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
   }
   
   let changeString = `(${changeSign}${formatNum(displayDiff)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
-  
-  // Override for neutral
   if (status === 'neutral') changeString = `(0 / 0%)`;
 
-  // 5. APPLY COLORS & TEXT
+  // 6. APPLY TO DOM
   const classesToRemove = ['increase', 'decrease', 'neutral'];
   
-  // Arrow
-  arrowEl.innerHTML = status === 'neutral' ? '—' : ''; // Keep your simplified arrow logic
+  // Apply Arrow
+  arrowEl.innerHTML = arrow; 
   arrowEl.classList.remove(...classesToRemove); 
   arrowEl.classList.add(status);
   
-  // Spiral SVG (if present)
+  // Apply Spiral Color (if exists)
   if(spiralEl) { 
       spiralEl.classList.remove(...classesToRemove);
-      void spiralEl.offsetWidth; // Force Reflow for animation restart
+      void spiralEl.offsetWidth; // Force Reflow
       spiralEl.classList.add(status);
   }
   
-  // Data Text
+  // Apply Text Data
   const fullText = `${currentString} ${changeString}`;
   dataEl.textContent = fullText;
   dataEl.classList.remove(...classesToRemove); 
   dataEl.classList.add(status);
 
-  // 6. SMART FIT SYSTEM (Layout Protection)
-  // This logic checks if the string is too long and shrinks it so it fits
+  // 7. SMART FIT SYSTEM
+  // Reset styles
   dataEl.style.fontSize = "";
   dataEl.style.whiteSpace = "nowrap"; 
   dataEl.style.lineHeight = "";
@@ -2115,13 +2108,12 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
   dataEl.style.textAlign = "";
   dataEl.style.marginLeft = "";
   
-  const len = fullText.length;
-  // Threshold > 29 chars triggers the shrink
-  if (len > 29) {
-      dataEl.style.fontSize = "0.75rem";  // Shrink slightly
-      dataEl.style.whiteSpace = "normal"; // Allow wrap
-      dataEl.style.lineHeight = "1.2";    // Tighten lines
-      dataEl.style.maxWidth = "240px";    // Constrain width
+  // Check length (Trigger shrink if > 29 chars)
+  if (fullText.length > 29) {
+      dataEl.style.fontSize = "0.75rem";
+      dataEl.style.whiteSpace = "normal";
+      dataEl.style.lineHeight = "1.2";
+      dataEl.style.maxWidth = "240px";
       dataEl.style.display = "block";
       dataEl.style.textAlign = "right";   
       dataEl.style.marginLeft = "auto";   
