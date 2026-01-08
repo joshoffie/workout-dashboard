@@ -2759,7 +2759,6 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 
 // Keys for LocalStorage
 const KEY_GLOBAL_TIMER = "trunk_last_active_timer"; 
-// Note: We still use "restTimer_${exerciseName}" for local exercise history
 
 let masterTimerInterval = null;
 
@@ -2767,24 +2766,26 @@ let masterTimerInterval = null;
 function startRestTimer(reset = false) {
     if (!selectedExercise) return;
     
-    // A. Define the Timestamp
-    // If resetting (new set), use NOW. Otherwise try to find existing.
-    let startTime = Date.now();
-    
-    // B. Save to LOCAL Exercise History (So this specific page remembers it)
-    const localKey = `restTimer_${selectedExercise.exercise}`;
-    localStorage.setItem(localKey, startTime);
+    // CRITICAL FIX: Only update storage if we are explicitly resetting (New Set)
+    // If reset is false (just opening the page), we do NOTHING and let the 
+    // masterClockTick read whatever is already in memory.
+    if (reset) {
+        const now = Date.now();
+        
+        // A. Save to LOCAL Exercise History
+        const localKey = `restTimer_${selectedExercise.exercise}`;
+        localStorage.setItem(localKey, now);
 
-    // C. Save to GLOBAL History (So the header knows this is the latest)
-    // We save the Timestamp AND the Label (e.g. "Bench Press")
-    const globalData = {
-        time: startTime,
-        label: selectedExercise.exercise
-    };
-    localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
+        // B. Save to GLOBAL History (Header)
+        const globalData = {
+            time: now,
+            label: selectedExercise.exercise
+        };
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
 
-    // D. Force an immediate tick (UI update)
-    masterClockTick();
+        // C. Force immediate UI update
+        masterClockTick();
+    }
 }
 
 // 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
@@ -2817,7 +2818,6 @@ function masterClockTick() {
     }
 
     // --- TASK 2: UPDATE LOCAL EXERCISE TIMER (Only if visible) ---
-    // Only run this if we are actually ON the sets screen
     if (currentScreen === SCREENS.SETS && selectedExercise) {
         const localEl = document.getElementById('restTimer');
         const localText = document.getElementById('restTimerText');
@@ -2825,6 +2825,8 @@ function masterClockTick() {
         const localTime = localStorage.getItem(localKey);
 
         if (localEl && localText) {
+            // FIX: If no local timer exists, HIDE the element.
+            // This prevents it from showing "00:00" when you first open an exercise.
             if (!localTime) {
                 localEl.classList.add('hidden');
             } else {
@@ -2852,9 +2854,7 @@ function formatTimer(ms) {
 // 3. INIT (Start the loop)
 function initMasterClock() {
     if (masterTimerInterval) clearInterval(masterTimerInterval);
-    // Run immediately
-    masterClockTick();
-    // Run forever
+    masterClockTick(); // Run once immediately
     masterTimerInterval = setInterval(masterClockTick, 1000);
 }
 
