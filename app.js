@@ -829,86 +829,47 @@ function moveItem(type, index, direction) {
     }
 }
 
-// ------------------ RENDER CLIENTS ------------------
-const clientList = document.getElementById("clientList");
 function renderClients() {
   clientList.innerHTML = "";
-  let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-  // Sort by the new 'order' property
-  const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  sortedClients.forEach((clientObj, idx) => {
-    const name = clientObj.client_name;
-    const li = document.createElement("li");
-    li.style.cursor = "pointer";
-    const nameSpan = document.createElement("span");
-    let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-    const sessions = clientObj.sessions || [];
-    sessions.forEach(session => {
-        const exercises = session.exercises || [];
-        exercises.forEach(ex => {
-            const cData = getExerciseColorData(ex);
-            clientColorData.red += cData.red;
-            clientColorData.green += cData.green;
-            clientColorData.yellow += cData.yellow;
-            clientColorData.total += cData.total;
-        });
-    });
-    
-    totalAppColorData.red += clientColorData.red;
-    totalAppColorData.green += clientColorData.green;
-    totalAppColorData.yellow += clientColorData.yellow;
-    totalAppColorData.total += clientColorData.total;
-    
-    setupListTextAnimation(nameSpan, name, clientColorData);
+  
+  const sortedClients = Object.values(clientsData).sort((a, b) => a.order - b.order);
+  
+  // 1. LOOP STARTS HERE
+  sortedClients.forEach(client => {
+      const li = document.createElement("li");
+      
+      const colorData = getExerciseColorData(client); 
+      let arrowHtml = createDynamicArrow(colorData);
 
-    li.onclick = (e) => {
-      if (editMode) { e.stopPropagation();
-      return; }
-      selectClient(name);
-    };
+      li.innerHTML = `
+        <span class="client-name">${client.client_name}</span>
+        ${arrowHtml}
+        <div class="edit-actions">
+           <button class="btn-icon btn-move">☰</button>
+           <button class="btn-icon btn-delete"><span class="delete-icon"></span></button>
+        </div>
+      `;
+      
+      li.onclick = (e) => {
+        if (body.classList.contains('edit-mode-active')) return;
+        selectClient(client.client_name);
+      };
 
-    // NEW ACTIONS CONTAINER
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'edit-actions';
-    
-    const upBtn = document.createElement('button');
-    upBtn.className = 'btn-icon btn-move';
-    upBtn.innerHTML = '↑';
-    upBtn.onclick = (e) => { e.stopPropagation();
-    moveItem('client', idx, -1); };
+      const deleteBtn = li.querySelector('.btn-delete');
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        openDeleteModal(client.client_name, 'client');
+      };
 
-    const downBtn = document.createElement('button');
-    downBtn.className = 'btn-icon btn-move';
-    downBtn.innerHTML = '↓';
-    downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
+      hookEditables(li, client, 'client');
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-icon btn-delete';
-    deleteBtn.innerHTML = '&times;';
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, async () => {
-        // OPTIMIZED DELETE
-        await deleteClientFromFirestore(name); // <--- Add this
-        delete clientsData[name]; 
-        saveUserJson(); 
-        renderClients();
-        if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
-      });
-    };
+      clientList.appendChild(li);
 
-    actionsDiv.appendChild(upBtn);
-    actionsDiv.appendChild(downBtn);
-    actionsDiv.appendChild(deleteBtn);
+      setupListTextAnimation(li.querySelector('.client-name'), client.client_name, colorData);
+  }); 
+  // 2. LOOP ENDS HERE (Critical Fix)
 
-    li.appendChild(nameSpan); 
-    li.appendChild(actionsDiv);
-    // APPEND DYNAMIC ARROW
-    li.appendChild(createDynamicArrow(clientColorData));
-    
-    clientList.appendChild(li);
-  });
-    // === ADD SETTINGS BUTTON ===
+  // 3. SETTINGS BUTTON (Now Outside the Loop)
   const settingsLi = document.createElement("li");
   settingsLi.className = "settings-row"; 
   settingsLi.style.cursor = "pointer";
@@ -930,9 +891,6 @@ function renderClients() {
   };
 
   clientList.appendChild(settingsLi);
-  const clientsTitle = document.getElementById('clientsScreenTitle');
-  applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
-  hookEditables();
 }
 
 document.getElementById("addClientBtn").onclick = () => {
