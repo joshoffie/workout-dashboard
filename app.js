@@ -2863,7 +2863,7 @@ initMasterClock();
 
 // Update the Screen & Button Text based on State
 function updateCalcUI() {
-    // 1. Update Text Displays
+    // 1. Update Text Display
     const rDisp = document.getElementById('repsDisplay');
     const wDisp = document.getElementById('weightDisplay');
     
