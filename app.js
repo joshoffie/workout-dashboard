@@ -365,6 +365,7 @@ document.getElementById('settingsLogoutBtn').onclick = async () => {
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const userLabel = document.getElementById("userLabel");
+const clientList = document.getElementById("clientList");
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
 
@@ -418,8 +419,15 @@ modalLoginBtn.onclick = async () => {
     alert("Login failed: " + err.message);
   }
 };
-logoutBtn.onclick = async () => { await auth.signOut(); };
-
+if (logoutBtn) {
+    logoutBtn.onclick = async () => { 
+        try {
+            await auth.signOut(); 
+        } catch(err) {
+            console.error("Logout error:", err);
+        }
+    };
+}
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
   deleteModal.classList.remove('hidden');
@@ -852,9 +860,8 @@ function moveItem(type, index, direction) {
 }
 
 // ------------------ RENDER CLIENTS ------------------
-const clientList = document.getElementById("clientList");
 function renderClients() {
-  clientList.innerHTML = "";
+    if (clientList) clientList.innerHTML = ""; // Safety check added
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   // Sort by the new 'order' property
   const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
