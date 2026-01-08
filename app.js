@@ -1819,21 +1819,31 @@ function getChartData() {
     });
 }
 
-// UPDATED: Added Sprint Animation Logic + Leaf Spawner Hook
 function drawChart() {
     // 1. STOP OLD LEAVES when redrawing
     stopLeafSpawner();
+    
+    // 2. GET DATA
     chartState.dataPoints = getChartData();
-        // NEW: Update Unit Labels on Graph Header
+    const points = chartState.dataPoints;
+
+    // --- NEW: UPDATE UNIT LABELS ---
+    // This forces the "lb/r" text to become "kg/r" immediately
+    const unitLabel = UNIT_mode.getLabel(); // 'kg' or 'lbs'
     document.querySelectorAll('.unit').forEach(el => {
-        if (el.textContent.includes('lb')) {
-            el.textContent = UNIT_mode.current === 'kg' ? 'kg/r' : 'lb/r';
+        // We check if the unit is for W/R (contains '/r') or Volume
+        if (el.previousElementSibling && el.previousElementSibling.classList.contains('wpr')) {
+            el.textContent = `${unitLabel}/r`; 
+        } else if (el.previousElementSibling && el.previousElementSibling.classList.contains('vol')) {
+            el.textContent = unitLabel;
         }
     });
-    const points = chartState.dataPoints;
+    // -------------------------------
+
     const pointsGroup = document.getElementById('chartPoints');
     pointsGroup.innerHTML = '';
     document.getElementById('chartGrid').innerHTML = '';
+    
     if (points.length < 1) return;
 
     const gridGroup = document.getElementById('chartGrid');
@@ -1863,13 +1873,11 @@ function drawChart() {
                 circle.setAttribute("class", `chart-point ${colorClass}`);
                 circle.dataset.idx = idx; 
                 pointsGroup.appendChild(circle);
-     
             });
             // TRIGGER SPRINT ANIMATION (SLOWER)
             const len = el.getTotalLength();
             el.style.strokeDasharray = len;
             el.style.strokeDashoffset = len;
-            // Using WAAPI for smooth JS control
             el.animate([
                 { strokeDashoffset: len },
                 { strokeDashoffset: 0 }
@@ -1886,11 +1894,11 @@ function drawChart() {
     updateLine('pathWpr', 'yWpr', 'wpr', 'wpr');
     updateLine('pathVol', 'yVol', 'volume', 'vol');
     updateLine('pathSets', 'ySets', 'sets', 'sets');
+    
     if (points.length > 0) updateDetailView(points.length - 1);
 
-    // 2. START LEAVES AFTER DELAY
+    // 3. START LEAVES AFTER DELAY
     setTimeout(() => {
-        // Only start if we are still on the graph screen
         if (currentScreen === SCREENS.GRAPH) {
              startLeafSpawner();
         }
@@ -2020,6 +2028,11 @@ function updateStatUI(statName, currentValueLBS, previousValueLBS) {
   // 1. CALCULATE STATUS (Using Base Unit LBS)
   // We use LBS here so the red/green logic is always consistent with the database
   const status = calculateStatStatus(currentValueLBS, previousValueLBS);
+
+    // 2. RESTORE ARROWS (Fixing the blank arrow issue)
+  let arrow = '—';
+  if (status === 'increase') arrow = '↑';
+  else if (status === 'decrease') arrow = '↓';
 
   // 2. CONVERT FOR DISPLAY
   // Sets and Reps are just counts (no unit conversion needed)
