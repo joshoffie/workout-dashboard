@@ -49,12 +49,13 @@ function cleanAndMinifyClient(clientObj) {
 
 // Hydrate a client object on load (Expand sets)
 function expandClientData(clientObj) {
-    if (clientObj.sessions) {
+    // Safety check: ensure clientObj and sessions exist before looping
+    if (clientObj && clientObj.sessions) {
         clientObj.sessions.forEach(session => {
             if (session.exercises) {
                 session.exercises.forEach(ex => {
                     if (ex.sets) {
-                        ex.sets = ex.sets.map(expandSet);
+                         ex.sets = ex.sets.map(expandSet);
                     }
                 });
             }
@@ -352,9 +353,9 @@ document.getElementById('backToClientsFromSettingsBtn').onclick = () => {
 // 3. Logout Action (Inside Settings)
 document.getElementById('settingsLogoutBtn').onclick = async () => {
     try {
+        // Just Sign Out. The auth.onAuthStateChanged listener will handle 
+        // hiding Settings and showing the Login Modal/Home screen.
         await auth.signOut();
-        // Return to home screen, Auth listener will handle the Login Modal appearing
-        navigateTo(SCREENS.CLIENTS, 'back'); 
     } catch (err) {
         console.error("Logout failed", err);
     }
@@ -374,21 +375,29 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
+    // 1. UI RESET (Fixes Bug B: Stuck on Settings)
     modal.classList.add("hidden");
-    // Show Settings button when logged in
     if(settingsBtn) settingsBtn.classList.remove("hidden");
-    
     userLabel.textContent = `Logged in as ${user.displayName}`;
+    
+    // FORCE reset to Home Screen (Clients) so the list isn't hidden
+    hideAllDetails(); 
+
+    // 2. DATA LOAD (Fixes Bug A: Empty List)
     await loadUserJson();
+    
+    // 3. RENDER
     renderClients();
   } else {
+    // LOGGED OUT STATE
     modal.classList.remove("hidden");
-    // Hide Settings button when logged out
     if(settingsBtn) settingsBtn.classList.add("hidden");
     
     userLabel.textContent = "";
     clientsData = {};
     selectedClient = null;
+    
+    // Clear UI
     renderClients();
     hideAllDetails();
   }
