@@ -1668,3 +1668,106 @@ input[type=range]:active::-webkit-slider-thumb {
 .edit-mode-active .set-date {
   opacity: 0.5;
 }
+
+/* =========================================
+   SETTINGS TOGGLES & OVERRIDES
+   ========================================= */
+
+/* 1. The Toggle Switch UI */
+.switch-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 30px;
+}
+
+.switch input { 
+    opacity: 0; 
+    width: 0; 
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #3a3a3c; /* Dark Grey (Off) */
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+    background-color: var(--color-green);
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* 2. LOGIC: Disable Colors (When body has .no-colors) */
+body.no-colors .char, 
+body.no-colors .big-stat, 
+body.no-colors .sub-stat,
+body.no-colors .stat-data,
+body.no-colors .set-reps-val,
+body.no-colors .set-vol {
+    color: var(--color-text) !important;
+}
+
+/* Force Arrows to be grey */
+body.no-colors .arrow-icon,
+body.no-colors .stat-arrow {
+    color: var(--color-text-muted) !important;
+    animation: none !important; /* Stop arrow movement if colors are off */
+}
+
+/* Force Spiral/Graph lines in Comparison Banner to be grey/neutral */
+body.no-colors .comparison-spiral {
+    stroke: var(--color-text-muted) !important;
+}
+
+/* 3. LOGIC: Disable Animations (When body has .no-animations) */
+body.no-colors .arrow-green,
+body.no-colors .arrow-red,
+body.no-colors .arrow-yellow {
+    animation: none !important;
+}
+
+body.no-animations .char,
+body.no-animations .logo-variant text,
+body.no-animations .arrow-icon,
+body.no-animations .comparison-spiral {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important; /* Reset position */
+}
+
+/* Stop the specific logo letter animations */
+body.no-animations #logo-t, 
+body.no-animations #logo-r, 
+body.no-animations #logo-u, 
+body.no-animations #logo-n, 
+body.no-animations #logo-k {
+    animation: none !important;
+    transform: none !important;
+}
