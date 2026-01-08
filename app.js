@@ -77,19 +77,7 @@ async function deleteClientFromFirestore(clientName) {
 // =====================================================
 // TUTORIAL ENGINE
 // =====================================================
-let clientsData = {};
-let selectedClient = null;
-const clientList = document.getElementById("clientList"); // <--- ADD THIS
 let isTutorialMode = false;
-// === NEW SETTINGS STATE ===
-let userSettings = {
-    units: 'lbs',
-    enableColors: true,
-    enableAnimations: true
-};
-
-function getUnitLabel() { return userSettings.units === 'lbs' ? 'lbs' : 'kg'; }
-function getUnitRatioLabel() { return userSettings.units === 'lbs' ? 'lb/r' : 'kg/r'; }
 let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
 let tutorialStep = 0;
 let restTimerInterval = null; // Tracks the background interval
@@ -394,21 +382,10 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 async function loadUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  clientsData = {};
+  clientsData = {}; // Clear memory
 
   try {
-      // 1. ATTEMPT TO LOAD SETTINGS (Wrap in its own try/catch so it doesn't kill the app)
-      try {
-          const settingsDoc = await db.collection("users").doc(uid).get();
-          if (settingsDoc.exists && settingsDoc.data().settings) {
-              userSettings = { ...userSettings, ...settingsDoc.data().settings };
-          }
-          if(typeof updateSettingsUI === 'function') updateSettingsUI();
-      } catch (settingsErr) {
-          console.warn("Could not load settings, using defaults.", settingsErr);
-      }
-
-      // 2. CHECK FOR MODERN DATA
+      // 1. CHECK NEW SYSTEM FIRST (users/{uid}/clients)
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       const newSnap = await newCollectionRef.get();
 
@@ -416,36 +393,55 @@ async function loadUserJson() {
           console.log("Loaded data from optimized system.");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
-              // FIX: Ensure order exists to prevent NaN sort errors
+              // Hydrate compressed data if necessary
+              if (typeof expandClientData === "function") {
+                  clientObj = expandClientData(clientObj);
+              }
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-      } else {
-          // Legacy Fallback
+      } 
+      else { 
+          // 2. CHECK LEGACY SYSTEM (clients/{uid})
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
           const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
-               clientsData = oldDocSnap.data();
-               // FIX: Add order to legacy data so it sorts correctly
-               Object.keys(clientsData).forEach((key, index) => {
-                   if (clientsData[key].order === undefined) clientsData[key].order = index;
-                   if (!clientsData[key].sessions) clientsData[key].sessions = [];
-               });
+              // Load legacy data so user sees it immediately
+              clientsData = oldDocSnap.data();
+              
+              // Ensure order exists
+              Object.keys(clientsData).forEach((key, index) => {
+                  if (clientsData[key].order === undefined) clientsData[key].order = index;
+              });
+              console.log("Legacy data loaded.");
           } else {
+              // 3. BRAND NEW USER (Restore Auto-Profile Creation)
+              console.log("No data found. Creating default profile from Google Name...");
+              
+              // --- RESTORED LOGIC START ---
               const fullName = auth.currentUser.displayName || "User";
-              const firstName = fullName.split(' ')[0];
-              clientsData = { [firstName]: { client_name: firstName, sessions: [], order: 0 } };
+              const firstName = fullName.split(' ')[0]; // Get "Josh" from "Josh Hoffman"
+              
+              clientsData = {
+                  [firstName]: {
+                      client_name: firstName,
+                      sessions: [],
+                      order: 0
+                  }
+              };
+              
+              // Save immediately so the file is created in the NEW system
               await saveUserJson();
+              // --- RESTORED LOGIC END ---
           }
       }
+      // Always refresh the UI after loading
+      renderClients();
+      
   } catch (err) {
       console.error("Error loading user data:", err);
-  } finally {
-      // CRITICAL FIX: This ensures the list renders even if an error occurred above
-      renderClients();
   }
 }
 
@@ -455,51 +451,24 @@ async function saveUserJson() {
   
   const uid = auth.currentUser.uid;
   const batch = db.batch();
-
-  // 1. Save Settings
-  const userDocRef = db.collection("users").doc(uid);
-  batch.set(userDocRef, { settings: userSettings }, { merge: true });
-
-  // 2. Save Clients
   const profilesRef = db.collection("users").doc(uid).collection("clients");
+
+  // Loop through all clients in memory
   Object.values(clientsData).forEach(clientObj => {
+      // 1. Optimize (Strip ColorData, Compress Sets)
       const optimizedData = cleanAndMinifyClient(clientObj);
+      
+      // 2. Queue Update
       const docRef = profilesRef.doc(clientObj.client_name);
       batch.set(docRef, optimizedData);
   });
 
+  // 3. Commit all writes at once
   try {
       await batch.commit();
   } catch (err) {
       console.error("Save failed:", err);
   }
-}
-
-// === NEW WIPE FUNCTION FOR UNIT SWITCHING ===
-async function wipeAllUserData() {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
-    const batch = db.batch();
-
-    // 1. Delete all Firestore profiles
-    const profilesRef = db.collection("users").doc(uid).collection("clients");
-    const snapshot = await profilesRef.get();
-    snapshot.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-
-    // 2. Clear Local Memory
-    clientsData = {};
-    selectedClient = null;
-    selectedSession = null;
-    selectedExercise = null;
-
-    // 3. Save Settings (Persist the unit change)
-    const userDocRef = db.collection("users").doc(uid);
-    batch.set(userDocRef, { settings: userSettings }, { merge: true });
-
-    await batch.commit();
-    renderClients(); 
 }
 
 // ------------------ ANIMATED TITLE HELPERS ------------------
@@ -590,11 +559,6 @@ function forceTitleResize(targetScreenId = currentScreen) {
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
-        // CHECK SETTINGS
-    if (!userSettings.enableColors) {
-         element.querySelectorAll('.char').forEach(char => char.style.color = 'var(--color-text)');
-         if (!userSettings.enableAnimations) return; // Exit if both off
-    }
 
   const parentTitle = element.closest('.animated-title');
   const targetElement = parentTitle || element;
@@ -611,9 +575,7 @@ function applyTitleStyling(element, text, colorData) {
   }
 
   const animClass = getRandomAnimationClass(mood);
-  if (userSettings.enableAnimations) {
-    targetElement.classList.add(mood);
-}
+  targetElement.classList.add(mood);
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -840,114 +802,89 @@ function moveItem(type, index, direction) {
         renderExercises();
     }
 }
+
+// ------------------ RENDER CLIENTS ------------------
+const clientList = document.getElementById("clientList");
 function renderClients() {
-  if (!clientList) return;
   clientList.innerHTML = "";
-  
   let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-  
-  // Sort safely handling missing order
+  // Sort by the new 'order' property
   const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  
-  sortedClients.forEach((client, idx) => { // Added idx for move functionality
-      const li = document.createElement("li");
-      
-      // 1. CALCULATE REAL STATS (Sum of all sessions)
-      let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
-      if (client.sessions) {
-          client.sessions.forEach(session => {
-              if (session.exercises) {
-                  session.exercises.forEach(ex => {
-                      const cData = getExerciseColorData(ex);
-                      clientColorData.red += cData.red;
-                      clientColorData.green += cData.green;
-                      clientColorData.yellow += cData.yellow;
-                      clientColorData.total += cData.total;
-                  });
-              }
-          });
-      }
-      // Add to global total for the Title
-      totalAppColorData.red += clientColorData.red;
-      totalAppColorData.green += clientColorData.green;
-      totalAppColorData.yellow += clientColorData.yellow;
-      totalAppColorData.total += clientColorData.total;
-
-      const arrowNode = createDynamicArrow(clientColorData);
-
-      // 2. BUILD LIST ITEM
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "client-name"; // Class needed for hookEditables
-      
-      // Use helper to set text and animation
-      setupListTextAnimation(nameSpan, client.client_name, clientColorData);
-
-      // 3. CREATE BUTTONS (DOM Elements, not strings, so clicks work)
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'edit-actions';
-
-      const upBtn = document.createElement('button');
-      upBtn.className = 'btn-icon btn-move';
-      upBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, -1); };
-
-      const downBtn = document.createElement('button');
-      downBtn.className = 'btn-icon btn-move';
-      downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn-icon btn-delete';
-      deleteBtn.innerHTML = '<span class="delete-icon">&times;</span>';
-      deleteBtn.onclick = (e) => {
-        e.stopPropagation();
-        showDeleteConfirm(`Delete ${client.client_name}?`, () => {
-             if(typeof deleteClientFromFirestore === 'function') deleteClientFromFirestore(client.client_name);
-             delete clientsData[client.client_name];
-             saveUserJson();
-             renderClients();
+  sortedClients.forEach((clientObj, idx) => {
+    const name = clientObj.client_name;
+    const li = document.createElement("li");
+    li.style.cursor = "pointer";
+    const nameSpan = document.createElement("span");
+    let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+    const sessions = clientObj.sessions || [];
+    sessions.forEach(session => {
+        const exercises = session.exercises || [];
+        exercises.forEach(ex => {
+            const cData = getExerciseColorData(ex);
+            clientColorData.red += cData.red;
+            clientColorData.green += cData.green;
+            clientColorData.yellow += cData.yellow;
+            clientColorData.total += cData.total;
         });
-      };
+    });
+    
+    totalAppColorData.red += clientColorData.red;
+    totalAppColorData.green += clientColorData.green;
+    totalAppColorData.yellow += clientColorData.yellow;
+    totalAppColorData.total += clientColorData.total;
+    
+    setupListTextAnimation(nameSpan, name, clientColorData);
 
-      actionsDiv.appendChild(upBtn);
-      actionsDiv.appendChild(downBtn);
-      actionsDiv.appendChild(deleteBtn);
+    li.onclick = (e) => {
+      if (editMode) { e.stopPropagation();
+      return; }
+      selectClient(name);
+    };
 
-      // 4. ASSEMBLE
-      li.appendChild(nameSpan);
-      li.appendChild(actionsDiv);
-      li.appendChild(arrowNode);
+    // NEW ACTIONS CONTAINER
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'edit-actions';
+    
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn-icon btn-move';
+    upBtn.innerHTML = '↑';
+    upBtn.onclick = (e) => { e.stopPropagation();
+    moveItem('client', idx, -1); };
 
-      li.onclick = (e) => {
-        if (document.body.classList.contains('edit-mode-active')) return;
-        selectClient(client.client_name);
-      };
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn-icon btn-move';
+    downBtn.innerHTML = '↓';
+    downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
 
-      clientList.appendChild(li);
-      
-      // 5. HOOK EDITABLES
-      // Note: passing 'li' here might be incorrect depending on your hookEditables definition.
-      // Ideally, we just run hookEditables() once at the end, but this mimics your loop logic safely.
-      if (typeof makeEditable === 'function') makeEditable(nameSpan, "Client");
-  }); 
-
-  // 6. UPDATE TITLE STATS
-  const clientsTitle = document.getElementById('clientsScreenTitle');
-  if(clientsTitle) applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
-
-  // 7. SETTINGS BUTTON
-  const settingsLi = document.createElement("li");
-  settingsLi.className = "settings-row"; 
-  settingsLi.style.cursor = "pointer";
-  settingsLi.innerHTML = `
-      <div class="settings-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
-      </div>
-      <div class="settings-text">Settings</div>
-  `;
-  settingsLi.onclick = (e) => {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-icon btn-delete';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.onclick = (e) => {
       e.stopPropagation();
-      if(typeof openSettingsModal === 'function') openSettingsModal();
-  };
-  clientList.appendChild(settingsLi);
+      showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, async () => {
+        // OPTIMIZED DELETE
+        await deleteClientFromFirestore(name); // <--- Add this
+        delete clientsData[name]; 
+        saveUserJson(); 
+        renderClients();
+        if (selectedClient === name) navigateTo(SCREENS.CLIENTS, 'back');
+      });
+    };
+
+    actionsDiv.appendChild(upBtn);
+    actionsDiv.appendChild(downBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    li.appendChild(nameSpan); 
+    li.appendChild(actionsDiv);
+    // APPEND DYNAMIC ARROW
+    li.appendChild(createDynamicArrow(clientColorData));
+    
+    clientList.appendChild(li);
+  });
+  const clientsTitle = document.getElementById('clientsScreenTitle');
+  applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
+  hookEditables();
 }
 
 document.getElementById("addClientBtn").onclick = () => {
@@ -1593,7 +1530,7 @@ function renderSets() {
         <div class="set-main-data">
           <span class="set-reps-val">${s.reps}</span>
           <span class="set-x">x</span>
-          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">${getUnitLabel()}</span></span>
+          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
         </div>
         <div class="set-meta-data">
           <span class="set-vol">${s.volume} v</span>
@@ -1949,8 +1886,8 @@ function updateStatUI(statName, currentValue, previousValue) {
   switch(statName) {
     case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
     case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
-    case 'volume': currentString = `${formatNum(currentValue)} ${getUnitLabel()}`; break;
-    case 'wpr': currentString = `${formatNum(currentValue)} ${getUnitRatioLabel()}`; break;
+    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
+    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
   }
   
   let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
@@ -2933,79 +2870,4 @@ function exitEditMode() {
   document.body.classList.remove('edit-mode-active');
   const btn = document.getElementById("editToggleBtn");
   if(btn) btn.textContent = "Edit";
-}
-
-// =====================================================
-// SETTINGS UI LOGIC
-// =====================================================
-const settingsModal = document.getElementById('settingsModal');
-const unitToggle = document.getElementById('unitToggle');
-const colorToggle = document.getElementById('colorToggle');
-const animToggle = document.getElementById('animToggle');
-
-function openSettingsModal() {
-    updateSettingsUI();
-    settingsModal.classList.remove('hidden');
-}
-
-if(document.getElementById('closeSettingsBtn')) {
-    document.getElementById('closeSettingsBtn').onclick = () => {
-        settingsModal.classList.add('hidden');
-    };
-}
-
-function updateSettingsUI() {
-    if(!unitToggle) return;
-    unitToggle.checked = (userSettings.units === 'kg'); 
-    colorToggle.checked = userSettings.enableColors;
-    animToggle.checked = userSettings.enableAnimations;
-}
-
-// 1. UNIT TOGGLE
-if(unitToggle) {
-    unitToggle.onclick = async (e) => {
-        e.preventDefault(); 
-        const willBeKg = !unitToggle.checked; 
-        const confirmWipe = confirm(`WARNING: Switching to ${willBeKg ? 'Kilograms' : 'Pounds'} will DELETE ALL existing profile data.\n\nAre you sure?`);
-        
-        if (confirmWipe) {
-            userSettings.units = willBeKg ? 'kg' : 'lbs';
-            unitToggle.checked = willBeKg;
-            await wipeAllUserData();
-        }
-    };
-}
-
-// 2. COLOR TOGGLE
-if(colorToggle) {
-    colorToggle.onclick = () => {
-        userSettings.enableColors = colorToggle.checked;
-        saveUserJson(); 
-        refreshCurrentView();
-    };
-}
-
-// 3. ANIMATION TOGGLE
-if(animToggle) {
-    animToggle.onclick = () => {
-        userSettings.enableAnimations = animToggle.checked;
-        saveUserJson(); 
-        refreshCurrentView();
-    };
-}
-
-// 4. LOGOUT
-if(document.getElementById('settingsLogoutBtn')) {
-    document.getElementById('settingsLogoutBtn').onclick = async () => {
-        settingsModal.classList.add('hidden');
-        await auth.signOut();
-    };
-}
-
-function refreshCurrentView() {
-    if (typeof currentScreen === 'undefined') return;
-    if (currentScreen === SCREENS.CLIENTS) renderClients();
-    else if (currentScreen === SCREENS.SESSIONS) renderSessions();
-    else if (currentScreen === SCREENS.EXERCISES) renderExercises();
-    else if (currentScreen === SCREENS.SETS) { renderSets(); runTitleOnlyLogic(); }
 }
