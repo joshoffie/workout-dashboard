@@ -1771,3 +1771,20 @@ body.no-animations #logo-k {
     animation: none !important;
     transform: none !important;
 }
+
+/* Global Header Timer Styling */
+#globalHeaderTimer {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-right: 8px;
+    z-index: 101;
+    /* Optional: Different color to distinguish it as 'Active' */
+    background: rgba(0, 122, 255, 0.15); 
+}
+
+/* Hide clock icon on tiny screens */
+@media (max-width: 360px) {
+    #globalHeaderTimer .timer-icon { display: none; }
+}
