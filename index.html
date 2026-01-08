@@ -25,7 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <div id="loginModal" class="overlay">
+  <div id="loginModal" class="overlay hidden">
     <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
@@ -41,51 +41,6 @@
       </div>
     </div>
   </div>
-  <div id="settingsModal" class="overlay hidden">
-  <div class="settings-modal">
-    <div class="settings-header">
-      <h2 class="settings-title">Settings</h2>
-      <button id="closeSettingsBtn" class="btn-icon" style="font-size: 1.5rem;">&times;</button>
-    </div>
-
-    <div class="setting-item">
-      <div>
-        <div class="setting-label">Units (lbs / kg)</div>
-        <div class="setting-desc" style="color: var(--color-red);">Warning: Changing this deletes all data.</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="unitToggle" class="warn-toggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="setting-item">
-      <div>
-        <div class="setting-label">Enable Colors</div>
-        <div class="setting-desc">Green/Red logic for progress</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="colorToggle" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="setting-item">
-      <div>
-        <div class="setting-label">Enable Animations</div>
-        <div class="setting-desc">Dancing text effects</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="animToggle" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <button id="settingsLogoutBtn" class="btn btn-secondary" style="margin-top: 1rem; width: 100%; color: var(--color-red); border-color: var(--color-red);">
-      Logout
-    </button>
-  </div>
-</div>
   <header class="app-header">
     <div class="header-content">
       <h1>
@@ -104,6 +59,7 @@
         <button id="editToggleBtn" class="btn btn-secondary">Edit</button>
         <button id="endTutorialBtn" class="btn btn-secondary hidden" style="border-color: var(--color-yellow); color: var(--color-yellow);">End Tutorial</button>
         <button id="loginBtn" class="btn btn-primary">Login</button>
+        <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
       </div>
     </div>
   </header>
