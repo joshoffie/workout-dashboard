@@ -375,29 +375,34 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // 1. UI RESET (Fixes Bug B: Stuck on Settings)
-    modal.classList.add("hidden");
-    if(settingsBtn) settingsBtn.classList.remove("hidden");
-    userLabel.textContent = `Logged in as ${user.displayName}`;
+    // 1. LOGGED IN STATE
+    if (typeof modal !== 'undefined') modal.classList.add("hidden");
     
-    // FORCE reset to Home Screen (Clients) so the list isn't hidden
+    // Safety check for settings button
+    const settingsBtn = document.getElementById('settingsBtn'); // Grab it fresh
+    if (settingsBtn) settingsBtn.classList.remove("hidden");
+    
+    if (userLabel) userLabel.textContent = `Logged in as ${user.displayName}`;
+    
+    // 2. FORCE RESET UI (Fixes "Stuck on Settings")
     hideAllDetails(); 
 
-    // 2. DATA LOAD (Fixes Bug A: Empty List)
+    // 3. LOAD & RENDER DATA
     await loadUserJson();
-    
-    // 3. RENDER
     renderClients();
+
   } else {
-    // LOGGED OUT STATE
-    modal.classList.remove("hidden");
-    if(settingsBtn) settingsBtn.classList.add("hidden");
+    // 4. LOGGED OUT STATE
+    if (typeof modal !== 'undefined') modal.classList.remove("hidden");
     
-    userLabel.textContent = "";
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) settingsBtn.classList.add("hidden");
+    
+    if (userLabel) userLabel.textContent = "";
     clientsData = {};
     selectedClient = null;
     
-    // Clear UI
+    // Clear UI completely
     renderClients();
     hideAllDetails();
   }
@@ -438,7 +443,7 @@ async function loadUserJson() {
           console.log("Loaded data from optimized system.");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              // Hydrate compressed data if necessary
+              // HYDRATE (Safety Check)
               if (typeof expandClientData === "function") {
                   clientObj = expandClientData(clientObj);
               }
@@ -453,21 +458,23 @@ async function loadUserJson() {
           const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
-              // Load legacy data so user sees it immediately
               clientsData = oldDocSnap.data();
               
-              // Ensure order exists
-              Object.keys(clientsData).forEach((key, index) => {
-                  if (clientsData[key].order === undefined) clientsData[key].order = index;
+              // --- FIX: Run Safety Check on Legacy Data too ---
+              Object.keys(clientsData).forEach(key => {
+                  if (typeof expandClientData === "function") {
+                      clientsData[key] = expandClientData(clientsData[key]);
+                  }
+                  if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
+              // ------------------------------------------------
+
               console.log("Legacy data loaded.");
           } else {
-              // 3. BRAND NEW USER (Restore Auto-Profile Creation)
-              console.log("No data found. Creating default profile from Google Name...");
-              
-              // --- RESTORED LOGIC START ---
+              // 3. BRAND NEW USER
+              console.log("No data found. Creating default profile...");
               const fullName = auth.currentUser.displayName || "User";
-              const firstName = fullName.split(' ')[0]; // Get "Josh" from "Josh Hoffman"
+              const firstName = fullName.split(' ')[0];
               
               clientsData = {
                   [firstName]: {
@@ -476,17 +483,13 @@ async function loadUserJson() {
                       order: 0
                   }
               };
-              
-              // Save immediately so the file is created in the NEW system
               await saveUserJson();
-              // --- RESTORED LOGIC END ---
           }
       }
-      // Always refresh the UI after loading
       renderClients();
-      
   } catch (err) {
       console.error("Error loading user data:", err);
+      alert("Error loading data. Check console.");
   }
 }
 
@@ -1884,11 +1887,21 @@ window.addEventListener('resize', () => {
 
 function hideAllDetails() {
   stopLeafSpawner();
-  // Stop leaves if user navigates away
-  Object.values(SCREENS).forEach(screenId => { document.getElementById(screenId).classList.add('hidden'); });
-  document.getElementById(SCREENS.CLIENTS).classList.remove('hidden');
+  
+  // 1. Safely hide all screens (Check if element exists first!)
+  Object.values(SCREENS).forEach(screenId => { 
+      const el = document.getElementById(screenId);
+      if (el) el.classList.add('hidden'); 
+  });
+
+  // 2. Force show Clients (Home)
+  const clientsDiv = document.getElementById(SCREENS.CLIENTS);
+  if (clientsDiv) clientsDiv.classList.remove('hidden');
+  
   currentScreen = SCREENS.CLIENTS;
-  document.getElementById("graphDiv").innerHTML = "";
+  
+  const graphDiv = document.getElementById("graphDiv");
+  if (graphDiv) graphDiv.innerHTML = "";
 }
 function isSameDay(d1, d2) { return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 }
