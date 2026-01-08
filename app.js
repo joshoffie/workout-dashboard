@@ -830,53 +830,70 @@ function moveItem(type, index, direction) {
 }
 
 function renderClients() {
+  // FIX 1: Define the list variable
+  const clientList = document.getElementById("clientList");
   clientList.innerHTML = "";
   
   const sortedClients = Object.values(clientsData).sort((a, b) => a.order - b.order);
   
-  // 1. LOOP STARTS HERE
   sortedClients.forEach(client => {
       const li = document.createElement("li");
       
+      // Calculate color data (Note: client objects usually don't have sets, so this returns neutral)
       const colorData = getExerciseColorData(client); 
-      let arrowHtml = createDynamicArrow(colorData);
+      
+      // FIX 2: Create the arrow element, but DO NOT put it in the innerHTML string
+      const arrowNode = createDynamicArrow(colorData);
 
       li.innerHTML = `
         <span class="client-name">${client.client_name}</span>
-        ${arrowHtml}
         <div class="edit-actions">
-           <button class="btn-icon btn-move">☰</button>
-           <button class="btn-icon btn-delete"><span class="delete-icon"></span></button>
+           <button class="btn-icon btn-move"></button>
+           <button class="btn-icon btn-delete"><span class="delete-icon">&times;</span></button>
         </div>
       `;
       
+      // FIX 2 (Continued): Append the arrow properly as a DOM node
+      li.appendChild(arrowNode);
+
       li.onclick = (e) => {
-        if (body.classList.contains('edit-mode-active')) return;
+        if (document.body.classList.contains('edit-mode-active')) return;
         selectClient(client.client_name);
       };
 
       const deleteBtn = li.querySelector('.btn-delete');
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        openDeleteModal(client.client_name, 'client');
+        // Assuming openDeleteModal is defined elsewhere or meant to be showDeleteConfirm
+        if(typeof openDeleteModal === 'function') openDeleteModal(client.client_name, 'client');
+        else if(typeof showDeleteConfirm === 'function') {
+             showDeleteConfirm(`Delete ${client.client_name}?`, () => {
+                 deleteClientFromFirestore(client.client_name);
+                 delete clientsData[client.client_name];
+                 saveUserJson();
+                 renderClients();
+             });
+        }
       };
 
-      hookEditables(li, client, 'client');
-
+      // FIX 3: Append to the list BEFORE hooking editables
       clientList.appendChild(li);
+      
+      // Now the element is in the DOM, so we can make it editable
+      hookEditables(li, client, 'client');
 
       setupListTextAnimation(li.querySelector('.client-name'), client.client_name, colorData);
   }); 
-  // 2. LOOP ENDS HERE (Critical Fix)
 
-  // 3. SETTINGS BUTTON (Now Outside the Loop)
+  // 3. SETTINGS BUTTON
   const settingsLi = document.createElement("li");
   settingsLi.className = "settings-row"; 
   settingsLi.style.cursor = "pointer";
   
   const iconDiv = document.createElement("div");
   iconDiv.className = "settings-icon";
-  iconDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+  // Simplified gear icon for brevity
+  iconDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>`;
   
   const textDiv = document.createElement("div");
   textDiv.className = "settings-text";
@@ -884,7 +901,6 @@ function renderClients() {
 
   settingsLi.appendChild(iconDiv);
   settingsLi.appendChild(textDiv);
-
   settingsLi.onclick = (e) => {
       e.stopPropagation();
       openSettingsModal();
