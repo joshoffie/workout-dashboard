@@ -78,26 +78,18 @@ async function deleteClientFromFirestore(clientName) {
 // TUTORIAL ENGINE
 // =====================================================
 let isTutorialMode = false;
+// === NEW SETTINGS STATE ===
+let userSettings = {
+    units: 'lbs',
+    enableColors: true,
+    enableAnimations: true
+};
+
+function getUnitLabel() { return userSettings.units === 'lbs' ? 'lbs' : 'kg'; }
+function getUnitRatioLabel() { return userSettings.units === 'lbs' ? 'lb/r' : 'kg/r'; }
 let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
 let tutorialStep = 0;
 let restTimerInterval = null; // Tracks the background interval
-
-// =====================================================
-// SETTINGS STATE MANAGEMENT (NEW)
-// =====================================================
-let userSettings = {
-    units: 'lbs',         // 'lbs' or 'kg'
-    enableColors: true,   // true = Logic On, false = All White
-    enableAnimations: true // true = Dancing, false = Static
-};
-
-// Helper to get unit label
-function getUnitLabel() {
-    return userSettings.units === 'lbs' ? 'lbs' : 'kg';
-}
-function getUnitRatioLabel() {
-    return userSettings.units === 'lbs' ? 'lb/r' : 'kg/r';
-}
 
 // 1. FAKE DATA GENERATOR (8 Weeks of History)
 function generateTutorialData() {
@@ -399,19 +391,17 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 async function loadUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Clear memory
+  clientsData = {};
 
   try {
-      // 1. LOAD SETTINGS FIRST (NEW)
+      // 1. LOAD SETTINGS
       const settingsDoc = await db.collection("users").doc(uid).get();
       if (settingsDoc.exists && settingsDoc.data().settings) {
           userSettings = { ...userSettings, ...settingsDoc.data().settings };
-      } else {
-          // Default if no settings found
-          userSettings = { units: 'lbs', enableColors: true, enableAnimations: true };
       }
       if(typeof updateSettingsUI === 'function') updateSettingsUI();
-      // 1. CHECK NEW SYSTEM FIRST (users/{uid}/clients)
+
+      // 2. CHECK FOR MODERN DATA
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       const newSnap = await newCollectionRef.get();
 
@@ -419,53 +409,29 @@ async function loadUserJson() {
           console.log("Loaded data from optimized system.");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              // Hydrate compressed data if necessary
-              if (typeof expandClientData === "function") {
-                  clientObj = expandClientData(clientObj);
-              }
+              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-      } 
-      else { 
-          // 2. CHECK LEGACY SYSTEM (clients/{uid})
+      } else {
+          // Legacy Fallback
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
           const oldDocSnap = await oldDocRef.get();
-
           if (oldDocSnap.exists) {
-              // Load legacy data so user sees it immediately
-              clientsData = oldDocSnap.data();
-              
-              // Ensure order exists
-              Object.keys(clientsData).forEach((key, index) => {
-                  if (clientsData[key].order === undefined) clientsData[key].order = index;
-              });
-              console.log("Legacy data loaded.");
+               clientsData = oldDocSnap.data();
+               // Legacy migration fix...
+               Object.values(clientsData).forEach(c => {
+                   if (!c.sessions) c.sessions = [];
+               });
           } else {
-              // 3. BRAND NEW USER (Restore Auto-Profile Creation)
-              console.log("No data found. Creating default profile from Google Name...");
-              
-              // --- RESTORED LOGIC START ---
               const fullName = auth.currentUser.displayName || "User";
-              const firstName = fullName.split(' ')[0]; // Get "Josh" from "Josh Hoffman"
-              
-              clientsData = {
-                  [firstName]: {
-                      client_name: firstName,
-                      sessions: [],
-                      order: 0
-                  }
-              };
-              
-              // Save immediately so the file is created in the NEW system
+              const firstName = fullName.split(' ')[0];
+              clientsData = { [firstName]: { client_name: firstName, sessions: [], order: 0 } };
               await saveUserJson();
-              // --- RESTORED LOGIC END ---
           }
       }
-      // Always refresh the UI after loading
       renderClients();
-      
   } catch (err) {
       console.error("Error loading user data:", err);
   }
@@ -474,18 +440,16 @@ async function loadUserJson() {
 async function saveUserJson() {
   if (isTutorialMode) return;
   if (!auth.currentUser) return;
-
+  
   const uid = auth.currentUser.uid;
   const batch = db.batch();
 
-  // 1. Save Settings (Root Doc) - NEW
+  // 1. Save Settings
   const userDocRef = db.collection("users").doc(uid);
   batch.set(userDocRef, { settings: userSettings }, { merge: true });
 
-  // 2. Save Clients (Subcollection)
+  // 2. Save Clients
   const profilesRef = db.collection("users").doc(uid).collection("clients");
-
-  // Loop through all clients in memory
   Object.values(clientsData).forEach(clientObj => {
       const optimizedData = cleanAndMinifyClient(clientObj);
       const docRef = profilesRef.doc(clientObj.client_name);
@@ -499,13 +463,13 @@ async function saveUserJson() {
   }
 }
 
-// NEW: Helper to Wipe All Data (For Unit Switch)
+// === NEW WIPE FUNCTION FOR UNIT SWITCHING ===
 async function wipeAllUserData() {
     if (!auth.currentUser) return;
     const uid = auth.currentUser.uid;
     const batch = db.batch();
 
-    // 1. Delete all client docs in Firestore
+    // 1. Delete all Firestore profiles
     const profilesRef = db.collection("users").doc(uid).collection("clients");
     const snapshot = await profilesRef.get();
     snapshot.forEach(doc => {
@@ -518,7 +482,7 @@ async function wipeAllUserData() {
     selectedSession = null;
     selectedExercise = null;
 
-    // 3. Save Settings (Unit change needs to persist)
+    // 3. Save Settings (Persist the unit change)
     const userDocRef = db.collection("users").doc(uid);
     batch.set(userDocRef, { settings: userSettings }, { merge: true });
 
@@ -614,20 +578,10 @@ function forceTitleResize(targetScreenId = currentScreen) {
 function applyTitleStyling(element, text, colorData) {
   if (!element) return;
   setTextAsChars(element, text);
-        // LOGIC CHECK: Colors Off?
+        // CHECK SETTINGS
     if (!userSettings.enableColors) {
-       element.querySelectorAll('.char').forEach(char => {
-           char.style.color = 'var(--color-text)';
-       });
-       // If animations are ALSO off, we return here.
-       if (!userSettings.enableAnimations) return;
-    }
-    
-    // If animations are OFF (but colors might be on)
-    if (!userSettings.enableAnimations) {
-        // We continue to apply colors, but we force the "mood" to calm 
-        // or prevent adding the animation classes below.
-        // Easiest fix: Just allow the code to run, but strip animation classes at the end.
+         element.querySelectorAll('.char').forEach(char => char.style.color = 'var(--color-text)');
+         if (!userSettings.enableAnimations) return; // Exit if both off
     }
 
   const parentTitle = element.closest('.animated-title');
@@ -647,7 +601,7 @@ function applyTitleStyling(element, text, colorData) {
   const animClass = getRandomAnimationClass(mood);
   if (userSettings.enableAnimations) {
     targetElement.classList.add(mood);
-}   
+}
   if (!colorData || colorData.total === 0) {
     element.querySelectorAll('.char').forEach(char => {
       char.style.color = 'var(--color-text)';
@@ -954,16 +908,15 @@ function renderClients() {
     
     clientList.appendChild(li);
   });
-  const clientsTitle = document.getElementById('clientsScreenTitle');
-    // === NEW: APPEND SETTINGS ROW AT THE BOTTOM ===
+    // === ADD SETTINGS BUTTON ===
   const settingsLi = document.createElement("li");
   settingsLi.className = "settings-row"; 
   settingsLi.style.cursor = "pointer";
-
+  
   const iconDiv = document.createElement("div");
   iconDiv.className = "settings-icon";
   iconDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
-
+  
   const textDiv = document.createElement("div");
   textDiv.className = "settings-text";
   textDiv.textContent = "Settings";
@@ -973,10 +926,11 @@ function renderClients() {
 
   settingsLi.onclick = (e) => {
       e.stopPropagation();
-      openSettingsModal(); // We will define this next
+      openSettingsModal();
   };
 
   clientList.appendChild(settingsLi);
+  const clientsTitle = document.getElementById('clientsScreenTitle');
   applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
   hookEditables();
 }
@@ -2718,8 +2672,6 @@ function updateCalcUI() {
              calcActionBtn.style.backgroundColor = "";
              calcActionBtn.classList.add('btn-primary');
         }
-    const weightLabel = document.querySelector('#weightBox .field-label');
-    if (weightLabel) weightLabel.textContent = `WEIGHT (${getUnitLabel()})`;
     }
 }
 
@@ -2981,51 +2933,62 @@ function openSettingsModal() {
     settingsModal.classList.remove('hidden');
 }
 
-document.getElementById('closeSettingsBtn').onclick = () => {
-    settingsModal.classList.add('hidden');
-};
+if(document.getElementById('closeSettingsBtn')) {
+    document.getElementById('closeSettingsBtn').onclick = () => {
+        settingsModal.classList.add('hidden');
+    };
+}
 
 function updateSettingsUI() {
-    unitToggle.checked = (userSettings.units === 'kg'); // Checked = KG
+    if(!unitToggle) return;
+    unitToggle.checked = (userSettings.units === 'kg'); 
     colorToggle.checked = userSettings.enableColors;
     animToggle.checked = userSettings.enableAnimations;
 }
 
-// 1. UNIT TOGGLE (DANGER)
-unitToggle.onclick = async (e) => {
-    e.preventDefault(); // Stop immediate toggle, wait for confirmation
-    const willBeKg = !unitToggle.checked; // If it WAS unchecked (lbs), it WILL be checked (kg)
-
-    const confirmWipe = confirm(`WARNING: Switching to ${willBeKg ? 'Kilograms' : 'Pounds'} will DELETE ALL existing profile data to prevent unit conflicts.\n\nAre you sure you want to proceed?`);
-
-    if (confirmWipe) {
-        userSettings.units = willBeKg ? 'kg' : 'lbs';
-        unitToggle.checked = willBeKg;
-        await wipeAllUserData();
-    }
-};
+// 1. UNIT TOGGLE
+if(unitToggle) {
+    unitToggle.onclick = async (e) => {
+        e.preventDefault(); 
+        const willBeKg = !unitToggle.checked; 
+        const confirmWipe = confirm(`WARNING: Switching to ${willBeKg ? 'Kilograms' : 'Pounds'} will DELETE ALL existing profile data.\n\nAre you sure?`);
+        
+        if (confirmWipe) {
+            userSettings.units = willBeKg ? 'kg' : 'lbs';
+            unitToggle.checked = willBeKg;
+            await wipeAllUserData();
+        }
+    };
+}
 
 // 2. COLOR TOGGLE
-colorToggle.onclick = () => {
-    userSettings.enableColors = colorToggle.checked;
-    saveUserJson(); 
-    refreshCurrentView();
-};
+if(colorToggle) {
+    colorToggle.onclick = () => {
+        userSettings.enableColors = colorToggle.checked;
+        saveUserJson(); 
+        refreshCurrentView();
+    };
+}
 
 // 3. ANIMATION TOGGLE
-animToggle.onclick = () => {
-    userSettings.enableAnimations = animToggle.checked;
-    saveUserJson(); 
-    refreshCurrentView();
-};
+if(animToggle) {
+    animToggle.onclick = () => {
+        userSettings.enableAnimations = animToggle.checked;
+        saveUserJson(); 
+        refreshCurrentView();
+    };
+}
 
-// 4. NEW LOGOUT HANDLER
-document.getElementById('settingsLogoutBtn').onclick = async () => {
-    settingsModal.classList.add('hidden');
-    await auth.signOut();
-};
+// 4. LOGOUT
+if(document.getElementById('settingsLogoutBtn')) {
+    document.getElementById('settingsLogoutBtn').onclick = async () => {
+        settingsModal.classList.add('hidden');
+        await auth.signOut();
+    };
+}
 
 function refreshCurrentView() {
+    if (typeof currentScreen === 'undefined') return;
     if (currentScreen === SCREENS.CLIENTS) renderClients();
     else if (currentScreen === SCREENS.SESSIONS) renderSessions();
     else if (currentScreen === SCREENS.EXERCISES) renderExercises();
