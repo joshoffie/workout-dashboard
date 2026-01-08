@@ -332,9 +332,6 @@ function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
-    // --- NEW: Stop Timer UI when leaving Sets screen ---
-  if (currentScreen === SCREENS.SETS && targetScreenId !== SCREENS.SETS) {
-      stopRestTimerUI();
   }
   // ---------------------------------------------------
 
@@ -2756,67 +2753,113 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // REST TIMER ENGINE
 // =====================================================
 
+// =====================================================
+// MASTER TIMER ENGINE (Global + Local)
+// =====================================================
+
+// Keys for LocalStorage
+const KEY_GLOBAL_TIMER = "trunk_last_active_timer"; 
+// Note: We still use "restTimer_${exerciseName}" for local exercise history
+
+let masterTimerInterval = null;
+
+// 1. TRIGGER (Called when user saves a set)
 function startRestTimer(reset = false) {
     if (!selectedExercise) return;
     
-    // Unique ID for this exercise's timer in LocalStorage
-    const timerKey = `restTimer_${selectedExercise.exercise}`;
+    // A. Define the Timestamp
+    // If resetting (new set), use NOW. Otherwise try to find existing.
+    let startTime = Date.now();
     
-    if (reset) {
-        // CASE 1: New Set Added -> Save NOW as the start time
-        const now = Date.now();
-        localStorage.setItem(timerKey, now);
-    }
+    // B. Save to LOCAL Exercise History (So this specific page remembers it)
+    const localKey = `restTimer_${selectedExercise.exercise}`;
+    localStorage.setItem(localKey, startTime);
 
-    // Clear any existing loop so we don't have doubles
-    if (restTimerInterval) clearInterval(restTimerInterval);
+    // C. Save to GLOBAL History (So the header knows this is the latest)
+    // We save the Timestamp AND the Label (e.g. "Bench Press")
+    const globalData = {
+        time: startTime,
+        label: selectedExercise.exercise
+    };
+    localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
 
-    const timerEl = document.getElementById('restTimer');
-    const textEl = document.getElementById('restTimerText');
-    
-    // Immediate Update (Run once before interval starts to avoid 1s delay)
-    updateTimerUI(timerKey, timerEl, textEl);
-
-    // Start Loop
-    restTimerInterval = setInterval(() => {
-        updateTimerUI(timerKey, timerEl, textEl);
-    }, 1000);
+    // D. Force an immediate tick (UI update)
+    masterClockTick();
 }
 
-function updateTimerUI(key, container, textSpan) {
-    const startTime = localStorage.getItem(key);
-    
-    // If no time saved, or user deleted it, hide timer
-    if (!startTime) {
-        container.classList.add('hidden');
-        if (restTimerInterval) clearInterval(restTimerInterval);
-        return;
+// 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
+function masterClockTick() {
+    const now = Date.now();
+
+    // --- TASK 1: UPDATE GLOBAL HEADER (The "Most Recent" Timer) ---
+    const globalEl = document.getElementById('globalHeaderTimer');
+    const globalText = document.getElementById('globalHeaderTimerText');
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+
+    if (globalEl && globalText) {
+        if (!rawGlobal) {
+            globalEl.classList.add('hidden');
+        } else {
+            try {
+                const data = JSON.parse(rawGlobal);
+                const diff = now - parseInt(data.time);
+                
+                // Timeout: 30 mins
+                if (diff > 1800000) { 
+                    globalEl.classList.add('hidden');
+                    localStorage.removeItem(KEY_GLOBAL_TIMER);
+                } else {
+                    globalText.textContent = formatTimer(diff);
+                    globalEl.classList.remove('hidden');
+                }
+            } catch (e) { console.error("Timer parse error", e); }
+        }
     }
 
-    const diff = Date.now() - parseInt(startTime);
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
+    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER (Only if visible) ---
+    // Only run this if we are actually ON the sets screen
+    if (currentScreen === SCREENS.SETS && selectedExercise) {
+        const localEl = document.getElementById('restTimer');
+        const localText = document.getElementById('restTimerText');
+        const localKey = `restTimer_${selectedExercise.exercise}`;
+        const localTime = localStorage.getItem(localKey);
 
-    // TIMEOUT: If > 30 minutes, stop tracking to save battery/sanity
-    if (minutes >= 30) {
-        container.classList.add('hidden');
-        if (restTimerInterval) clearInterval(restTimerInterval);
-        localStorage.removeItem(key); // Cleanup
-        return;
+        if (localEl && localText) {
+            if (!localTime) {
+                localEl.classList.add('hidden');
+            } else {
+                const diff = now - parseInt(localTime);
+                if (diff > 1800000) {
+                    localEl.classList.add('hidden');
+                    localStorage.removeItem(localKey);
+                } else {
+                    localText.textContent = formatTimer(diff);
+                    localEl.classList.remove('hidden');
+                }
+            }
+        }
     }
-
-    // Formatting: 00:00
-    const mStr = minutes.toString().padStart(2, '0');
-    const sStr = seconds.toString().padStart(2, '0');
-    
-    textSpan.textContent = `${mStr}:${sStr}`;
-    container.classList.remove('hidden');
 }
 
-function stopRestTimerUI() {
-    // Stops the visual update (CPU) but KEEPS the timestamp in storage
-    if (restTimerInterval) clearInterval(restTimerInterval);
+// Helper: Milliseconds -> MM:SS
+function formatTimer(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
+
+// 3. INIT (Start the loop)
+function initMasterClock() {
+    if (masterTimerInterval) clearInterval(masterTimerInterval);
+    // Run immediately
+    masterClockTick();
+    // Run forever
+    masterTimerInterval = setInterval(masterClockTick, 1000);
+}
+
+// Start the engine
+initMasterClock();
 
 // Update the Screen & Button Text based on State
 function updateCalcUI() {
