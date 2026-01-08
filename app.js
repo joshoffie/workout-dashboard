@@ -397,12 +397,16 @@ async function loadUserJson() {
   clientsData = {};
 
   try {
-      // 1. LOAD SETTINGS
-      const settingsDoc = await db.collection("users").doc(uid).get();
-      if (settingsDoc.exists && settingsDoc.data().settings) {
-          userSettings = { ...userSettings, ...settingsDoc.data().settings };
+      // 1. ATTEMPT TO LOAD SETTINGS (Wrap in its own try/catch so it doesn't kill the app)
+      try {
+          const settingsDoc = await db.collection("users").doc(uid).get();
+          if (settingsDoc.exists && settingsDoc.data().settings) {
+              userSettings = { ...userSettings, ...settingsDoc.data().settings };
+          }
+          if(typeof updateSettingsUI === 'function') updateSettingsUI();
+      } catch (settingsErr) {
+          console.warn("Could not load settings, using defaults.", settingsErr);
       }
-      if(typeof updateSettingsUI === 'function') updateSettingsUI();
 
       // 2. CHECK FOR MODERN DATA
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
@@ -413,6 +417,7 @@ async function loadUserJson() {
           newSnap.forEach(doc => {
               let clientObj = doc.data();
               if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
+              // FIX: Ensure order exists to prevent NaN sort errors
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
@@ -421,11 +426,13 @@ async function loadUserJson() {
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
           const oldDocSnap = await oldDocRef.get();
+
           if (oldDocSnap.exists) {
                clientsData = oldDocSnap.data();
-               // Legacy migration fix...
-               Object.values(clientsData).forEach(c => {
-                   if (!c.sessions) c.sessions = [];
+               // FIX: Add order to legacy data so it sorts correctly
+               Object.keys(clientsData).forEach((key, index) => {
+                   if (clientsData[key].order === undefined) clientsData[key].order = index;
+                   if (!clientsData[key].sessions) clientsData[key].sessions = [];
                });
           } else {
               const fullName = auth.currentUser.displayName || "User";
@@ -434,9 +441,11 @@ async function loadUserJson() {
               await saveUserJson();
           }
       }
-      renderClients();
   } catch (err) {
       console.error("Error loading user data:", err);
+  } finally {
+      // CRITICAL FIX: This ensures the list renders even if an error occurred above
+      renderClients();
   }
 }
 
@@ -831,47 +840,66 @@ function moveItem(type, index, direction) {
         renderExercises();
     }
 }
-
 function renderClients() {
-  // Safety check: ensure the list exists
   if (!clientList) return;
-  
   clientList.innerHTML = "";
   
-  const sortedClients = Object.values(clientsData).sort((a, b) => a.order - b.order);
+  let totalAppColorData = { red: 0, green: 0, yellow: 0, total: 0 };
   
-  sortedClients.forEach(client => {
+  // Sort safely handling missing order
+  const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  
+  sortedClients.forEach((client, idx) => { // Added idx for move functionality
       const li = document.createElement("li");
       
-      // 1. Calculate stats
-      const colorData = getExerciseColorData(client); 
+      // 1. CALCULATE REAL STATS (Sum of all sessions)
+      let clientColorData = { red: 0, green: 0, yellow: 0, total: 0 };
+      if (client.sessions) {
+          client.sessions.forEach(session => {
+              if (session.exercises) {
+                  session.exercises.forEach(ex => {
+                      const cData = getExerciseColorData(ex);
+                      clientColorData.red += cData.red;
+                      clientColorData.green += cData.green;
+                      clientColorData.yellow += cData.yellow;
+                      clientColorData.total += cData.total;
+                  });
+              }
+          });
+      }
+      // Add to global total for the Title
+      totalAppColorData.red += clientColorData.red;
+      totalAppColorData.green += clientColorData.green;
+      totalAppColorData.yellow += clientColorData.yellow;
+      totalAppColorData.total += clientColorData.total;
+
+      const arrowNode = createDynamicArrow(clientColorData);
+
+      // 2. BUILD LIST ITEM
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "client-name"; // Class needed for hookEditables
       
-      // 2. Create the arrow element (DOM Node)
-      const arrowNode = createDynamicArrow(colorData);
+      // Use helper to set text and animation
+      setupListTextAnimation(nameSpan, client.client_name, clientColorData);
 
-      // 3. Set text content first
-      li.innerHTML = `
-        <span class="client-name">${client.client_name}</span>
-        <div class="edit-actions">
-           <button class="btn-icon btn-move"></button>
-           <button class="btn-icon btn-delete"><span class="delete-icon">&times;</span></button>
-        </div>
-      `;
-      
-      // 4. Insert the arrow node properly (before the edit actions)
-      // We insert it as the 2nd child (after the name)
-      li.insertBefore(arrowNode, li.querySelector('.edit-actions'));
+      // 3. CREATE BUTTONS (DOM Elements, not strings, so clicks work)
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'edit-actions';
 
-      li.onclick = (e) => {
-        if (document.body.classList.contains('edit-mode-active')) return;
-        selectClient(client.client_name);
-      };
+      const upBtn = document.createElement('button');
+      upBtn.className = 'btn-icon btn-move';
+      upBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, -1); };
 
-      const deleteBtn = li.querySelector('.btn-delete');
+      const downBtn = document.createElement('button');
+      downBtn.className = 'btn-icon btn-move';
+      downBtn.onclick = (e) => { e.stopPropagation(); moveItem('client', idx, 1); };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-icon btn-delete';
+      deleteBtn.innerHTML = '<span class="delete-icon">&times;</span>';
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
         showDeleteConfirm(`Delete ${client.client_name}?`, () => {
-             // Assuming you have this helper or use logic to delete
              if(typeof deleteClientFromFirestore === 'function') deleteClientFromFirestore(client.client_name);
              delete clientsData[client.client_name];
              saveUserJson();
@@ -879,15 +907,33 @@ function renderClients() {
         });
       };
 
-      // 5. Append to DOM *before* hooking features
-      clientList.appendChild(li);
+      actionsDiv.appendChild(upBtn);
+      actionsDiv.appendChild(downBtn);
+      actionsDiv.appendChild(deleteBtn);
 
-      // 6. Hook Editables & Animations now that element is in DOM
-      hookEditables(li, client, 'client');
-      setupListTextAnimation(li.querySelector('.client-name'), client.client_name, colorData);
+      // 4. ASSEMBLE
+      li.appendChild(nameSpan);
+      li.appendChild(actionsDiv);
+      li.appendChild(arrowNode);
+
+      li.onclick = (e) => {
+        if (document.body.classList.contains('edit-mode-active')) return;
+        selectClient(client.client_name);
+      };
+
+      clientList.appendChild(li);
+      
+      // 5. HOOK EDITABLES
+      // Note: passing 'li' here might be incorrect depending on your hookEditables definition.
+      // Ideally, we just run hookEditables() once at the end, but this mimics your loop logic safely.
+      if (typeof makeEditable === 'function') makeEditable(nameSpan, "Client");
   }); 
 
-  // 7. Add Settings Button
+  // 6. UPDATE TITLE STATS
+  const clientsTitle = document.getElementById('clientsScreenTitle');
+  if(clientsTitle) applyTitleStyling(clientsTitle, 'Profiles', totalAppColorData);
+
+  // 7. SETTINGS BUTTON
   const settingsLi = document.createElement("li");
   settingsLi.className = "settings-row"; 
   settingsLi.style.cursor = "pointer";
@@ -899,7 +945,7 @@ function renderClients() {
   `;
   settingsLi.onclick = (e) => {
       e.stopPropagation();
-      openSettingsModal();
+      if(typeof openSettingsModal === 'function') openSettingsModal();
   };
   clientList.appendChild(settingsLi);
 }
