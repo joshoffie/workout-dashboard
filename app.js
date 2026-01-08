@@ -240,6 +240,69 @@ let selectedExercise = null;
 let lastPlateAdded = null; // Tracks the weight of the last plate clicked
 
 // =====================================================
+// UNIT CONVERSION ENGINE (Base Unit = LBS)
+// =====================================================
+const UNIT_mode = {
+    current: 'lbs', // Default base
+    LB_TO_KG: 0.45359237,
+
+    init: function() {
+        const saved = localStorage.getItem('trunk_unit_preference');
+        if (saved) this.current = saved;
+        this.applyToUI();
+    },
+
+    toggle: function() {
+        this.current = this.current === 'lbs' ? 'kg' : 'lbs';
+        localStorage.setItem('trunk_unit_preference', this.current);
+        this.applyToUI();
+        
+        // FORCE RE-RENDER OF ALL SCREENS
+        if (typeof renderClients === 'function') renderClients();
+        // Check if we need to redraw specific screens based on visibility
+        if (!document.getElementById('sessionsDiv').classList.contains('hidden')) renderSessions();
+        if (!document.getElementById('exercisesDiv').classList.contains('hidden')) renderExercises();
+        if (!document.getElementById('setsDiv').classList.contains('hidden')) renderSets();
+        
+        // If Graph is open, completely redraw it
+        if (!document.getElementById('graphContainer').classList.contains('hidden')) {
+             if(typeof initChart === 'function') { initChart(); drawChart(); }
+        }
+    },
+
+    // DATABASE (LBS) -> UI (DISPLAY)
+    toDisplay: function(lbsValue) {
+        if (this.current === 'lbs') return parseFloat(parseFloat(lbsValue).toFixed(2));
+        // Convert Lbs -> Kg (Round to 2 decimals for clean display)
+        return parseFloat((lbsValue * this.LB_TO_KG).toFixed(2)); 
+    },
+
+    // UI (USER INPUT) -> DATABASE (LBS)
+    toStorage: function(userValue) {
+        if (this.current === 'lbs') return parseFloat(userValue);
+        // Convert Kg -> Lbs (Save with high precision to prevent drift)
+        return parseFloat((userValue / this.LB_TO_KG).toFixed(4));
+    },
+
+    getLabel: function() {
+        return this.current;
+    },
+
+    applyToUI: function() {
+        // Update Setting Switch
+        const toggle = document.getElementById('settingUnitToggle');
+        if (toggle) toggle.checked = (this.current === 'kg');
+        
+        // Update Calculator Unit Label
+        const wLabel = document.querySelector('#weightBox .field-label');
+        if (wLabel) wLabel.textContent = `WEIGHT (${this.current.toUpperCase()})`;
+    }
+};
+
+// Start immediately
+UNIT_mode.init();
+
+// =====================================================
 // ANIMATION CONFIGURATION
 // =====================================================
 
@@ -1579,16 +1642,20 @@ function renderSets() {
 
       // --- CARD HTML ---
       const summary = document.createElement("div");
+        const dispWeight = UNIT_mode.toDisplay(s.weight);
+        const dispVol = UNIT_mode.toDisplay(s.volume);
+        const uLabel = UNIT_mode.getLabel();
+        
       summary.className = "set-summary";
       summary.innerHTML = `
         <div class="set-index-badge">${setIdx + 1}</div>
         <div class="set-main-data">
           <span class="set-reps-val">${s.reps}</span>
           <span class="set-x">x</span>
-          <span class="set-weight-val">${s.weight}<span style="font-size:0.7em; margin-left:2px;">lbs</span></span>
+          <span class="set-weight-val">${dispWeight}<span style="font-size:0.7em; margin-left:2px;">${uLabel}</span></span>
         </div>
         <div class="set-meta-data">
-          <span class="set-vol">${s.volume} v</span>
+          <span class="set-vol">${Math.round(dispVol).toLocaleString()} ${uLabel}</span>
           <span class="set-date">${dateStr}</span>
         </div>
       `;
@@ -1757,6 +1824,12 @@ function drawChart() {
     // 1. STOP OLD LEAVES when redrawing
     stopLeafSpawner();
     chartState.dataPoints = getChartData();
+        // NEW: Update Unit Labels on Graph Header
+    document.querySelectorAll('.unit').forEach(el => {
+        if (el.textContent.includes('lb')) {
+            el.textContent = UNIT_mode.current === 'kg' ? 'kg/r' : 'lb/r';
+        }
+    });
     const points = chartState.dataPoints;
     const pointsGroup = document.getElementById('chartPoints');
     pointsGroup.innerHTML = '';
@@ -1853,18 +1926,31 @@ function updateDetailView(idx) {
     cursor.classList.remove('hidden');
     cursor.setAttribute('x1', p.x);
     cursor.setAttribute('x2', p.x);
+    
     document.querySelectorAll('.chart-point').forEach(c => {
         c.classList.remove('active');
         if (parseInt(c.dataset.idx) === idx) c.classList.add('active');
     });
+
     const raw = p.data; 
     const dateStr = new Date(raw.timestamp).toLocaleDateString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric'
     });
+
+    // --- UNIT CONVERSION APPLIED HERE ---
+    // 1. Reps and Sets don't change
     document.getElementById('headerReps').textContent = raw.reps;
-    document.getElementById('headerWpr').textContent = raw.wpr.toFixed(1);
     document.getElementById('headerSets').textContent = raw.sets;
-    document.getElementById('headerVol').textContent = raw.vol;
+    
+    // 2. Volume and W/R need conversion from LBS -> KG/LBS
+    const dispWpr = UNIT_mode.toDisplay(raw.wpr);
+    const dispVol = UNIT_mode.toDisplay(raw.vol);
+
+    // 3. Rounding for clean UI
+    document.getElementById('headerWpr').textContent = formatNum(dispWpr);
+    document.getElementById('headerVol').textContent = Math.round(dispVol).toLocaleString(); // Int for volume
+    // ------------------------------------
+
     document.getElementById('headerDate').textContent = dateStr;
 }
 
@@ -1924,84 +2010,106 @@ function aggregateStats(setsArray) {
 function formatNum(num) { if (num % 1 === 0) return num.toString(); return num.toFixed(1);
 }
 
-function updateStatUI(statName, currentValue, previousValue) {
+function updateStatUI(statName, currentValueLBS, previousValueLBS) {
   const arrowEl = document.getElementById(statName + 'Arrow');
   const spiralEl = document.getElementById(statName + 'Spiral');
   const dataEl = document.getElementById(statName + 'Data');
   
   if (!arrowEl || !dataEl) return 'neutral';
   
-  const status = calculateStatStatus(currentValue, previousValue);
-  
-  // --- ARROWS PRESERVED ---
-  let arrow = '—';
-  if (status === 'increase') arrow = '↑'; 
-  else if (status === 'decrease') arrow = '↓'; 
-  // ------------------------
+  // 1. CALCULATE STATUS (Using Base Unit LBS)
+  // We use LBS here so the red/green logic is always consistent with the database
+  const status = calculateStatStatus(currentValueLBS, previousValueLBS);
 
-  const change = currentValue - previousValue;
+  // 2. CONVERT FOR DISPLAY
+  // Sets and Reps are just counts (no unit conversion needed)
+  // Volume and W/R are weights (need LBS -> KG conversion if mode is active)
+  const isWeightMetric = (statName === 'volume' || statName === 'wpr');
+  
+  const displayCurrent = isWeightMetric 
+      ? UNIT_mode.toDisplay(currentValueLBS) 
+      : currentValueLBS;
+
+  const diffLBS = currentValueLBS - previousValueLBS;
+  
+  // Convert the difference too (e.g. "+5 lbs" becomes "+2.27 kg")
+  const displayDiff = isWeightMetric
+      ? UNIT_mode.toDisplay(diffLBS)
+      : diffLBS;
+
+  // 3. CALCULATE PERCENTAGE (Unit Independent)
   let percentageChange = 0;
-  
-  if (previousValue !== 0) percentageChange = (change / previousValue) * 100;
-  else if (currentValue > 0) percentageChange = 100;
+  if (previousValueLBS !== 0) {
+      percentageChange = (diffLBS / previousValueLBS) * 100;
+  } else if (currentValueLBS > 0) {
+      percentageChange = 100;
+  }
 
-  let currentString = '';
-  const changeSign = change > 0 ? '+' : '';
+  // 4. FORMAT STRINGS
+  const unitLabel = UNIT_mode.getLabel(); // Returns 'kg' or 'lbs'
+  const changeSign = displayDiff > 0 ? '+' : '';
   
+  let currentString = '';
   switch(statName) {
-    case 'sets': currentString = `${formatNum(currentValue)} Sets`; break;
-    case 'reps': currentString = `${formatNum(currentValue)} Reps`; break;
-    case 'volume': currentString = `${formatNum(currentValue)} lb`; break;
-    case 'wpr': currentString = `${formatNum(currentValue)} lb/rep`; break;
+    case 'sets': 
+        currentString = `${formatNum(displayCurrent)} Sets`; 
+        break;
+    case 'reps': 
+        currentString = `${formatNum(displayCurrent)} Reps`; 
+        break;
+    case 'volume': 
+        // Use toLocaleString() for volume (e.g. "1,200") to make it readable
+        currentString = `${Math.round(displayCurrent).toLocaleString()} ${unitLabel}`; 
+        break;
+    case 'wpr': 
+        currentString = `${formatNum(displayCurrent)} ${unitLabel}/r`; 
+        break;
   }
   
-  let changeString = `(${changeSign}${formatNum(change)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  let changeString = `(${changeSign}${formatNum(displayDiff)} / ${changeSign}${Math.abs(percentageChange).toFixed(0)}%)`;
+  
+  // Override for neutral
   if (status === 'neutral') changeString = `(0 / 0%)`;
 
+  // 5. APPLY COLORS & TEXT
   const classesToRemove = ['increase', 'decrease', 'neutral'];
   
-  arrowEl.innerHTML = arrow;
+  // Arrow
+  arrowEl.innerHTML = status === 'neutral' ? '—' : ''; // Keep your simplified arrow logic
   arrowEl.classList.remove(...classesToRemove); 
   arrowEl.classList.add(status);
   
+  // Spiral SVG (if present)
   if(spiralEl) { 
-      spiralEl.classList.remove(...classesToRemove); 
-      void spiralEl.offsetWidth; 
+      spiralEl.classList.remove(...classesToRemove);
+      void spiralEl.offsetWidth; // Force Reflow for animation restart
       spiralEl.classList.add(status);
   }
   
-  // Set the text
+  // Data Text
   const fullText = `${currentString} ${changeString}`;
   dataEl.textContent = fullText;
-  
   dataEl.classList.remove(...classesToRemove); 
   dataEl.classList.add(status);
 
-  // --- RE-CALIBRATED SMART FIT SYSTEM ---
-  // 1. Reset base styles (Default behavior)
-  dataEl.style.fontSize = ""; 
+  // 6. SMART FIT SYSTEM (Layout Protection)
+  // This logic checks if the string is too long and shrinks it so it fits
+  dataEl.style.fontSize = "";
   dataEl.style.whiteSpace = "nowrap"; 
   dataEl.style.lineHeight = "";
   dataEl.style.maxWidth = "";
   dataEl.style.display = "";
   dataEl.style.textAlign = "";
   dataEl.style.marginLeft = "";
-
-  // 2. Check Length and Adjust
+  
   const len = fullText.length;
-
-  // UPDATED: Only trigger if text is REALLY long (> 29 chars)
-  // This lets "150 lb/rep (-150 / 50%)" (approx 24 chars) stay normal.
+  // Threshold > 29 chars triggers the shrink
   if (len > 29) {
-      dataEl.style.fontSize = "0.75rem"; // Shrink slightly
-      dataEl.style.whiteSpace = "normal"; // Allow stacking
-      dataEl.style.lineHeight = "1.2";
-      
-      // UPDATED: Widen the constraint to 240px. 
-      // This allows the text to extend far to the left before wrapping.
-      dataEl.style.maxWidth = "240px";    
-      
-      dataEl.style.display = "block";     
+      dataEl.style.fontSize = "0.75rem";  // Shrink slightly
+      dataEl.style.whiteSpace = "normal"; // Allow wrap
+      dataEl.style.lineHeight = "1.2";    // Tighten lines
+      dataEl.style.maxWidth = "240px";    // Constrain width
+      dataEl.style.display = "block";
       dataEl.style.textAlign = "right";   
       dataEl.style.marginLeft = "auto";   
   } 
@@ -2100,6 +2208,22 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         renderSets(); 
         break;
       case "Set Weight":
+                    // Inside makeEditable... case "Set Weight":
+        
+        // 1. Get raw input (User types "100" meaning 100kg)
+        const userVal = parseFloat(newVal);
+        
+        if (!isNaN(userVal)) {
+            // 2. Convert to LBS for storage
+            const storageVal = UNIT_mode.toStorage(userVal);
+        
+            selectedExercise.sets[originalIndex].weight = storageVal;
+        
+            // 3. Recalculate Volume (LBS * Reps)
+            selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * storageVal;
+        
+            renderSets();
+        }
         selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight; 
         selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
         renderSets(); 
@@ -2531,24 +2655,62 @@ let calcState = {
 };
 
 function openAddSetModal() {
-  // Initialize with Reps selected
+  // Reset State
   calcState = { 
-      activeField: 'reps', 
-      repsVal: '', 
-      weightVal: '', 
-      plates: {}, 
-      plateStack: [],
-      isAutoFilled: { reps: false, weight: false } 
+      activeField: 'reps', repsVal: '', weightVal: '', 
+      plates: {}, plateStack: [], isAutoFilled: { reps: false, weight: false } 
   };
+  
+  // 1. Update Label to show current unit
+  const wBoxLabel = document.querySelector('#weightBox .field-label');
+  if (wBoxLabel) wBoxLabel.textContent = `WEIGHT (${UNIT_mode.getLabel().toUpperCase()})`;
 
-  // Set default weight AND reps if previous sets exist
+  // 2. Generate Plates (Metric vs Imperial)
+  const plateGrid = document.getElementById('plateGrid');
+  if (plateGrid) {
+      plateGrid.innerHTML = ''; 
+      const plates = UNIT_mode.current === 'lbs' 
+          ? [2.5, 5, 10, 25, 35, 45] 
+          : [1.25, 2.5, 5, 10, 15, 20]; // Standard Metric Plates
+
+      plates.forEach(p => {
+          const btn = document.createElement('button');
+          btn.className = p < 10 ? 'plate-btn small' : 'plate-btn';
+          btn.dataset.weight = p;
+          btn.innerHTML = `${p}<span class="plate-count hidden">x0</span>`;
+          
+          // Re-attach the click logic (Copy existing logic but ensure it uses the new 'p' value)
+          btn.onclick = (e) => {
+                calcState.activeField = 'weight';
+                checkAndClearAutoFill();
+                
+                const weight = parseFloat(btn.dataset.weight);
+                if (!calcState.plates[weight]) calcState.plates[weight] = 0;
+                calcState.plates[weight]++;
+                
+                let currentWeight = parseFloat(calcState.weightVal) || 0;
+                currentWeight += weight;
+                currentWeight = Math.round(currentWeight * 100) / 100; // Fix floating point
+
+                calcState.weightVal = currentWeight.toString();
+                calcState.plateStack.push(weight);
+                updateCalcUI();
+                
+                const badge = btn.querySelector('.plate-count');
+                badge.textContent = `x${calcState.plates[weight]}`;
+                badge.classList.remove('hidden');
+          };
+          plateGrid.appendChild(btn);
+      });
+  }
+
+  // 3. Auto-Fill with Conversion
   const lastSet = getLastSet();
-
   if (lastSet) {
-      calcState.repsVal = String(lastSet.reps);     // NEW: Auto-fill Reps
-      calcState.weightVal = String(lastSet.weight); // Existing: Auto-fill Weight
+      calcState.repsVal = String(lastSet.reps);
+      // CRITICAL: Convert the stored LBS to the current display unit
+      calcState.weightVal = String(UNIT_mode.toDisplay(lastSet.weight));
       
-      // NEW: Mark both as auto-filled so next interaction clears them
       calcState.isAutoFilled.reps = true;
       calcState.isAutoFilled.weight = true;
   }
@@ -2837,29 +2999,30 @@ calcActionBtn.onclick = () => {
 };
 
 function finishAddSet() {
-  const reps = parseInt(calcState.repsVal);
-  const weight = parseFloat(calcState.weightVal);
-  
-  // Validation: Ensure both are entered
-  if (isNaN(reps) || isNaN(weight)) {
-    // Visual feedback: shake or alert
-    if (isNaN(reps)) calcState.activeField = 'reps';
-    else calcState.activeField = 'weight';
-    updateCalcUI();
-    alert("Please enter both Reps and Weight.");
-    return;
-  }
+    const reps = parseInt(calcState.repsVal);
+    const displayWeight = parseFloat(calcState.weightVal); // Value in box (kg or lbs)
 
-  const notes = ""; // Notes are empty by default as requested
-  const timestamp = new Date().toISOString();
-  const volume = reps * weight;
+    if (isNaN(reps) || isNaN(displayWeight)) { /* Error handling */ return; }
 
-  selectedExercise.sets.push({ reps, weight, volume, notes, timestamp });
-  saveUserJson(); 
-  renderSets();
-  closeAddSetModal();
-    // --- NEW: Start/Reset Timer ---
-  startRestTimer(true); // true = reset to 00:00
+    // CONVERT TO LBS FOR STORAGE
+    const weightLBS = UNIT_mode.toStorage(displayWeight);
+    const volumeLBS = weightLBS * reps;
+
+    const notes = ""; 
+    const timestamp = new Date().toISOString();
+
+    selectedExercise.sets.push({ 
+        reps: reps, 
+        weight: weightLBS, // Always LBS
+        volume: volumeLBS, 
+        notes, 
+        timestamp 
+    });
+
+    saveUserJson(); 
+    renderSets();
+    closeAddSetModal();
+    startRestTimer(true);
   // -----------------------------
 
   // --- RE-INSERTING YOUR TUTORIAL LOGIC ---
