@@ -1790,60 +1790,48 @@ body.no-animations #logo-k {
 }
 
 /* =========================================
-   HEADER COMPACT CLEANUP
+   CENTERED HEADER TIMER
    ========================================= */
 
-/* 1. Tighten the Gap between header items */
-.auth-controls {
-    gap: 0.4rem !important; /* Reduced from 0.75rem */
+/* 1. Set context for absolute positioning */
+.header-content {
+    position: relative; /* Essential for centering the child */
+    justify-content: space-between; /* Keeps Logo Left and Buttons Right */
 }
 
-/* 2. Shrink the "Edit" Button (Header Only) */
-#editToggleBtn {
-    padding: 0.35rem 0.8rem !important; /* Slimmer padding */
-    font-size: 0.8rem !important;       /* Smaller font */
-    height: 32px;                       /* Fixed compact height */
-    min-height: 0;                      /* Override any defaults */
-    line-height: 1;                     /* Vertically center text */
-    border-radius: 6px;                 /* Tighter radius matches size */
-}
-
-/* 3. Compact the Global Timer */
+/* 2. Absolute Center the Timer */
 #globalHeaderTimer {
-    margin-right: 2px !important;       /* Pull closer to buttons */
-    padding: 2px 8px !important;        /* Slimmer pill shape */
-    font-size: 0.8rem !important;       /* Match edit button size */
-    height: 28px;                       /* Slightly smaller than buttons */
-    border-width: 1px;                  /* Ensure border isn't too thick */
-    display: inline-flex;
-    align-items: center;
-}
-
-/* 4. Compact the Settings Icon */
-#settingsBtn {
-    padding: 0 !important;              /* Remove padding */
-    width: 32px;                        /* Fixed square size */
-    height: 32px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%); /* Perfect Center */
+    
+    /* Styling */
+    margin: 0 !important; /* Reset old margins */
+    padding: 4px 12px !important;
+    font-size: 0.9rem !important;
+    height: 30px;
+    white-space: nowrap;
+    z-index: 102; /* Ensure it floats above everything */
+    
+    /* Visuals */
+    background: rgba(44, 44, 46, 0.8); /* Glassy dark background */
+    border: 1px solid var(--color-primary); /* Blue border active look */
+    border-radius: 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* Subtle pop */
 }
 
-/* 5. Mobile Safety (Prevent logo/button collision) */
-@media (max-width: 375px) {
-    .app-header {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    #animated-logo {
-        height: 40px; /* Slightly smaller logo on small screens */
-        font-size: 32px;
-    }
-    
-    /* On tiny screens, shrink the timer text slightly */
+/* 3. Hide the timer if it overlaps on VERY small phones (iPhone SE/Mini) */
+/* This prevents it from covering the logo or edit button */
+@media (max-width: 360px) {
     #globalHeaderTimer {
         font-size: 0.75rem !important;
-        padding: 2px 6px !important;
+        padding: 2px 8px !important;
+    }
+    .timer-icon {
+        display: none;
     }
 }
