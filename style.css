@@ -1670,7 +1670,7 @@ input[type=range]:active::-webkit-slider-thumb {
 }
 
 /* =========================================
-   SETTINGS TOGGLES & OVERRIDES (REVISED)
+   SETTINGS TOGGLES & OVERRIDES
    ========================================= */
 
 /* 1. The Toggle Switch UI */
@@ -1725,7 +1725,6 @@ input:checked + .slider:before {
 }
 
 /* 2. LOGIC: Disable Colors (When body has .no-colors) */
-/* We ONLY target text elements here. Arrows are excluded so they stay colored. */
 body.no-colors .char, 
 body.no-colors .big-stat, 
 body.no-colors .sub-stat,
@@ -1735,26 +1734,28 @@ body.no-colors .set-vol {
     color: var(--color-text) !important;
 }
 
-/* Force Spiral/Graph lines to be neutral if text colors are off */
-/* (We leave arrows alone so they retain their Red/Green/Yellow status) */
+/* Force Arrows to be grey */
+body.no-colors .arrow-icon,
+body.no-colors .stat-arrow {
+    color: var(--color-text-muted) !important;
+    animation: none !important; /* Stop arrow movement if colors are off */
+}
+
+/* Force Spiral/Graph lines in Comparison Banner to be grey/neutral */
 body.no-colors .comparison-spiral {
     stroke: var(--color-text-muted) !important;
 }
 
 /* 3. LOGIC: Disable Animations (When body has .no-animations) */
-
-/* Stop Arrow Animations */
-body.no-animations .arrow-green,
-body.no-animations .arrow-red,
-body.no-animations .arrow-yellow,
-body.no-animations .stat-arrow,
-body.no-animations .arrow-icon {
+body.no-colors .arrow-green,
+body.no-colors .arrow-red,
+body.no-colors .arrow-yellow {
     animation: none !important;
 }
 
-/* Stop Text & Logo Animations */
 body.no-animations .char,
 body.no-animations .logo-variant text,
+body.no-animations .arrow-icon,
 body.no-animations .comparison-spiral {
     animation: none !important;
     transition: none !important;
