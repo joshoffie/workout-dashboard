@@ -77,6 +77,9 @@ async function deleteClientFromFirestore(clientName) {
 // =====================================================
 // TUTORIAL ENGINE
 // =====================================================
+let clientsData = {};
+let selectedClient = null;
+const clientList = document.getElementById("clientList"); // <--- ADD THIS
 let isTutorialMode = false;
 // === NEW SETTINGS STATE ===
 let userSettings = {
@@ -830,8 +833,9 @@ function moveItem(type, index, direction) {
 }
 
 function renderClients() {
-  // FIX 1: Define the list variable
-  const clientList = document.getElementById("clientList");
+  // Safety check: ensure the list exists
+  if (!clientList) return;
+  
   clientList.innerHTML = "";
   
   const sortedClients = Object.values(clientsData).sort((a, b) => a.order - b.order);
@@ -839,12 +843,13 @@ function renderClients() {
   sortedClients.forEach(client => {
       const li = document.createElement("li");
       
-      // Calculate color data (Note: client objects usually don't have sets, so this returns neutral)
+      // 1. Calculate stats
       const colorData = getExerciseColorData(client); 
       
-      // FIX 2: Create the arrow element, but DO NOT put it in the innerHTML string
+      // 2. Create the arrow element (DOM Node)
       const arrowNode = createDynamicArrow(colorData);
 
+      // 3. Set text content first
       li.innerHTML = `
         <span class="client-name">${client.client_name}</span>
         <div class="edit-actions">
@@ -853,8 +858,9 @@ function renderClients() {
         </div>
       `;
       
-      // FIX 2 (Continued): Append the arrow properly as a DOM node
-      li.appendChild(arrowNode);
+      // 4. Insert the arrow node properly (before the edit actions)
+      // We insert it as the 2nd child (after the name)
+      li.insertBefore(arrowNode, li.querySelector('.edit-actions'));
 
       li.onclick = (e) => {
         if (document.body.classList.contains('edit-mode-active')) return;
@@ -864,48 +870,37 @@ function renderClients() {
       const deleteBtn = li.querySelector('.btn-delete');
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        // Assuming openDeleteModal is defined elsewhere or meant to be showDeleteConfirm
-        if(typeof openDeleteModal === 'function') openDeleteModal(client.client_name, 'client');
-        else if(typeof showDeleteConfirm === 'function') {
-             showDeleteConfirm(`Delete ${client.client_name}?`, () => {
-                 deleteClientFromFirestore(client.client_name);
-                 delete clientsData[client.client_name];
-                 saveUserJson();
-                 renderClients();
-             });
-        }
+        showDeleteConfirm(`Delete ${client.client_name}?`, () => {
+             // Assuming you have this helper or use logic to delete
+             if(typeof deleteClientFromFirestore === 'function') deleteClientFromFirestore(client.client_name);
+             delete clientsData[client.client_name];
+             saveUserJson();
+             renderClients();
+        });
       };
 
-      // FIX 3: Append to the list BEFORE hooking editables
+      // 5. Append to DOM *before* hooking features
       clientList.appendChild(li);
-      
-      // Now the element is in the DOM, so we can make it editable
-      hookEditables(li, client, 'client');
 
+      // 6. Hook Editables & Animations now that element is in DOM
+      hookEditables(li, client, 'client');
       setupListTextAnimation(li.querySelector('.client-name'), client.client_name, colorData);
   }); 
 
-  // 3. SETTINGS BUTTON
+  // 7. Add Settings Button
   const settingsLi = document.createElement("li");
   settingsLi.className = "settings-row"; 
   settingsLi.style.cursor = "pointer";
-  
-  const iconDiv = document.createElement("div");
-  iconDiv.className = "settings-icon";
-  // Simplified gear icon for brevity
-  iconDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>`;
-  
-  const textDiv = document.createElement("div");
-  textDiv.className = "settings-text";
-  textDiv.textContent = "Settings";
-
-  settingsLi.appendChild(iconDiv);
-  settingsLi.appendChild(textDiv);
+  settingsLi.innerHTML = `
+      <div class="settings-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
+      </div>
+      <div class="settings-text">Settings</div>
+  `;
   settingsLi.onclick = (e) => {
       e.stopPropagation();
       openSettingsModal();
   };
-
   clientList.appendChild(settingsLi);
 }
 
