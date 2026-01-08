@@ -365,6 +365,8 @@ function navigateTo(targetScreenId, direction = 'forward') {
   currentScreenEl.classList.add(exitClass);
 
   currentScreen = targetScreenId;
+    // 3. NEW: Force timer to check visibility immediately after screen switch
+  if (typeof masterClockTick === 'function') masterClockTick();
 
   currentScreenEl.addEventListener('animationend', () => {
     currentScreenEl.classList.add('hidden');
@@ -1604,6 +1606,9 @@ function getLastSet() {
 function renderSets() {
   const setsContainer = document.getElementById("setsList");
   setsContainer.innerHTML = "";
+
+// 1. NEW: Instantly hide timer to prevent "ghost" of previous exercise
+  document.getElementById('restTimer').classList.add('hidden');
   
   if (!selectedExercise) return;
   updateSpiralData(selectedExercise.sets);
@@ -2786,6 +2791,8 @@ function startRestTimer(reset = false) {
         // C. Force immediate UI update
         masterClockTick();
     }
+    // 2. NEW: Always force an immediate UI update
+    if (typeof masterClockTick === 'function') masterClockTick();
 }
 
 // 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
