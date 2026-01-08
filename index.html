@@ -194,25 +194,46 @@
     </section>
 
     <section class="screen hidden" id="settingsDiv">
-  <div class="card-header">
-    <button id="backToClientsFromSettingsBtn" class="btn-back">
-      <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/>
-      </svg>
-    </button>
-    <h2 id="settingsScreenTitle" class="animated-title" aria-label="Settings">Settings</h2>
-  </div>
-  <ul class="item-list">
-    <li id="settingsLogoutBtn" style="color: var(--color-red);">
-      <span>Logout</span>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-        <polyline points="16 17 21 12 16 7"></polyline>
-        <line x1="21" y1="12" x2="9" y2="12"></line>
-      </svg>
-    </li>
-  </ul>
-</section>
+      <div class="card-header">
+        <button id="backToClientsFromSettingsBtn" class="btn-back">
+          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/>
+          </svg>
+        </button>
+        <h2 id="settingsScreenTitle" class="animated-title" aria-label="Settings">Settings</h2>
+      </div>
+      
+      <ul class="item-list" id="settingsList">
+        <li>
+            <div class="switch-container">
+                <span>Show Text Colors</span>
+                <label class="switch">
+                    <input type="checkbox" id="settingColorToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </li>
+
+        <li>
+            <div class="switch-container">
+                <span>Show Text Animations</span>
+                <label class="switch">
+                    <input type="checkbox" id="settingAnimToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </li>
+
+        <li id="settingsLogoutBtn" style="color: var(--color-red); margin-top: 1rem;">
+          <span>Logout</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </li>
+      </ul>
+    </section>
     
     <div id="deleteModal" class="overlay hidden">
       <div class="delete-modal">
