@@ -2762,26 +2762,28 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // MASTER TIMER ENGINE (Global + Local)
 // =====================================================
 
-// Keys for LocalStorage
+// Single source of truth for the Header Timer
 const KEY_GLOBAL_TIMER = "trunk_last_active_timer"; 
+
+// 30 Minutes in milliseconds (30 * 60 * 1000)
+const TIMER_LIMIT_MS = 1800000; 
 
 let masterTimerInterval = null;
 
-// 1. TRIGGER (Called when user saves a set)
+// 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
     if (!selectedExercise) return;
     
-    // CRITICAL FIX: Only update storage if we are explicitly resetting (New Set)
-    // If reset is false (just opening the page), we do NOTHING and let the 
-    // masterClockTick read whatever is already in memory.
+    // Only update if we are explicitly resetting (New Set Input)
     if (reset) {
         const now = Date.now();
         
-        // A. Save to LOCAL Exercise History
+        // A. Update LOCAL Exercise History (For this specific exercise page)
         const localKey = `restTimer_${selectedExercise.exercise}`;
         localStorage.setItem(localKey, now);
 
-        // B. Save to GLOBAL History (Header)
+        // B. Update GLOBAL History (The Header)
+        // This OVERWRITES any previous global timer. There is no queue.
         const globalData = {
             time: now,
             label: selectedExercise.exercise
@@ -2791,40 +2793,48 @@ function startRestTimer(reset = false) {
         // C. Force immediate UI update
         masterClockTick();
     }
-    // 2. NEW: Always force an immediate UI update
-    if (typeof masterClockTick === 'function') masterClockTick();
 }
 
 // 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
 function masterClockTick() {
     const now = Date.now();
 
-    // --- TASK 1: UPDATE GLOBAL HEADER (The "Most Recent" Timer) ---
+    // --- TASK 1: UPDATE GLOBAL HEADER ---
+    // This is the "Mirror". It reflects KEY_GLOBAL_TIMER only.
     const globalEl = document.getElementById('globalHeaderTimer');
     const globalText = document.getElementById('globalHeaderTimerText');
     const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
 
     if (globalEl && globalText) {
         if (!rawGlobal) {
+            // If no data, hide immediately. Do not look for other timers.
             globalEl.classList.add('hidden');
         } else {
             try {
                 const data = JSON.parse(rawGlobal);
                 const diff = now - parseInt(data.time);
                 
-                // Timeout: 30 mins
-                if (diff > 1800000) { 
+                // EXPIRATION LOGIC (30 Mins)
+                if (diff > TIMER_LIMIT_MS) { 
+                    // 1. Hide the element
                     globalEl.classList.add('hidden');
+                    // 2. Nuke the key so it stays gone
                     localStorage.removeItem(KEY_GLOBAL_TIMER);
                 } else {
+                    // Valid: Show it
                     globalText.textContent = formatTimer(diff);
                     globalEl.classList.remove('hidden');
                 }
-            } catch (e) { console.error("Timer parse error", e); }
+            } catch (e) { 
+                console.error("Timer parse error", e); 
+                // If corrupt, clear it to be safe
+                localStorage.removeItem(KEY_GLOBAL_TIMER);
+            }
         }
     }
 
-    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER (Only if visible) ---
+    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER ---
+    // Independent logic. It keeps running even if Global expires (if they are different).
     if (currentScreen === SCREENS.SETS && selectedExercise) {
         const localEl = document.getElementById('restTimer');
         const localText = document.getElementById('restTimerText');
@@ -2832,13 +2842,11 @@ function masterClockTick() {
         const localTime = localStorage.getItem(localKey);
 
         if (localEl && localText) {
-            // FIX: If no local timer exists, HIDE the element.
-            // This prevents it from showing "00:00" when you first open an exercise.
             if (!localTime) {
                 localEl.classList.add('hidden');
             } else {
                 const diff = now - parseInt(localTime);
-                if (diff > 1800000) {
+                if (diff > TIMER_LIMIT_MS) {
                     localEl.classList.add('hidden');
                     localStorage.removeItem(localKey);
                 } else {
