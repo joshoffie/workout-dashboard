@@ -324,7 +324,8 @@ const SCREENS = {
   EXERCISES: 'exercisesDiv',
   SETS: 'setsDiv',
   GRAPH: 'graphContainer',
-  SETTINGS: 'settingsDiv' // <--- ADD THIS
+  SETTINGS: 'settingsDiv',
+    CALENDAR: 'calendarDiv'
 };
 let currentScreen = SCREENS.CLIENTS;
 
@@ -346,6 +347,9 @@ function navigateTo(targetScreenId, direction = 'forward') {
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
     case SCREENS.SETTINGS: // <--- ADD THIS CASE
+    case SCREENS.CALENDAR:
+          if(typeof renderCalendarScreen === 'function') renderCalendarScreen();
+          break;
       const settingsTitle = document.getElementById('settingsScreenTitle');
       if(settingsTitle && typeof applyTitleStyling === 'function') {
          applyTitleStyling(settingsTitle, 'Settings', null);
@@ -394,6 +398,16 @@ document.getElementById('backToExercisesBtn').onclick = () => {
 };
 document.getElementById('backToSetsFromGraphBtn').onclick = () => {
   navigateTo(SCREENS.SETS, 'back');
+};
+// 1. Open Calendar
+document.getElementById('openCalendarBtn').onclick = () => {
+  if (!selectedClient) return;
+  navigateTo(SCREENS.CALENDAR, 'forward');
+};
+
+// 2. Back from Calendar (To Sessions)
+document.getElementById('backToSessionsFromCalBtn').onclick = () => {
+  navigateTo(SCREENS.SESSIONS, 'back');
 };
 
 // [app.js] Add this logic for the new Settings system
@@ -3227,3 +3241,225 @@ if (settingAnimToggle) {
 
 // 3. Run Initialization immediately
 initSettings();
+
+// =====================================================
+// CALENDAR ENGINE
+// =====================================================
+
+let calendarState = {
+  currentDate: new Date(), // For tracking Month/Year view
+  selectedDateStr: null,   // "YYYY-MM-DD" of clicked day
+  workoutsMap: new Map()   // Cache of dates -> workout data
+};
+
+// 1. PREPARE DATA
+// Flattens the nested structure (Client -> Sessions -> Exercises -> Sets)
+// into a Map grouped by Date string.
+function buildCalendarMap() {
+  calendarState.workoutsMap.clear();
+  
+  if (!selectedClient || !clientsData[selectedClient]) return;
+  
+  const sessions = clientsData[selectedClient].sessions || [];
+  
+  sessions.forEach(sess => {
+    // We treat the "Session" object essentially as a folder/category.
+    // We dig into the ACTUAL sets to find when work occurred.
+    if(sess.exercises) {
+      sess.exercises.forEach(ex => {
+        if(ex.sets) {
+          ex.sets.forEach(set => {
+             const d = new Date(set.timestamp);
+             // Create clean local date string YYYY-MM-DD
+             // We use local time to match user's wall-clock experience
+             const year = d.getFullYear();
+             const month = String(d.getMonth() + 1).padStart(2, '0');
+             const day = String(d.getDate()).padStart(2, '0');
+             const dateKey = `${year}-${month}-${day}`;
+             
+             if (!calendarState.workoutsMap.has(dateKey)) {
+               calendarState.workoutsMap.set(dateKey, []);
+             }
+             
+             // Push a lightweight ref to the data
+             calendarState.workoutsMap.get(dateKey).push({
+               exerciseName: ex.exercise,
+               set: set,
+               timestamp: d
+             });
+          });
+        }
+      });
+    }
+  });
+}
+
+// 2. MAIN RENDERER
+function renderCalendarScreen() {
+  // Re-scan data every time we open the screen to ensure fresh sync
+  buildCalendarMap();
+  
+  // Update Title
+  const title = document.getElementById('calendarScreenTitle');
+  if (title) applyTitleStyling(title, 'History', null);
+  
+  // Default to today if nothing selected
+  if (!calendarState.selectedDateStr) {
+      const now = new Date();
+      calendarState.selectedDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  }
+
+  renderCalendarGrid();
+  renderDayDetails(calendarState.selectedDateStr);
+}
+
+// 3. GRID RENDERER
+function renderCalendarGrid() {
+  const grid = document.getElementById('calendarGrid');
+  const monthLabel = document.getElementById('calMonthLabel');
+  grid.innerHTML = '';
+  
+  const year = calendarState.currentDate.getFullYear();
+  const month = calendarState.currentDate.getMonth(); // 0-indexed
+  
+  // Set Header
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  monthLabel.textContent = `${monthNames[month]} ${year}`;
+  
+  // Geometry
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) - 6 (Sat)
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  // Today Check
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  // Fill Empty Slots (Previous Month)
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    const div = document.createElement('div');
+    div.className = 'cal-day empty';
+    grid.appendChild(div);
+  }
+  
+  // Fill Days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const div = document.createElement('div');
+    div.className = 'cal-day';
+    div.textContent = d;
+    
+    const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    
+    // 1. Check Data
+    if (calendarState.workoutsMap.has(dateKey)) {
+      div.classList.add('has-data');
+    }
+    
+    // 2. Check Today
+    if (dateKey === todayKey) {
+      div.classList.add('is-today');
+    }
+    
+    // 3. Check Selected
+    if (dateKey === calendarState.selectedDateStr) {
+      div.classList.add('selected');
+    }
+    
+    // Click Handler
+    div.onclick = () => {
+      // UI Update
+      document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+      
+      // State Update
+      calendarState.selectedDateStr = dateKey;
+      renderDayDetails(dateKey);
+    };
+    
+    grid.appendChild(div);
+  }
+}
+
+// 4. CONTROLS
+document.getElementById('calPrevBtn').onclick = () => {
+  calendarState.currentDate.setMonth(calendarState.currentDate.getMonth() - 1);
+  renderCalendarGrid();
+};
+
+document.getElementById('calNextBtn').onclick = () => {
+  calendarState.currentDate.setMonth(calendarState.currentDate.getMonth() + 1);
+  renderCalendarGrid();
+};
+
+// 5. DETAIL VIEW (The List Below)
+function renderDayDetails(dateKey) {
+  const container = document.getElementById('calDetailsList');
+  const label = document.getElementById('calSelectedDateLabel');
+  container.innerHTML = '';
+  
+  // Parse date for pretty label
+  const [y, m, d] = dateKey.split('-');
+  const dateObj = new Date(y, m-1, d);
+  label.textContent = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  
+  // Check if data exists
+  if (!calendarState.workoutsMap.has(dateKey)) {
+    container.innerHTML = `<li class="cal-empty-state">No workouts recorded this day.</li>`;
+    return;
+  }
+  
+  const rawData = calendarState.workoutsMap.get(dateKey);
+  
+  // GROUP BY EXERCISE
+  // We want: Exercise Name -> List of Sets
+  const groups = {};
+  rawData.forEach(item => {
+    if (!groups[item.exerciseName]) groups[item.exerciseName] = [];
+    groups[item.exerciseName].push(item.set);
+  });
+  
+  // Sort sets chronologically
+  Object.keys(groups).forEach(exName => {
+    groups[exName].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  });
+  
+  // RENDER GROUPS
+  Object.keys(groups).forEach(exName => {
+    const groupLi = document.createElement('li');
+    groupLi.className = 'cal-exercise-group';
+    
+    const title = document.createElement('div');
+    title.className = 'cal-exercise-title';
+    title.textContent = exName;
+    groupLi.appendChild(title);
+    
+    // Render set cards (Simplified version of Sets Page)
+    groups[exName].forEach((s, idx) => {
+       const setDiv = document.createElement('div');
+       setDiv.className = 'set-card'; // Reuse existing card style
+       setDiv.style.marginBottom = '0.5rem';
+       
+       const dispWeight = UNIT_mode.toDisplay(s.weight);
+       const uLabel = UNIT_mode.getLabel();
+       const noteText = s.notes ? `<div style="font-size:0.8rem; color:var(--color-text-muted); margin-top:4px;">📝 ${s.notes}</div>` : '';
+       
+       setDiv.innerHTML = `
+        <div class="set-summary" style="padding: 0.75rem;">
+            <div class="set-index-badge" style="width:24px; height:24px; font-size:0.75rem;">${idx + 1}</div>
+            <div class="set-main-data">
+                <span class="set-reps-val" style="font-size:1.1rem;">${s.reps}</span>
+                <span class="set-x">x</span>
+                <span class="set-weight-val" style="font-size:1rem;">${dispWeight} ${uLabel}</span>
+            </div>
+            <div class="set-meta-data">
+                <span class="set-vol" style="font-size:0.75rem;">${Math.round(UNIT_mode.toDisplay(s.volume)).toLocaleString()} vol</span>
+            </div>
+        </div>
+        ${s.notes ? `<div style="padding: 0 0.75rem 0.75rem 3.5rem;">${noteText}</div>` : ''}
+       `;
+       
+       groupLi.appendChild(setDiv);
+    });
+    
+    container.appendChild(groupLi);
+  });
+}
