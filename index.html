@@ -87,6 +87,14 @@
     </section>
 
     <section class="screen hidden" id="sessionsDiv">
+            <div class="action-header">
+        <div class="btn-group" style="width: 100%; max-width: 500px; gap: 0.5rem;">
+            <button id="openCalendarBtn" class="btn btn-secondary" style="flex: 1;">
+                <span style="font-size: 1.2rem; line-height: 1;">📅</span>
+            </button>
+            <button id="addSessionBtn" class="btn btn-primary" style="flex: 3;">+ Add Session</button>
+        </div>
+      </div>
       <div class="card-header">
         <button id="backToClientsBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
         <h2 id="sessionsScreenTitle" class="animated-title" aria-label="Sessions">Sessions</h2>
@@ -98,6 +106,37 @@
         </div>
       </div>
       <ul id="sessionList" class="item-list"></ul>
+    </section>
+        <section class="screen hidden" id="calendarDiv">
+      <div class="card-header">
+        <button id="backToSessionsFromCalBtn" class="btn-back">
+          <svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/>
+          </svg>
+        </button>
+        <h2 id="calendarScreenTitle" class="animated-title">History</h2>
+        <span></span> 
+      </div>
+    
+      <div class="calendar-wrapper">
+        <div class="calendar-controls">
+          <button id="calPrevBtn" class="btn-icon">←</button>
+          <h3 id="calMonthLabel"></h3>
+          <button id="calNextBtn" class="btn-icon">→</button>
+        </div>
+    
+        <div class="calendar-header-row">
+          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+    
+        <div id="calendarDetailsContainer" class="calendar-details-container">
+          <div class="session-divider" style="margin: 1rem 0;"></div>
+          <h4 id="calSelectedDateLabel" class="cal-detail-date">Select a date</h4>
+          <ul id="calDetailsList" class="set-list">
+            </ul>
+        </div>
+      </div>
     </section>
 
     <section class="screen hidden" id="exercisesDiv">
