@@ -76,36 +76,34 @@ async function deleteClientFromFirestore(clientName) {
 }
 
 // =====================================================
-// TUTORIAL ENGINE
+// TUTORIAL ENGINE (Fixed & Consolidated)
 // =====================================================
+
+// 1. GLOBAL VARIABLES
 let isTutorialMode = false;
-let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
+let tutorialTimer = null;
 let tutorialStep = 0;
-let restTimerInterval = null; // Tracks the background interval
 
-// 1. FAKE DATA GENERATOR (8 Weeks of History)
+// 2. FAKE DATA GENERATOR
 function generateTutorialData() {
   const now = new Date();
   const oneDay = 24 * 60 * 60 * 1000;
   const sets = [];
   
-  // Create 8 weeks of Bench Press data, 1 session per week
+  // Create 8 weeks of history
   for (let i = 0; i < 8; i++) {
-    const weeksAgo = 7 - i; // 7, 6, 5... 0
+    const weeksAgo = 7 - i;
     const date = new Date(now.getTime() - (weeksAgo * 7 * oneDay));
+    const weight = 135 + (i * 5); // Progressive overload
+    const reps = 8 + (i % 2);
     
-    // Progressive Overload Logic (Start at 135, end at 165)
-    const weight = 135 + (i * 5); 
-    const reps = 8 + (i % 2); // Toggle between 8 and 9 reps
-    
-    // Add 3 sets per workout
     for (let s = 0; s < 3; s++) {
       sets.push({
         reps: reps,
         weight: weight,
         volume: reps * weight,
-        notes: i === 7 ? "New PR!" : "Felt good",
-        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString() // 5 mins apart
+        notes: i === 7 ? "New PR!" : "Solid set",
+        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString()
       });
     }
   }
@@ -119,14 +117,8 @@ function generateTutorialData() {
           session_name: "Chest Day",
           date: new Date().toISOString(),
           exercises: [
-            {
-              exercise: "Bench Press",
-              sets: sets
-            },
-            {
-              exercise: "Incline Dumbbell",
-              sets: [] // Empty to show contrast
-            }
+            { exercise: "Bench Press", sets: sets },
+            { exercise: "Incline Dumbbell", sets: [] }
           ]
         }
       ]
@@ -134,106 +126,80 @@ function generateTutorialData() {
   };
 }
 
-// 2. TUTORIAL CONTROLS
+// 3. START BUTTON LOGIC (With Error Catching)
 const startTutorialBtn = document.getElementById('startTutorialBtn');
-const endTutorialBtn = document.getElementById('endTutorialBtn');
+if (startTutorialBtn) {
+    startTutorialBtn.onclick = () => {
+      try {
+        console.log("Starting Tutorial...");
+        isTutorialMode = true;
+        
+        // Reset tutorial stage tracker
+        document.body.dataset.tutorialStage = 'start';
 
-// [app.js] Replace startTutorialBtn.onclick
-// 1. FAKE DATA GENERATOR (8 Weeks of History)
-function generateTutorialData() {
-  const now = new Date();
-  const oneDay = 24 * 60 * 60 * 1000;
-  const sets = [];
-  // Create 8 weeks of Bench Press data, 1 session per week
-  for (let i = 0; i < 8; i++) {
-    const weeksAgo = 7 - i; // 7, 6, 5... 0
-    const date = new Date(now.getTime() - (weeksAgo * 7 * oneDay));
-    // Progressive Overload Logic (Start at 135, end at 165)
-    const weight = 135 + (i * 5);
-    const reps = 8 + (i % 2); // Toggle between 8 and 9 reps
-    
-    // Add 3 sets per workout
-    for (let s = 0; s < 3; s++) {
-      sets.push({
-        reps: reps,
-        weight: weight,
-        volume: reps * weight,
-        notes: i === 7 ? "New PR!" : "Felt good",
-        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString() // 5 mins apart
-      });
-    }
-  }
+        // Hide Auth UI
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.classList.add('hidden');
+        
+        // Hide standard controls
+        const idsToHide = ['loginBtn', 'logoutBtn', 'editToggleBtn'];
+        idsToHide.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
 
-  return {
-    "Mike": {
-      client_name: "Mike",
-      order: 0,
-      sessions: [
-        {
-          session_name: "Chest Day",
-          date: new Date().toISOString(),
-          exercises: [
-            {
-              exercise: "Bench Press",
-              sets: sets
-            },
-            {
-              exercise: "Incline Dumbbell",
-              sets: [] // Empty to show contrast
-            }
-          ]
-        }
-      ]
-    }
-  };
+        // Show End Button
+        const endBtn = document.getElementById('endTutorialBtn');
+        if (endBtn) endBtn.classList.remove('hidden');
+        
+        // Load Data
+        clientsData = generateTutorialData();
+        renderClients();
+        
+        // Start Interaction
+        setTimeout(() => {
+          showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
+        }, 500);
+
+      } catch (err) {
+        alert("Tutorial Error: " + err.message);
+        console.error(err);
+      }
+    };
 }
-startTutorialBtn.onclick = () => {
-  isTutorialMode = true;
-  document.body.dataset.tutorialStage = 'start'; // <--- Reset Stage
 
-  document.getElementById('loginModal').classList.add('hidden');
-  document.getElementById('loginBtn').classList.add('hidden');
-  document.getElementById('logoutBtn').classList.add('hidden');
-  document.getElementById('editToggleBtn').classList.add('hidden');
-  endTutorialBtn.classList.remove('hidden');
-  
-  // Generate robust data
-  clientsData = generateTutorialData();
-  renderClients();
-  
-  // Step 1: Point to Profile
-  // We use a slight delay to ensure the UI is ready
-  setTimeout(() => {
-    showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
-  }, 500);
-};
+// 4. END BUTTON LOGIC
+const endTutorialBtn = document.getElementById('endTutorialBtn');
+if (endTutorialBtn) {
+    endTutorialBtn.onclick = () => {
+      isTutorialMode = false;
+      document.body.removeAttribute('data-tutorial-stage'); // Clear stage
+      
+      // Cleanup timers
+      if (tutorialTimer) clearTimeout(tutorialTimer);
+      tutorialTimer = null;
+      clearTutorialTips();
+      
+      // Reset UI
+      endTutorialBtn.classList.remove('flash-active');
+      endTutorialBtn.classList.add('hidden');
+      
+      document.getElementById('loginModal').classList.remove('hidden');
+      const idsToShow = ['loginBtn', 'editToggleBtn'];
+      idsToShow.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('hidden');
+      });
+      
+      // Clear Data
+      clientsData = {};
+      hideAllDetails();
+    };
+}
 
-endTutorialBtn.onclick = () => {
-  isTutorialMode = false;
-  
-  // 1. STRICT CLEANUP: Kill timer and remove bubble immediately
-  if (tutorialTimer) clearTimeout(tutorialTimer);
-  tutorialTimer = null;
-  clearTutorialTips(); 
-  
-  // 2. Reset UI
-  endTutorialBtn.classList.remove('flash-active');
-  document.body.removeAttribute('data-tutorial-graph-ready'); 
-  
-  document.getElementById('loginModal').classList.remove('hidden');
-  document.getElementById('loginBtn').classList.remove('hidden');
-  document.getElementById('editToggleBtn').classList.remove('hidden');
-  endTutorialBtn.classList.add('hidden');
-  
-  clientsData = {};
-  hideAllDetails();
-};
-
-// 3. TOOLTIP SYSTEM
-// Updated helper with CSS class logic
+// 5. TOOLTIP SYSTEM
 function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
   clearTutorialTips();
-  
   const target = document.getElementById(targetId);
   if (!target) return;
   
@@ -243,11 +209,8 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
-  
-  // FIX 1: Add specific class if aligned right
-  if (align === 'right') {
-      tip.classList.add('right-aligned');
-  }
+  if (align === 'right') tip.classList.add('right-aligned');
+  if (align === 'left') tip.classList.add('left-aligned'); // Add support for left
 
   tip.textContent = text;
   document.body.appendChild(tip);
@@ -257,10 +220,9 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   let left;
   if (align === 'right') {
-      // FIX 2: Point to the ball (right edge - 30px buffer)
-      left = rect.right - 30; 
+      left = rect.right - 30;
   } else if (align === 'left') {
-      left = rect.left + 40;
+      left = rect.left + 30; // Shift right slightly so it doesn't fall off screen
   } else {
       left = rect.left + (rect.width / 2);
   }
@@ -272,7 +234,6 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
 function clearTutorialTips() {
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
 }
-
 
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
