@@ -149,8 +149,8 @@ if (startTutorialBtn) {
         });
 
         // Show End Button
-        const endBtn = document.getElementById('endTutorialBtn');
-        if (endBtn) endBtn.classList.remove('hidden');
+        //const endBtn = document.getElementById('endTutorialBtn');
+        //if (endBtn) endBtn.classList.remove('hidden');
         
         // Load Data
         clientsData = generateTutorialData();
@@ -4010,6 +4010,7 @@ if (unitToggle) {
 
 // 2. HOME: Settings Button (Safety Reinforcement)
 // Sometimes this button gets lost if the auth-state loads too fast or slow.
+// [app.js] Update settingsBtn logic to REVEAL the end button
 const globalSettingsBtn = document.getElementById('settingsBtn');
 if (globalSettingsBtn) {
     globalSettingsBtn.onclick = () => {
@@ -4021,11 +4022,14 @@ if (globalSettingsBtn) {
             setTimeout(() => {
                 showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                 
-                // Queue the final success message
+                // FINAL STEP: Reveal the End Button now
                 setTimeout(() => {
                     const endBtn = document.getElementById('endTutorialBtn');
-                    if (endBtn) endBtn.classList.add('flash-active');
-                    showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    if (endBtn) {
+                        endBtn.classList.remove('hidden'); // <--- REVEAL HERE
+                        endBtn.classList.add('flash-active');
+                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }
                 }, 4000);
             }, 600);
         }
