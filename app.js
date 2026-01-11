@@ -138,20 +138,26 @@ function generateTutorialData() {
 const startTutorialBtn = document.getElementById('startTutorialBtn');
 const endTutorialBtn = document.getElementById('endTutorialBtn');
 
+// [app.js] Replace startTutorialBtn.onclick
 startTutorialBtn.onclick = () => {
   isTutorialMode = true;
-  
+  document.body.dataset.tutorialStage = 'start'; // <--- Reset Stage
+
   document.getElementById('loginModal').classList.add('hidden');
   document.getElementById('loginBtn').classList.add('hidden');
   document.getElementById('logoutBtn').classList.add('hidden');
   document.getElementById('editToggleBtn').classList.add('hidden');
   endTutorialBtn.classList.remove('hidden');
   
+  // Generate robust data
   clientsData = generateTutorialData();
   renderClients();
   
-  // OFFSET CHANGED: 40 (Points down at the list item "Mike")
-  showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
+  // Step 1: Point to Profile
+  // We use a slight delay to ensure the UI is ready
+  setTimeout(() => {
+    showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
+  }, 500);
 };
 
 endTutorialBtn.onclick = () => {
@@ -403,6 +409,18 @@ document.getElementById('backToSetsFromGraphBtn').onclick = () => {
 document.getElementById('openCalendarBtn').onclick = () => {
   if (!selectedClient) return;
   navigateTo(SCREENS.CALENDAR, 'forward');
+  
+  // --- TUTORIAL: Step 9 (Calendar) ---
+  if (isTutorialMode) {
+      document.body.dataset.tutorialStage = 'calendar-visited';
+      // Point to a grid item (we assume grid is rendered)
+      setTimeout(() => showTutorialTip('calendarGrid', 'This grid tracks your workout consistency.', -20), 500);
+      
+      // After 3 seconds, point back
+      setTimeout(() => {
+          showTutorialTip('backToSessionsFromCalBtn', 'Tap back to return.', 30, 'left');
+      }, 3500);
+  }
 };
 
 // 2. Back from Calendar (To Sessions)
@@ -410,14 +428,68 @@ document.getElementById('backToSessionsFromCalBtn').onclick = () => {
   navigateTo(SCREENS.SESSIONS, 'back');
 };
 
+// === TUTORIAL BACK-FLOW LOGIC ===
+  if (isTutorialMode && direction === 'back') {
+      checkTutorialNavigation(targetScreenId);
+  }
+}
+
+// Helper function to guide user back up the stack
+function checkTutorialNavigation(targetScreenId) {
+    const stage = document.body.dataset.tutorialStage;
+
+    // 1. Came back from Graph -> Sets
+    if (targetScreenId === SCREENS.SETS && stage === 'graph-touched') {
+        document.body.dataset.tutorialStage = 'sets-returned';
+        setTimeout(() => showTutorialTip('backToExercisesBtn', 'Go back to Exercises.', 30, 'left'), 600);
+    }
+    
+    // 2. Came back from Sets -> Exercises
+    else if (targetScreenId === SCREENS.EXERCISES && stage === 'sets-returned') {
+        document.body.dataset.tutorialStage = 'exercises-returned';
+        setTimeout(() => showTutorialTip('backToSessionsBtn', 'Go back to Sessions.', 30, 'left'), 600);
+    }
+
+    // 3. Came back from Exercises -> Sessions (TRIGGER CALENDAR)
+    else if (targetScreenId === SCREENS.SESSIONS && stage === 'exercises-returned') {
+        document.body.dataset.tutorialStage = 'sessions-returned';
+        setTimeout(() => showTutorialTip('openCalendarBtn', 'Now, check the Calendar.', 40), 600);
+    }
+
+    // 4. Came back from Calendar -> Sessions (TRIGGER HOME)
+    else if (targetScreenId === SCREENS.SESSIONS && stage === 'calendar-visited') {
+        document.body.dataset.tutorialStage = 'calendar-done';
+        setTimeout(() => showTutorialTip('backToClientsBtn', 'Go back to Home.', 30, 'left'), 600);
+    }
+
+    // 5. Came back from Sessions -> Home (TRIGGER SETTINGS)
+    else if (targetScreenId === SCREENS.CLIENTS && stage === 'calendar-done') {
+        document.body.dataset.tutorialStage = 'home-returned';
+        setTimeout(() => showTutorialTip('settingsBtn', 'Finally, tap Settings.', 45, 'right'), 600);
+    }
+}
+
 // [app.js] Add this logic for the new Settings system
 
 // 1. Open Settings
 if(settingsBtn) {
     settingsBtn.onclick = () => {
-        // Prevent opening if in Tutorial mode
-        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) return;
+        // ALLOW opening in tutorial mode now
         navigateTo(SCREENS.SETTINGS, 'forward');
+        
+        // --- TUTORIAL: Final Step (Settings) ---
+        if (isTutorialMode) {
+            setTimeout(() => {
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                setTimeout(() => {
+                    // Flash the end button
+                    const endBtn = document.getElementById('endTutorialBtn');
+                    endBtn.classList.add('flash-active');
+                    showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                }, 3000);
+            }, 500);
+        }
     };
 }
 
@@ -1032,9 +1104,10 @@ function selectClient(name) {
   selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
   
-  // --- ADD THIS ---
+  // --- TUTORIAL: Step 2 ---
   if (isTutorialMode) {
-    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to see exercises.', 40), 400);
+    document.body.dataset.tutorialStage = 'sessions';
+    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to view your workout.', 40), 400);
   }
 }
 
@@ -1131,9 +1204,10 @@ function selectSession(sessionObject) {
   selectedSession = sessionObject;
   selectedExercise = null;
   renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
-  
-  // --- ADD THIS ---
+
+  // --- TUTORIAL: Step 3 ---
   if (isTutorialMode) {
+    document.body.dataset.tutorialStage = 'exercises';
     setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40), 400);
   }
 }
@@ -1218,28 +1292,28 @@ function renderExercises() {
   hookEditables();
 }
 
-// Inside selectExercise(idx)
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
-  
-  // --- UPDATED TUTORIAL LOGIC ---
-  if (isTutorialMode) {
-    if (selectedExercise.exercise === 'Bench Press') {
-       // Clear any existing timers
-       if (tutorialTimer) clearTimeout(tutorialTimer);
 
+  // --- TUTORIAL: Step 4 (The Hub) ---
+  if (isTutorialMode) {
+    document.body.dataset.tutorialStage = 'sets-view';
+    if (tutorialTimer) clearTimeout(tutorialTimer);
+    
+    // Sequence: Recap -> Banner -> Add Set
+    tutorialTimer = setTimeout(() => {
+       showTutorialTip('smartRecapBox', '1. This AI summary analyzes your progress automatically.', 20);
+       
        tutorialTimer = setTimeout(() => {
-         // Step 1: Show Comparison
-         showTutorialTip('comparisonBanner', 'This window shows your most current session stats vs your previous session.', 10);
-         
-         // Step 2: WAIT 5 SECONDS before pointing to Add Set
-         tutorialTimer = setTimeout(() => {
-            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -10);
-         }, 5000); // Increased from 3500 to 5000
-       }, 400);
-    }
+          showTutorialTip('comparisonBanner', '2. This banner compares today vs. your last session.', 10);
+          
+          tutorialTimer = setTimeout(() => {
+             showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
+          }, 4000); 
+       }, 4000);
+    }, 500);
   }
 }
 // ------------------ SPIRAL WIDGET LOGIC ------------------
@@ -1578,32 +1652,22 @@ const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralStat
 }
 
 // NEW SLIDER HANDLER
-
 const handleSliderMove = (e) => {
+    // ... [Keep existing calculation logic] ...
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
 
-    // --- TUTORIAL INTERACTION LOGIC ---
-    if (isTutorialMode && document.body.dataset.tutorialStep === "waiting-for-slider") {
-        
-        // 1. Debounce: Only trigger if they actually moved it somewhat
+    // --- TUTORIAL: Step 6 (Slider -> Graph) ---
+    if (isTutorialMode && document.body.dataset.tutorialStage === "waiting-for-slider") {
         if (val < 98) {
-            // 2. Clear flag so this doesn't fire continuously while dragging
-            document.body.dataset.tutorialStep = "slider-done";
+            document.body.dataset.tutorialStage = "slider-done";
             clearTutorialTips();
-
-            // 3. Wait 2 seconds
             setTimeout(() => {
-                // 4. Scroll to top
+                // Scroll to top to ensure button is visible
                 document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // 5. Point to Graph Button
-                // Offset 20 pushes it DOWN closer to the button
-                setTimeout(() => {
-                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', 20);
-                }, 600); 
-            }, 2000);
+                showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+            }, 1000);
         }
     }
 }
@@ -1926,20 +1990,22 @@ function drawChart() {
 
 const touchLayer = document.getElementById('touchLayer');
 const handleInteraction = (clientX) => {
+    // ... [Keep existing graph logic] ...
     const rect = touchLayer.getBoundingClientRect();
     const x = clientX - rect.left;
-    let closestDist = Infinity;
-    let closestIdx = -1;
-    chartState.dataPoints.forEach((p, i) => {
-        const dist = Math.abs(p.x - x);
-        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-    });
+    // ... (rest of logic) ...
     if (closestIdx !== -1) updateDetailView(closestIdx);
-    // --- ADD THIS TUTORIAL LOGIC ---
+
+    // --- TUTORIAL: Step 8 (Touch Graph -> Go Back) ---
     if (isTutorialMode) {
-        clearTutorialTips(); // Remove bubble immediately
-        const endBtn = document.getElementById('endTutorialBtn');
-        if (endBtn) endBtn.classList.add('flash-active'); // Start red flash loop
+        clearTutorialTips();
+        // Set stage to 'graph-touched' so the back button logic knows what to do
+        document.body.dataset.tutorialStage = 'graph-touched';
+        
+        // Point to the specific Back button on the Graph screen
+        setTimeout(() => {
+             showTutorialTip('backToSetsFromGraphBtn', 'Now, tap Back to return.', 30, 'left');
+        }, 1000);
     }
 };
 
@@ -3079,49 +3145,39 @@ calcActionBtn.onclick = () => {
 };
 
 function finishAddSet() {
+    // ... [KEEP ALL EXISTING SAVING LOGIC] ...
     const reps = parseInt(calcState.repsVal);
-    const displayWeight = parseFloat(calcState.weightVal); // Value in box (kg or lbs)
-
-    if (isNaN(reps) || isNaN(displayWeight)) { /* Error handling */ return; }
-
-    // CONVERT TO LBS FOR STORAGE
+    const displayWeight = parseFloat(calcState.weightVal);
+    if (isNaN(reps) || isNaN(displayWeight)) return;
     const weightLBS = UNIT_mode.toStorage(displayWeight);
     const volumeLBS = weightLBS * reps;
-
     const notes = ""; 
     const timestamp = new Date().toISOString();
-
-    selectedExercise.sets.push({ 
-        reps: reps, 
-        weight: weightLBS, // Always LBS
-        volume: volumeLBS, 
-        notes, 
-        timestamp 
-    });
-
+    selectedExercise.sets.push({ reps: reps, weight: weightLBS, volume: volumeLBS, notes, timestamp });
     saveUserJson(); 
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
-  // -----------------------------
 
-  // --- RE-INSERTING YOUR TUTORIAL LOGIC ---
-  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
+  // --- TUTORIAL: Step 5 (Post-Log) ---
+  if (isTutorialMode) {
+      document.body.dataset.tutorialStage = 'post-log';
       clearTutorialTips();
       if (tutorialTimer) clearTimeout(tutorialTimer);
           
-      // Step 1: Point to the Spiral Widget immediately
       setTimeout(() => {
-          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 20);
+          showTutorialTip('restTimer', 'A rest timer starts automatically after every set.', 30);
           
-          // Step 2: Wait 3 seconds, then point to slider
           tutorialTimer = setTimeout(() => {
-              document.body.dataset.tutorialStep = "waiting-for-slider";
-              showTutorialTip('spiralSlider', 'Drag the toggle backwards to view the history.', 10);
-          }, 3000); 
+              showTutorialTip('spiralCanvas', 'This spiral visualizes your history.', 20);
+              
+              tutorialTimer = setTimeout(() => {
+                  document.body.dataset.tutorialStage = 'waiting-for-slider';
+                  showTutorialTip('spiralSlider', 'Drag the slider backwards to "Time Travel".', 10);
+              }, 3500);
+          }, 3500); 
       }, 500);
   }
-  // ----------------------------------------
 }
 
 // =====================================================
