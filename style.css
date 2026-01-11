@@ -1974,17 +1974,24 @@ body.no-animations #logo-k {
 }
 
 /* =========================================
-   SMART RECAP (AI-LITE) STYLES
+   SMART RECAP (AI-LITE) STYLES - UPDATED
    ========================================= */
 .smart-recap-container {
+  /* Match the 'Grey Box' aesthetic of other windows */
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  
   margin: 1rem 1rem 0.5rem 1rem;
-  padding: 0 0.5rem; /* Slight padding to align with text */
-  min-height: 40px;
+  padding: 1.25rem 1rem; /* More breathing room */
+  
+  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   animation: fadeIn 0.5s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Subtle lift */
 }
 
 .smart-recap-text {
@@ -1992,12 +1999,10 @@ body.no-animations #logo-k {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--color-text);
-  line-height: 1.4;
-  font-style: italic;
-  opacity: 0.9;
+  line-height: 1.5;
 }
 
 /* Dynamic Colors based on "Mood" */
 .recap-happy { color: var(--color-green); }
 .recap-neutral { color: var(--color-text-muted); }
-.recap-sad { color: var(--color-text-muted); } /* Keep sad neutral to not be discouraging */
+.recap-sad { color: var(--color-text-muted); }
