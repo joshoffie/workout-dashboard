@@ -1619,21 +1619,32 @@ const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralStat
 }
 
 // NEW SLIDER HANDLER
+// [app.js] REPLACE handleSliderMove
 const handleSliderMove = (e) => {
-    // ... [Keep existing calculation logic] ...
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
 
-    // --- TUTORIAL: Step 6 (Slider -> Graph) ---
-    if (isTutorialMode && document.body.dataset.tutorialStage === "waiting-for-slider") {
+    // --- TUTORIAL LOGIC ---
+    // We check specifically for the stage set in finishAddSet
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode && document.body.dataset.tutorialStage === "waiting-for-slider") {
+        
+        // Only trigger if you actually moved it somewhat (less than 98%)
         if (val < 98) {
-            document.body.dataset.tutorialStage = "slider-done";
+            // 1. Advance the stage immediately so this doesn't fire 100 times while dragging
+            document.body.dataset.tutorialStage = 'slider-done';
             clearTutorialTips();
+
+            // 2. Wait a moment, then scroll up and point to graph
             setTimeout(() => {
-                // Scroll to top to ensure button is visible
-                document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
-                showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+                // Scroll the SETS SCREEN to the top
+                const setsScreen = document.getElementById('setsDiv');
+                if (setsScreen) setsScreen.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Point to the Graph button
+                setTimeout(() => {
+                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+                }, 600); // Small delay after scroll starts
             }, 1000);
         }
     }
@@ -3111,40 +3122,55 @@ calcActionBtn.onclick = () => {
     finishAddSet();
 };
 
+// [app.js] REPLACE finishAddSet
 function finishAddSet() {
-    // ... [KEEP ALL EXISTING SAVING LOGIC] ...
     const reps = parseInt(calcState.repsVal);
     const displayWeight = parseFloat(calcState.weightVal);
+
     if (isNaN(reps) || isNaN(displayWeight)) return;
+
+    // CONVERT TO LBS FOR STORAGE
     const weightLBS = UNIT_mode.toStorage(displayWeight);
     const volumeLBS = weightLBS * reps;
+
     const notes = ""; 
     const timestamp = new Date().toISOString();
-    selectedExercise.sets.push({ reps: reps, weight: weightLBS, volume: volumeLBS, notes, timestamp });
+    selectedExercise.sets.push({ 
+        reps: reps, 
+        weight: weightLBS, // Always LBS
+        volume: volumeLBS, 
+        notes, 
+        timestamp 
+    });
     saveUserJson(); 
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
+    
+    // --- TUTORIAL LOGIC ---
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+        // 1. Clear previous tips
+        clearTutorialTips();
+        if (tutorialTimer) clearTimeout(tutorialTimer);
+        
+        // 2. Set stage to generic 'post-log' first
+        document.body.dataset.tutorialStage = 'post-log';
 
-  // --- TUTORIAL: Step 5 (Post-Log) ---
-  if (isTutorialMode) {
-      document.body.dataset.tutorialStage = 'post-log';
-      clearTutorialTips();
-      if (tutorialTimer) clearTimeout(tutorialTimer);
-          
-      setTimeout(() => {
-          showTutorialTip('restTimer', 'A rest timer starts automatically after every set.', 30);
-          
-          tutorialTimer = setTimeout(() => {
-              showTutorialTip('spiralCanvas', 'This spiral visualizes your history.', 20);
-              
-              tutorialTimer = setTimeout(() => {
-                  document.body.dataset.tutorialStage = 'waiting-for-slider';
-                  showTutorialTip('spiralSlider', 'Drag the slider backwards to "Time Travel".', 10);
-              }, 3500);
-          }, 3500); 
-      }, 500);
-  }
+        // Sequence: Rest Timer -> Spiral -> Slider
+        setTimeout(() => {
+            showTutorialTip('restTimer', 'A rest timer starts automatically.', 30);
+            
+            tutorialTimer = setTimeout(() => {
+                showTutorialTip('spiralCanvas', 'This spiral tracks your history.', 20);
+                
+                tutorialTimer = setTimeout(() => {
+                    // CRITICAL: Set the specific stage that handleSliderMove looks for
+                    document.body.dataset.tutorialStage = 'waiting-for-slider';
+                    showTutorialTip('spiralSlider', 'Drag the slider backwards to "Time Travel".', 10);
+                }, 3500);
+            }, 3500); 
+        }, 500);
+    }
 }
 
 // =====================================================
