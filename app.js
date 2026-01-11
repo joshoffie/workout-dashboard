@@ -3902,7 +3902,46 @@ function setRecapText(box, el, templates, cssClass) {
     box.classList.remove('hidden');
 }
 
-// [app.js] FIX: Connect the Graph Back Button
+// ==========================================
+// MASTER NAVIGATION RE-BIND (Fixes "Stuck" Buttons)
+// ==========================================
+
+// 1. Sessions Screen -> Back to Home (Clients)
+const backToClientsBtn = document.getElementById('backToClientsBtn');
+if (backToClientsBtn) {
+    backToClientsBtn.onclick = () => {
+        navigateTo(SCREENS.CLIENTS, 'back');
+    };
+}
+
+// 2. Exercises Screen -> Back to Sessions
+const backToSessionsBtn = document.getElementById('backToSessionsBtn');
+if (backToSessionsBtn) {
+    backToSessionsBtn.onclick = () => {
+        navigateTo(SCREENS.SESSIONS, 'back');
+    };
+}
+
+// 3. Sets Screen -> Back to Exercises (The one you just reported)
+const backToExercisesBtn = document.getElementById('backToExercisesBtn');
+if (backToExercisesBtn) {
+    backToExercisesBtn.onclick = () => {
+        navigateTo(SCREENS.EXERCISES, 'back');
+        
+        // Cleanup: Hide timer on Sets screen so it doesn't linger visually
+        const localTimer = document.getElementById('restTimer');
+        if (localTimer) localTimer.classList.add('hidden');
+    };
+}
+
+// 4. Calendar Screen -> Back to Sessions
+const backToSessionsFromCalBtn = document.getElementById('backToSessionsFromCalBtn');
+if (backToSessionsFromCalBtn) {
+    backToSessionsFromCalBtn.onclick = () => {
+        navigateTo(SCREENS.SESSIONS, 'back');
+    };
+}
+
 const backToSetsFromGraphBtn = document.getElementById('backToSetsFromGraphBtn');
 if (backToSetsFromGraphBtn) {
     backToSetsFromGraphBtn.onclick = () => {
