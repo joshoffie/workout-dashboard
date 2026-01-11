@@ -1972,3 +1972,32 @@ body.no-animations #logo-k {
   padding: 2rem 0;
   opacity: 0.6;
 }
+
+/* =========================================
+   SMART RECAP (AI-LITE) STYLES
+   ========================================= */
+.smart-recap-container {
+  margin: 1rem 1rem 0.5rem 1rem;
+  padding: 0 0.5rem; /* Slight padding to align with text */
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.smart-recap-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.4;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Dynamic Colors based on "Mood" */
+.recap-happy { color: var(--color-green); }
+.recap-neutral { color: var(--color-text-muted); }
+.recap-sad { color: var(--color-text-muted); } /* Keep sad neutral to not be discouraging */
