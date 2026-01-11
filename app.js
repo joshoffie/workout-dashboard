@@ -139,6 +139,54 @@ const startTutorialBtn = document.getElementById('startTutorialBtn');
 const endTutorialBtn = document.getElementById('endTutorialBtn');
 
 // [app.js] Replace startTutorialBtn.onclick
+// 1. FAKE DATA GENERATOR (8 Weeks of History)
+function generateTutorialData() {
+  const now = new Date();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const sets = [];
+  // Create 8 weeks of Bench Press data, 1 session per week
+  for (let i = 0; i < 8; i++) {
+    const weeksAgo = 7 - i; // 7, 6, 5... 0
+    const date = new Date(now.getTime() - (weeksAgo * 7 * oneDay));
+    // Progressive Overload Logic (Start at 135, end at 165)
+    const weight = 135 + (i * 5);
+    const reps = 8 + (i % 2); // Toggle between 8 and 9 reps
+    
+    // Add 3 sets per workout
+    for (let s = 0; s < 3; s++) {
+      sets.push({
+        reps: reps,
+        weight: weight,
+        volume: reps * weight,
+        notes: i === 7 ? "New PR!" : "Felt good",
+        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString() // 5 mins apart
+      });
+    }
+  }
+
+  return {
+    "Mike": {
+      client_name: "Mike",
+      order: 0,
+      sessions: [
+        {
+          session_name: "Chest Day",
+          date: new Date().toISOString(),
+          exercises: [
+            {
+              exercise: "Bench Press",
+              sets: sets
+            },
+            {
+              exercise: "Incline Dumbbell",
+              sets: [] // Empty to show contrast
+            }
+          ]
+        }
+      ]
+    }
+  };
+}
 startTutorialBtn.onclick = () => {
   isTutorialMode = true;
   document.body.dataset.tutorialStage = 'start'; // <--- Reset Stage
@@ -335,101 +383,59 @@ const SCREENS = {
 };
 let currentScreen = SCREENS.CLIENTS;
 
+// [app.js] FULL Navigate To Function
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
   
-  // ---------------------------------------------------
+  // 1. Pre-calculate size before showing
+  forceTitleResize(targetScreenId);
 
-  // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
-  // This runs while the element is still technically 'hidden' to the user
-  forceTitleResize(targetScreenId); 
-  // ---------------------------------------------------
-
+  // 2. Render specific screens
   switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
-    case SCREENS.SETTINGS: // <--- ADD THIS CASE
+    case SCREENS.SETTINGS: 
+        const settingsTitle = document.getElementById('settingsScreenTitle');
+        if(settingsTitle && typeof applyTitleStyling === 'function') {
+           applyTitleStyling(settingsTitle, 'Settings', null);
+        }
+        break;
     case SCREENS.CALENDAR:
           if(typeof renderCalendarScreen === 'function') renderCalendarScreen();
           break;
-      const settingsTitle = document.getElementById('settingsScreenTitle');
-      if(settingsTitle && typeof applyTitleStyling === 'function') {
-         applyTitleStyling(settingsTitle, 'Settings', null);
-      }
-      break;
   }
 
+  // 3. Handle Animations
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
-  
-  // Note: We don't need autoShrinkTitle here anymore because we did it above!
-
   targetScreen.classList.add(enterClass);
+  
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   currentScreenEl.classList.add(exitClass);
-
+  
   currentScreen = targetScreenId;
-    // 3. NEW: Force timer to check visibility immediately after screen switch
+
+  // 4. Force Timer Check
   if (typeof masterClockTick === 'function') masterClockTick();
 
+  // 5. Cleanup Animation Classes
   currentScreenEl.addEventListener('animationend', () => {
     currentScreenEl.classList.add('hidden');
     currentScreenEl.classList.remove(exitClass);
   }, { once: true });
+  
   targetScreen.addEventListener('animationend', () => {
     targetScreen.classList.remove(enterClass);
   }, { once: true });
-}
 
-// --- Wire up Back Buttons ---
-document.getElementById('backToClientsBtn').onclick = () => {
-  selectedClient = null; selectedSession = null;
-  selectedExercise = null;
-  renderClients(); navigateTo(SCREENS.CLIENTS, 'back');
-};
-document.getElementById('backToSessionsBtn').onclick = () => {
-  selectedSession = null; selectedExercise = null;
-  renderSessions();
-  navigateTo(SCREENS.SESSIONS, 'back');
-};
-document.getElementById('backToExercisesBtn').onclick = () => {
-  selectedExercise = null;
-  renderExercises(); navigateTo(SCREENS.EXERCISES, 'back');
-};
-document.getElementById('backToSetsFromGraphBtn').onclick = () => {
-  navigateTo(SCREENS.SETS, 'back');
-};
-// 1. Open Calendar
-document.getElementById('openCalendarBtn').onclick = () => {
-  if (!selectedClient) return;
-  navigateTo(SCREENS.CALENDAR, 'forward');
-  
-  // --- TUTORIAL: Step 9 (Calendar) ---
-  if (isTutorialMode) {
-      document.body.dataset.tutorialStage = 'calendar-visited';
-      // Point to a grid item (we assume grid is rendered)
-      setTimeout(() => showTutorialTip('calendarGrid', 'This grid tracks your workout consistency.', -20), 500);
-      
-      // After 3 seconds, point back
-      setTimeout(() => {
-          showTutorialTip('backToSessionsFromCalBtn', 'Tap back to return.', 30, 'left');
-      }, 3500);
-  }
-};
-
-// 2. Back from Calendar (To Sessions)
-document.getElementById('backToSessionsFromCalBtn').onclick = () => {
-  navigateTo(SCREENS.SESSIONS, 'back');
-};
-
-// === TUTORIAL BACK-FLOW LOGIC ===
-  if (isTutorialMode && direction === 'back') {
+  // === TUTORIAL BACK-FLOW LOGIC ===
+  if (typeof isTutorialMode !== 'undefined' && isTutorialMode && direction === 'back') {
       checkTutorialNavigation(targetScreenId);
   }
 }
