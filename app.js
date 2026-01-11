@@ -354,7 +354,7 @@ function navigateTo(targetScreenId, direction = 'forward') {
   forceTitleResize(targetScreenId);
 
   // 2. Render specific screens
-  switch (targetScreenId) {
+switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
@@ -368,10 +368,13 @@ function navigateTo(targetScreenId, direction = 'forward') {
     case SCREENS.CALENDAR:
           if(typeof renderCalendarScreen === 'function') renderCalendarScreen();
           break;
-  }
+          
+    // --- THIS CASE WAS OUTSIDE THE SWITCH IN YOUR CODE ---
     case SCREENS.GRAPH: 
         if(typeof initChart === 'function') setTimeout(initChart, 50);
         break;
+    // ---------------------------------------------------
+  } 
 
   // 3. Handle Animations
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
