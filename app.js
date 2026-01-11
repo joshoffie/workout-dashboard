@@ -3468,7 +3468,7 @@ function renderDayDetails(dateKey) {
 }
 
 // =====================================================
-// SMART RECAP ENGINE (Math-Based "AI") - V2
+// SMART RECAP ENGINE (Math-Based "AI") - V3 (High Variance)
 // =====================================================
 
 const RECAP_TEMPLATES = {
@@ -3482,21 +3482,88 @@ const RECAP_TEMPLATES = {
         ["Pushing the limit.", "You added weight to the bar and got the work done."],
         ["New territory unlocked.", "That {weight} {unit} set was your heaviest yet."],
         ["Gravity lost this round.", "You lifted {diff}% heavier than before."],
-        ["Leveling up.", "Strength numbers are looking higher this session."]
+        ["Leveling up.", "Strength numbers are looking higher this session."],
+        ["Bar bending power.", "You topped out at {weight} {unit} today."],
+        ["Serious iron.", "That heaviest set was {diff}% more than your previous best."],
+        ["Upward trajectory.", "You're getting comfortable with {weight} {unit}."],
+        ["Breaking ceilings.", "You pushed past your previous top weight."],
+        ["Heavy lifting.", "You peaked at {weight} {unit} across {sets} sets."],
+        ["Strength gains detected.", "A {diff}% increase in max load is significant."],
+        ["Dominated the weight.", "That {weight} {unit} set looked solid."],
+        ["Climbing the ladder.", "Your top set was heavier than last session."],
+        ["Force production up.", "You generated more power with {weight} {unit}."],
+        ["New heavy single.", "You handled {diff}% more weight at the top end."],
+        ["Iron sharpens iron.", "You successfully moved {weight} {unit} today."],
+        ["Raising the bar.", "Literally. Max weight is up {diff}%."],
+        ["Stronger today.", "You successfully handled {weight} {unit}."],
+        ["Peak performance.", "That top set of {weight} {unit} sets a new standard."],
+        ["Crushing it.", "Max load increased by {diff}%."],
+        ["Heavy day.", "You didn't shy away from {weight} {unit}."],
+        ["Strength metrics up.", "You're moving {diff}% more weight than last time."],
+        ["Solid lift.", "That {weight} {unit} set was the highlight."],
+        ["Power move.", "You increased your top weight by {diff}%."],
+        ["Beating the logbook.", "Your heaviest set exceeded last session's."],
+        ["Strong work.", "You took {weight} {unit} for a ride."],
+        ["Progress secured.", "Max weight is up {diff}% from last time."],
+        ["Gaining ground.", "You're handling {weight} {unit} better than ever."],
+        ["Top end power.", "You pushed the max weight up by {diff}%."],
+        ["Moving mountains.", "Well, {weight} {unit} to be exact."],
+        ["Heavy hitter.", "You peaked at {weight} {unit} this session."],
+        ["No plateau here.", "Strength is up {diff}%."],
+        ["Weight room win.", "You handled {weight} {unit} today."],
+        ["Incrementing up.", "Max load increased by {diff}%."],
+        ["Quality strength.", "That top set of {weight} {unit} counts."],
+        ["Built different.", "You moved {diff}% more weight than last time."],
+        ["Standard raised.", "Your new target to beat is {weight} {unit}."],
+        ["Pure power.", "You topped out at {weight} {unit}."],
+        ["Strength verified.", "Metrics show a {diff}% increase in max load."],
+        ["Heavy duty.", "You controlled {weight} {unit} today."]
     ],
     // 2. VOLUME GAIN (Total Volume Increased)
     volume: [
         ["High capacity session.", "Total volume was up {diff}% from last time."],
         ["Workhorse mentality.", "You logged {vol} {unit} of total volume here."],
-        ["The tank was full.", "You moved significantly more total load than the previous workout."],
+        ["The tank was full.", "You moved significantly more total load than before."],
         ["Volume PR.", "That was a massive {diff}% increase in total work."],
         ["Endurance is building.", "You accumulated {vol} {unit} across {sets} sets."],
         ["Putting in the reps.", "Total workload increased by {diff}%."],
         ["Grinding it out.", "You did more total work this session than last."],
         ["Serious capacity.", "Volume numbers are trending upward."],
-        ["Extra mileage.", "You pushed the volume {diff}% higher this time."]
+        ["Extra mileage.", "You pushed the volume {diff}% higher this time."],
+        ["Full gas.", "You moved a total of {vol} {unit} today."],
+        ["Building the engine.", "Total volume is up {diff}%."],
+        ["Sweat equity.", "You accumulated {vol} {unit} of work."],
+        ["High volume day.", "You increased total load by {diff}%."],
+        ["Stacking the work.", "Across {sets} sets, you moved {vol} {unit}."],
+        ["Capacity check passed.", "Volume increased by {diff}%."],
+        ["Marathon session.", "You logged {vol} {unit} total."],
+        ["Work capacity up.", "You handled {diff}% more total volume."],
+        ["Heavy workload.", "You moved {vol} {unit} this session."],
+        ["Turning up the volume.", "Total load increased by {diff}%."],
+        ["Putting in hours.", "You accumulated {vol} {unit} today."],
+        ["Filling the log.", "Volume is up {diff}% from last time."],
+        ["Massive output.", "You moved {vol} {unit} total."],
+        ["Grind mode.", "You increased total volume by {diff}%."],
+        ["Volume metrics up.", "You logged {vol} {unit}."],
+        ["Working hard.", "Total load is up {diff}%."],
+        ["Big session.", "You moved {vol} {unit} across {sets} sets."],
+        ["Endurance test.", "Volume increased by {diff}%."],
+        ["Accumulation phase.", "You logged {vol} {unit} today."],
+        ["More work done.", "Total load up {diff}%."],
+        ["Volume king.", "You moved {vol} {unit} total."],
+        ["Serious tonnage.", "You increased volume by {diff}%."],
+        ["Capacity building.", "You logged {vol} {unit}."],
+        ["Work rate up.", "Volume increased by {diff}%."],
+        ["Heavy hauling.", "You moved {vol} {unit} today."],
+        ["Total load up.", "A {diff}% increase in volume."],
+        ["Busy session.", "You accumulated {vol} {unit}."],
+        ["Volume gains.", "You increased workload by {diff}%."],
+        ["Maximum effort.", "You moved {vol} {unit} total."],
+        ["Workload increased.", "Volume is up {diff}%."],
+        ["Getting it done.", "You logged {vol} {unit} today."],
+        ["High output.", "Volume increased by {diff}%."]
     ],
-    // 3. EFFICIENCY (Same Work, Fewer Sets or Better W/R)
+    // 3. EFFICIENCY (WPR Up - Better weight per rep)
     efficiency: [
         ["Clean and efficient.", "You matched previous numbers with better focus."],
         ["Laser focused.", "Your average weight per rep trended up this session."],
@@ -3504,7 +3571,39 @@ const RECAP_TEMPLATES = {
         ["Optimized performance.", "You maintained intensity with solid technique."],
         ["Smart training.", "You got the work done without wasted volume."],
         ["Effective session.", "Average load per rep was higher than last time."],
-        ["Dialed in.", "Performance efficiency looked solid here."]
+        ["Dialed in.", "Performance efficiency looked solid here."],
+        ["Sharp execution.", "Your work-per-rep ratio is trending up."],
+        ["High quality work.", "You made every set count today."],
+        ["Efficiency gains.", "Your average weight per rep increased."],
+        ["Precision training.", "You got more out of every rep."],
+        ["Focus on form.", "Efficiency metrics look better than last time."],
+        ["Quality control.", "Average load per rep is up."],
+        ["Smart work.", "You maintained intensity with less waste."],
+        ["Targeted effort.", "Your work-per-rep stat improved."],
+        ["Clean reps.", "Efficiency is trending in the right direction."],
+        ["Mastery.", "You're getting more out of each movement."],
+        ["Professional work.", "Average weight per rep is up."],
+        ["Calculated effort.", "You optimized your volume today."],
+        ["Skillful lifting.", "Efficiency metrics are green."],
+        ["Refined technique.", "Average load per rep increased."],
+        ["Effective reps.", "You made the most of this session."],
+        ["Streamlined session.", "Efficiency is up from last time."],
+        ["Potent work.", "Your average weight per rep is higher."],
+        ["Focused intensity.", "You optimized your workload."],
+        ["High ROI.", "Better return on every rep today."],
+        ["Technical win.", "Efficiency stats improved."],
+        ["Smooth operation.", "Average load per rep is up."],
+        ["Surgical precision.", "You made every rep count."],
+        ["Efficient power.", "Work-per-rep increased."],
+        ["Quality session.", "You focused on effective reps."],
+        ["Smart gains.", "Efficiency is trending up."],
+        ["Tactical lift.", "Average weight per rep increased."],
+        ["No wasted motion.", "You improved your efficiency."],
+        ["Solid focus.", "Work-per-rep stats look good."],
+        ["High caliber.", "Average load per rep is up."],
+        ["Expert handling.", "You optimized your sets today."],
+        ["Effective training.", "Efficiency is better than last time."],
+        ["Sharp session.", "Average weight per rep increased."]
     ],
     // 4. CONSISTENCY (Numbers are roughly the same)
     consistency: [
@@ -3515,9 +3614,40 @@ const RECAP_TEMPLATES = {
         ["Clocking in.", "Another solid session in the books."],
         ["Reliable power.", "Performance remained stable and strong."],
         ["Staying the course.", "You matched the previous session's intensity."],
-        ["Foundation work.", "Keeping these numbers steady builds long-term gains."]
+        ["Foundation work.", "Keeping these numbers steady builds long-term gains."],
+        ["Holding the line.", "You maintained your strength levels today."],
+        ["Steady state.", "Performance is consistent with last session."],
+        ["Solid baseline.", "You matched your previous numbers."],
+        ["Reliable work.", "Consistency is the key to growth."],
+        ["Maintenance success.", "You held your ground today."],
+        ["Routine execution.", "You hit the same metrics as last time."],
+        ["Steady grind.", "You matched your previous performance."],
+        ["Keeping pace.", "Performance remained steady."],
+        ["Stable session.", "You maintained your baseline."],
+        ["Locked in.", "You hit your numbers exactly."],
+        ["Predictable power.", "Consistency is looking good."],
+        ["Standard procedure.", "You matched last session's stats."],
+        ["Even keel.", "Performance remained stable."],
+        ["Reliable output.", "You maintained your strength."],
+        ["Steady progress.", "Consistency builds results."],
+        ["On track.", "You matched your previous efforts."],
+        ["Holding steady.", "Performance is consistent."],
+        ["Regular programming.", "You hit your marks."],
+        ["Solid stability.", "You maintained your baseline."],
+        ["Dependable work.", "You matched last time's numbers."],
+        ["Steady rhythm.", "Performance remained stable."],
+        ["Consistent effort.", "You held your ground."],
+        ["Baseline secured.", "You matched your previous stats."],
+        ["Regular maintenance.", "Consistency is key."],
+        ["Steady hand.", "You hit the same numbers."],
+        ["Firm foundation.", "Performance remained steady."],
+        ["Repeat performance.", "You matched your last session."],
+        ["Steady flow.", "Consistency looks good."],
+        ["Balanced session.", "You maintained your baseline."],
+        ["Even effort.", "You hit your numbers."],
+        ["Reliable baseline.", "Performance remained stable."]
     ],
-    // 5. DELOAD / DIP (Numbers are down)
+    // 5. RECOVERY (Numbers are down)
     recovery: [
         ["Recovery is key.", "A lighter session here sets up gains for next time."],
         ["Just getting it done.", "Motion is better than nothing. Keep going."],
@@ -3525,7 +3655,38 @@ const RECAP_TEMPLATES = {
         ["Active recovery.", "Volume was lower, allowing for better restoration."],
         ["Reset and recharge.", "Took it lighter this session to recover."],
         ["Pacing yourself.", "A dip in volume is natural in long-term training."],
-        ["Keeping the habit.", "You showed up, and that's what matters most."]
+        ["Keeping the habit.", "You showed up, and that's what matters most."],
+        ["Deload mindset.", "Lighter volume today for better recovery."],
+        ["Strategic dip.", "Pulling back today to push forward tomorrow."],
+        ["Recovery mode.", "Lower volume helps the body repair."],
+        ["Light work.", "Sometimes less is more."],
+        ["Preserving energy.", "A lighter session for recovery."],
+        ["Flow state.", "Movement is the goal today."],
+        ["Gentle session.", "Prioritizing recovery this time."],
+        ["Smart regulation.", "Listening to your body's needs."],
+        ["Backing off.", "Recovery is part of the process."],
+        ["Easy day.", "Lighter volume for restoration."],
+        ["Maintenance mode.", "Keeping the habit alive."],
+        ["Restorative work.", "Lower intensity today."],
+        ["Dialing back.", "Recovery is essential."],
+        ["Smooth sailing.", "A lighter load for today."],
+        ["Energy conservation.", "Prioritizing rest and repair."],
+        ["Active rest.", "Movement helps recovery."],
+        ["Checking the box.", "You showed up, that counts."],
+        ["Light and easy.", "Recovering for the next heavy session."],
+        ["Body maintenance.", "Lower volume today."],
+        ["Smart pullback.", "Avoiding burnout is key."],
+        ["Recharging.", "Lighter work today."],
+        ["Health first.", "Prioritizing recovery."],
+        ["Taking it easy.", "A dip in volume is okay."],
+        ["Recovery focus.", "Lower intensity session."],
+        ["Strategic rest.", "Preparing for future gains."],
+        ["Habit stacking.", "You logged a session, regardless of volume."],
+        ["Low stress.", "Active recovery day."],
+        ["Resetting.", "Lower volume to recharge."],
+        ["Sustainable pace.", "Listening to the body."],
+        ["Grace period.", "Lighter work today."],
+        ["Recovery gains.", "Rest is when you grow."]
     ],
     // 6. WELCOME (No history)
     welcome: [
@@ -3533,7 +3694,40 @@ const RECAP_TEMPLATES = {
         ["The journey starts.", "Log your sets to unlock progress tracking."],
         ["Blank canvas.", "Time to make some history."],
         ["Day one.", "Great start. Now let's build on this."],
-        ["Baseline set.", "Future progress will be measured against this."]
+        ["Baseline set.", "Future progress will be measured against this."],
+        ["History begins.", "This is your first log for this exercise."],
+        ["Starting line.", "A solid foundation for future gains."],
+        ["Opening entry.", "Your tracking journey begins here."],
+        ["First step.", "Consistency starts with this log."],
+        ["New chapter.", "Let's see where you take this."],
+        ["Benchmark set.", "Next time, we try to beat this."],
+        ["Data point one.", "Building your history starts now."],
+        ["Fresh start.", "This is the baseline to grow from."],
+        ["Welcome aboard.", "Great first session logged."],
+        ["Initial log.", "Setting the standard for future workouts."],
+        ["Ground zero.", "The only way is up from here."],
+        ["First reps.", "Your history starts today."],
+        ["Foundation laid.", "Solid start to your tracking."],
+        ["In the books.", "First session complete."],
+        ["Starting strong.", "A great baseline established."],
+        ["Hello world.", "Your fitness journey is now tracked."],
+        ["Page one.", "Writing your strength history."],
+        ["First of many.", "Great job logging your first session."],
+        ["Baseline established.", "Future you will thank you."],
+        ["Getting started.", "Consistency is the next step."],
+        ["Log initiated.", "Ready to track your progress."],
+        ["First set down.", "Building a habit starts now."],
+        ["Opening move.", "A solid start."],
+        ["Fresh page.", "Let's fill this with PRs."],
+        ["Launchpad.", "Your progress starts here."],
+        ["First block.", "Building your fitness data."],
+        ["Genesis.", "The beginning of your logs."],
+        ["Starting point.", "Measure your growth from here."],
+        ["Entry one.", "Let's keep this streak going."],
+        ["Welcome to tracking.", "First session logged."],
+        ["Origin story.", "Your strength history begins."],
+        ["Day 1 complete.", "Great start."],
+        ["Founding session.", "The baseline is set."]
     ]
 };
 
@@ -3544,6 +3738,8 @@ function generateSmartRecap() {
 
     // 1. Get Data
     const sets = selectedExercise.sets;
+    
+    // FIX: If no sets exist, HIDE the box completely
     if (!sets || sets.length === 0) {
         box.classList.add('hidden');
         return;
@@ -3557,6 +3753,7 @@ function generateSmartRecap() {
     const currentSets = sortedSets.filter(s => isSameDay(new Date(s.timestamp), mostRecentDate));
     const previousSet = sortedSets.find(s => !isSameDay(new Date(s.timestamp), mostRecentDate));
 
+    // FIX: Only show Welcome text if we have data BUT no history
     if (!previousSet) {
         setRecapText(box, textEl, RECAP_TEMPLATES.welcome, 'recap-neutral');
         return;
@@ -3594,7 +3791,7 @@ function generateSmartRecap() {
     // C. Did we dip significantly? (Volume < 85%)
     else if (currStats.volume < prevStats.volume * 0.85) {
         selectedCategory = 'recovery';
-        moodClass = 'recap-sad'; // "Sad" maps to neutral grey in CSS, just semantically distinct
+        moodClass = 'recap-sad'; 
     }
     // D. Efficiency check (WPR is up but volume is same/down)
     else if (currStats.wpr > prevStats.wpr * 1.02) {
@@ -3602,11 +3799,9 @@ function generateSmartRecap() {
         moodClass = 'recap-happy';
     }
 
-    // 5. Pick a Random Template
+    // 5. Pick a RANDOM Template (Requirement B: Different every time)
     const templates = RECAP_TEMPLATES[selectedCategory];
-    // Hash based on date + set count + volume so it stays consistent for THAT specific workout
-    const daySeed = mostRecentDate.getDate() + currStats.sets + Math.floor(currStats.volume); 
-    const templateIdx = daySeed % templates.length;
+    const templateIdx = Math.floor(Math.random() * templates.length);
     const rawTemplate = templates[templateIdx];
 
     // 6. Fill Variables (Safe Replace)
@@ -3643,7 +3838,8 @@ function calculatePercentDiff(a, b) {
 }
 
 function setRecapText(box, el, templates, cssClass) {
-    const t = templates[0];
+    const idx = Math.floor(Math.random() * templates.length);
+    const t = templates[idx];
     el.innerHTML = `${t[0]} <span style="opacity:0.7">${t[1]}</span>`;
     el.className = `smart-recap-text ${cssClass}`;
     box.classList.remove('hidden');
