@@ -3468,47 +3468,72 @@ function renderDayDetails(dateKey) {
 }
 
 // =====================================================
-// SMART RECAP ENGINE (Math-Based "AI")
+// SMART RECAP ENGINE (Math-Based "AI") - V2
 // =====================================================
 
 const RECAP_TEMPLATES = {
     // 1. STRENGTH GAIN (Max Weight Increased)
     strength: [
-        ["Feeling strong today.", "You're moving {diff}% more weight than last time."],
-        ["New territory.", "That top set was {weight} {unit}, your heaviest yet."],
-        ["Solid power.", "You pushed the intensity up by {diff}% today."],
-        ["Gravity looks weaker.", "You're handling heavier loads than your last session."]
+        ["New standard set.", "Top weight was up {diff}% compared to the previous session."],
+        ["Power output increased.", "You moved {weight} {unit}, beating your last record."],
+        ["Strength is trending up.", "That top set was heavier than last time."],
+        ["Solid progression.", "You handled {weight} {unit} with authority."],
+        ["Moving heavy loads.", "Max weight increased by {diff}% this workout."],
+        ["Pushing the limit.", "You added weight to the bar and got the work done."],
+        ["New territory unlocked.", "That {weight} {unit} set was your heaviest yet."],
+        ["Gravity lost this round.", "You lifted {diff}% heavier than before."],
+        ["Leveling up.", "Strength numbers are looking higher this session."]
     ],
     // 2. VOLUME GAIN (Total Volume Increased)
     volume: [
-        ["The tank is full today.", "You've added {diff}% more volume than last session."],
-        ["High capacity mode.", "You are doing significantly more work today."],
-        ["Grinding it out.", "Volume is up {diff}%. That builds serious endurance."],
-        ["Workhorse mentality.", "You've already surpassed last session's total load."]
+        ["High capacity session.", "Total volume was up {diff}% from last time."],
+        ["Workhorse mentality.", "You logged {vol} {unit} of total volume here."],
+        ["The tank was full.", "You moved significantly more total load than the previous workout."],
+        ["Volume PR.", "That was a massive {diff}% increase in total work."],
+        ["Endurance is building.", "You accumulated {vol} {unit} across {sets} sets."],
+        ["Putting in the reps.", "Total workload increased by {diff}%."],
+        ["Grinding it out.", "You did more total work this session than last."],
+        ["Serious capacity.", "Volume numbers are trending upward."],
+        ["Extra mileage.", "You pushed the volume {diff}% higher this time."]
     ],
-    // 3. EFFICIENCY (Same Work, Fewer Sets/Reps - Higher W/R)
+    // 3. EFFICIENCY (Same Work, Fewer Sets or Better W/R)
     efficiency: [
-        ["Clean and efficient.", "You matched your previous numbers with better focus."],
-        ["Laser focused.", "Your average weight per rep is trending up."],
-        ["Quality over quantity.", "Every rep counted more today."]
+        ["Clean and efficient.", "You matched previous numbers with better focus."],
+        ["Laser focused.", "Your average weight per rep trended up this session."],
+        ["Quality over quantity.", "Every rep counted more in this workout."],
+        ["Optimized performance.", "You maintained intensity with solid technique."],
+        ["Smart training.", "You got the work done without wasted volume."],
+        ["Effective session.", "Average load per rep was higher than last time."],
+        ["Dialed in.", "Performance efficiency looked solid here."]
     ],
     // 4. CONSISTENCY (Numbers are roughly the same)
     consistency: [
         ["Consistency is king.", "You matched your last performance perfectly."],
         ["Another brick in the wall.", "Steady work keeps the progress coming."],
-        ["Showing up is the win.", "You're maintaining a solid baseline here."]
+        ["Showing up is the win.", "You maintained a solid baseline here."],
+        ["Standard maintained.", "You hit your marks just like last time."],
+        ["Clocking in.", "Another solid session in the books."],
+        ["Reliable power.", "Performance remained stable and strong."],
+        ["Staying the course.", "You matched the previous session's intensity."],
+        ["Foundation work.", "Keeping these numbers steady builds long-term gains."]
     ],
     // 5. DELOAD / DIP (Numbers are down)
     recovery: [
-        ["Recovery is part of the process.", "A lighter session today sets up gains tomorrow."],
+        ["Recovery is key.", "A lighter session here sets up gains for next time."],
         ["Just getting it done.", "Motion is better than nothing. Keep going."],
-        ["Listening to your body.", "Sometimes pulling back is the smart play."]
+        ["Listening to the body.", "Sometimes pulling back is the smart play."],
+        ["Active recovery.", "Volume was lower, allowing for better restoration."],
+        ["Reset and recharge.", "Took it lighter this session to recover."],
+        ["Pacing yourself.", "A dip in volume is natural in long-term training."],
+        ["Keeping the habit.", "You showed up, and that's what matters most."]
     ],
     // 6. WELCOME (No history)
     welcome: [
-        ["First entry in the books.", "Let's set a strong baseline for next time."],
-        ["The journey starts here.", "Log your sets to unlock progress tracking."],
-        ["Blank canvas.", "Time to make some history."]
+        ["First entry logged.", "Let's set a strong baseline for next time."],
+        ["The journey starts.", "Log your sets to unlock progress tracking."],
+        ["Blank canvas.", "Time to make some history."],
+        ["Day one.", "Great start. Now let's build on this."],
+        ["Baseline set.", "Future progress will be measured against this."]
     ]
 };
 
@@ -3528,7 +3553,7 @@ function generateSmartRecap() {
     const sortedSets = sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const mostRecentDate = new Date(sortedSets[0].timestamp);
     
-    // Split into "Today" (Current Session) and "Last Time" (Previous Session)
+    // Split into "Current Session" and "Last Time"
     const currentSets = sortedSets.filter(s => isSameDay(new Date(s.timestamp), mostRecentDate));
     const previousSet = sortedSets.find(s => !isSameDay(new Date(s.timestamp), mostRecentDate));
 
@@ -3549,14 +3574,16 @@ function generateSmartRecap() {
     let selectedCategory = 'consistency';
     let moodClass = 'recap-neutral';
     let diff = 0;
-    let maxWeight = 0;
+    
+    // Formatting numbers for the templates
+    const maxWeightStr = UNIT_mode.toDisplay(currStats.maxWeight);
+    const totalVolStr = Math.round(UNIT_mode.toDisplay(currStats.volume)).toLocaleString();
 
-    // A. Did we lift heavier? (Max Weight)
-    if (currStats.maxWeight > prevStats.maxWeight) {
+    // A. Did we lift heavier? (Max Weight > 2.5% increase)
+    if (currStats.maxWeight > prevStats.maxWeight * 1.025) {
         selectedCategory = 'strength';
         moodClass = 'recap-happy';
         diff = calculatePercentDiff(currStats.maxWeight, prevStats.maxWeight);
-        maxWeight = UNIT_mode.toDisplay(currStats.maxWeight);
     } 
     // B. Did we do significantly more work? (Volume > 5% increase)
     else if (currStats.volume > prevStats.volume * 1.05) {
@@ -3567,7 +3594,7 @@ function generateSmartRecap() {
     // C. Did we dip significantly? (Volume < 85%)
     else if (currStats.volume < prevStats.volume * 0.85) {
         selectedCategory = 'recovery';
-        moodClass = 'recap-sad';
+        moodClass = 'recap-sad'; // "Sad" maps to neutral grey in CSS, just semantically distinct
     }
     // D. Efficiency check (WPR is up but volume is same/down)
     else if (currStats.wpr > prevStats.wpr * 1.02) {
@@ -3577,16 +3604,18 @@ function generateSmartRecap() {
 
     // 5. Pick a Random Template
     const templates = RECAP_TEMPLATES[selectedCategory];
-    // Hash based on date so it doesn't flicker randomly on re-renders, but changes day-to-day
-    const daySeed = mostRecentDate.getDate() + currStats.sets; 
+    // Hash based on date + set count + volume so it stays consistent for THAT specific workout
+    const daySeed = mostRecentDate.getDate() + currStats.sets + Math.floor(currStats.volume); 
     const templateIdx = daySeed % templates.length;
     const rawTemplate = templates[templateIdx];
 
-    // 6. Fill Variables
+    // 6. Fill Variables (Safe Replace)
     let sentence1 = rawTemplate[0];
     let sentence2 = rawTemplate[1]
-        .replace('{diff}', Math.round(diff))
-        .replace('{weight}', maxWeight)
+        .replace('{diff}', Math.abs(Math.round(diff)))
+        .replace('{weight}', maxWeightStr)
+        .replace('{vol}', totalVolStr)
+        .replace('{sets}', currStats.sets)
         .replace('{unit}', unit);
 
     // 7. Render
@@ -3614,7 +3643,7 @@ function calculatePercentDiff(a, b) {
 }
 
 function setRecapText(box, el, templates, cssClass) {
-    const t = templates[0]; // Default to first for generic cases
+    const t = templates[0];
     el.innerHTML = `${t[0]} <span style="opacity:0.7">${t[1]}</span>`;
     el.className = `smart-recap-text ${cssClass}`;
     box.classList.remove('hidden');
