@@ -369,6 +369,9 @@ function navigateTo(targetScreenId, direction = 'forward') {
           if(typeof renderCalendarScreen === 'function') renderCalendarScreen();
           break;
   }
+    case SCREENS.GRAPH: 
+        if(typeof initChart === 'function') setTimeout(initChart, 50);
+        break;
 
   // 3. Handle Animations
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
