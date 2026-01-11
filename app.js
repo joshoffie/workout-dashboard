@@ -1971,15 +1971,17 @@ function drawChart() {
         }
     }, 2200);
 }
-
 const touchLayer = document.getElementById('touchLayer');
 const handleInteraction = (clientX) => {
-    // ... [Keep existing graph logic] ...
     const rect = touchLayer.getBoundingClientRect();
     const x = clientX - rect.left;
-    // ... (rest of logic) ...
+    let closestDist = Infinity;
+    let closestIdx = -1;
+    chartState.dataPoints.forEach((p, i) => {
+        const dist = Math.abs(p.x - x);
+        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+    });
     if (closestIdx !== -1) updateDetailView(closestIdx);
-
     // --- TUTORIAL: Step 8 (Touch Graph -> Go Back) ---
     if (isTutorialMode) {
         clearTutorialTips();
