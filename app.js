@@ -3463,3 +3463,156 @@ function renderDayDetails(dateKey) {
     container.appendChild(groupLi);
   });
 }
+
+// =====================================================
+// SMART RECAP ENGINE (Math-Based "AI")
+// =====================================================
+
+const RECAP_TEMPLATES = {
+    // 1. STRENGTH GAIN (Max Weight Increased)
+    strength: [
+        ["Feeling strong today.", "You're moving {diff}% more weight than last time."],
+        ["New territory.", "That top set was {weight} {unit}, your heaviest yet."],
+        ["Solid power.", "You pushed the intensity up by {diff}% today."],
+        ["Gravity looks weaker.", "You're handling heavier loads than your last session."]
+    ],
+    // 2. VOLUME GAIN (Total Volume Increased)
+    volume: [
+        ["The tank is full today.", "You've added {diff}% more volume than last session."],
+        ["High capacity mode.", "You are doing significantly more work today."],
+        ["Grinding it out.", "Volume is up {diff}%. That builds serious endurance."],
+        ["Workhorse mentality.", "You've already surpassed last session's total load."]
+    ],
+    // 3. EFFICIENCY (Same Work, Fewer Sets/Reps - Higher W/R)
+    efficiency: [
+        ["Clean and efficient.", "You matched your previous numbers with better focus."],
+        ["Laser focused.", "Your average weight per rep is trending up."],
+        ["Quality over quantity.", "Every rep counted more today."]
+    ],
+    // 4. CONSISTENCY (Numbers are roughly the same)
+    consistency: [
+        ["Consistency is king.", "You matched your last performance perfectly."],
+        ["Another brick in the wall.", "Steady work keeps the progress coming."],
+        ["Showing up is the win.", "You're maintaining a solid baseline here."]
+    ],
+    // 5. DELOAD / DIP (Numbers are down)
+    recovery: [
+        ["Recovery is part of the process.", "A lighter session today sets up gains tomorrow."],
+        ["Just getting it done.", "Motion is better than nothing. Keep going."],
+        ["Listening to your body.", "Sometimes pulling back is the smart play."]
+    ],
+    // 6. WELCOME (No history)
+    welcome: [
+        ["First entry in the books.", "Let's set a strong baseline for next time."],
+        ["The journey starts here.", "Log your sets to unlock progress tracking."],
+        ["Blank canvas.", "Time to make some history."]
+    ]
+};
+
+function generateSmartRecap() {
+    const box = document.getElementById('smartRecapBox');
+    const textEl = document.getElementById('smartRecapText');
+    if (!box || !textEl || !selectedExercise) return;
+
+    // 1. Get Data
+    const sets = selectedExercise.sets;
+    if (!sets || sets.length === 0) {
+        setRecapText(box, textEl, RECAP_TEMPLATES.welcome, 'recap-neutral');
+        return;
+    }
+
+    // 2. Sort & Group
+    const sortedSets = sets.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const mostRecentDate = new Date(sortedSets[0].timestamp);
+    
+    // Split into "Today" (Current Session) and "Last Time" (Previous Session)
+    const currentSets = sortedSets.filter(s => isSameDay(new Date(s.timestamp), mostRecentDate));
+    const previousSet = sortedSets.find(s => !isSameDay(new Date(s.timestamp), mostRecentDate));
+
+    if (!previousSet) {
+        setRecapText(box, textEl, RECAP_TEMPLATES.welcome, 'recap-neutral');
+        return;
+    }
+
+    const previousDate = new Date(previousSet.timestamp);
+    const prevSets = sortedSets.filter(s => isSameDay(new Date(s.timestamp), previousDate));
+
+    // 3. Calculate Metrics
+    const currStats = getSessionStats(currentSets);
+    const prevStats = getSessionStats(prevSets);
+    const unit = UNIT_mode.getLabel();
+
+    // 4. LOGIC TREE (The "AI" Decision Making)
+    let selectedCategory = 'consistency';
+    let moodClass = 'recap-neutral';
+    let diff = 0;
+    let maxWeight = 0;
+
+    // A. Did we lift heavier? (Max Weight)
+    if (currStats.maxWeight > prevStats.maxWeight) {
+        selectedCategory = 'strength';
+        moodClass = 'recap-happy';
+        diff = calculatePercentDiff(currStats.maxWeight, prevStats.maxWeight);
+        maxWeight = UNIT_mode.toDisplay(currStats.maxWeight);
+    } 
+    // B. Did we do significantly more work? (Volume > 5% increase)
+    else if (currStats.volume > prevStats.volume * 1.05) {
+        selectedCategory = 'volume';
+        moodClass = 'recap-happy';
+        diff = calculatePercentDiff(currStats.volume, prevStats.volume);
+    }
+    // C. Did we dip significantly? (Volume < 85%)
+    else if (currStats.volume < prevStats.volume * 0.85) {
+        selectedCategory = 'recovery';
+        moodClass = 'recap-sad';
+    }
+    // D. Efficiency check (WPR is up but volume is same/down)
+    else if (currStats.wpr > prevStats.wpr * 1.02) {
+        selectedCategory = 'efficiency';
+        moodClass = 'recap-happy';
+    }
+
+    // 5. Pick a Random Template
+    const templates = RECAP_TEMPLATES[selectedCategory];
+    // Hash based on date so it doesn't flicker randomly on re-renders, but changes day-to-day
+    const daySeed = mostRecentDate.getDate() + currStats.sets; 
+    const templateIdx = daySeed % templates.length;
+    const rawTemplate = templates[templateIdx];
+
+    // 6. Fill Variables
+    let sentence1 = rawTemplate[0];
+    let sentence2 = rawTemplate[1]
+        .replace('{diff}', Math.round(diff))
+        .replace('{weight}', maxWeight)
+        .replace('{unit}', unit);
+
+    // 7. Render
+    textEl.innerHTML = `${sentence1} <span style="opacity:0.7">${sentence2}</span>`;
+    textEl.className = `smart-recap-text ${moodClass}`;
+    box.classList.remove('hidden');
+}
+
+// Helper: Calculate simple stats
+function getSessionStats(setList) {
+    let vol = 0;
+    let maxW = 0;
+    let reps = 0;
+    setList.forEach(s => {
+        vol += s.volume;
+        reps += s.reps;
+        if (s.weight > maxW) maxW = s.weight;
+    });
+    return { volume: vol, maxWeight: maxW, wpr: reps > 0 ? vol/reps : 0, sets: setList.length };
+}
+
+function calculatePercentDiff(a, b) {
+    if (b === 0) return 100;
+    return ((a - b) / b) * 100;
+}
+
+function setRecapText(box, el, templates, cssClass) {
+    const t = templates[0]; // Default to first for generic cases
+    el.innerHTML = `${t[0]} <span style="opacity:0.7">${t[1]}</span>`;
+    el.className = `smart-recap-text ${cssClass}`;
+    box.classList.remove('hidden');
+}
