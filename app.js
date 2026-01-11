@@ -3901,3 +3901,19 @@ function setRecapText(box, el, templates, cssClass) {
     el.className = `smart-recap-text ${cssClass}`;
     box.classList.remove('hidden');
 }
+
+// [app.js] FIX: Connect the Graph Back Button
+const backToSetsFromGraphBtn = document.getElementById('backToSetsFromGraphBtn');
+if (backToSetsFromGraphBtn) {
+    backToSetsFromGraphBtn.onclick = () => {
+        // 1. Clear any specific tips relating to the graph
+        clearTutorialTips();
+        
+        // 2. Perform the navigation
+        navigateTo(SCREENS.SETS, 'back');
+        
+        // 3. Cleanup: Hide the cursor line so it doesn't get stuck
+        const cursor = document.getElementById('cursorLine');
+        if (cursor) cursor.classList.add('hidden');
+    };
+}
