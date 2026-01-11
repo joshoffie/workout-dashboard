@@ -1764,6 +1764,9 @@ function renderSets() {
 
   runTitleOnlyLogic();
   startRestTimer(false);
+
+    // NEW HOOK:
+  if(typeof generateSmartRecap === 'function') generateSmartRecap();
 }
 
 // ------------------ CUSTOM MINIMAL GRAPH ENGINE ------------------
