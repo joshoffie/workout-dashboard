@@ -3956,3 +3956,98 @@ if (backToSetsFromGraphBtn) {
         if (cursor) cursor.classList.add('hidden');
     };
 }
+
+// [app.js] FIX: Connect the Calendar Button & Tutorial Step
+const openCalendarBtn = document.getElementById('openCalendarBtn');
+if (openCalendarBtn) {
+    openCalendarBtn.onclick = () => {
+        // 1. Safety Check
+        if (!selectedClient) return;
+
+        // 2. Navigate
+        navigateTo(SCREENS.CALENDAR, 'forward');
+
+        // 3. TUTORIAL LOGIC: Advance to the next step
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+             document.body.dataset.tutorialStage = 'calendar-visited';
+             
+             // Point to the grid
+             setTimeout(() => showTutorialTip('calendarGrid', 'This grid tracks your workout consistency.', -20), 500);
+             
+             // Then point to the back button
+             setTimeout(() => {
+                 showTutorialTip('backToSessionsFromCalBtn', 'Tap back to return.', 30, 'left');
+             }, 4000);
+        }
+    };
+}
+
+// ==========================================
+// FINAL INTERACTION PATCH (The "Missing Links")
+// ==========================================
+
+// 1. SETTINGS: Lbs/Kg Toggle Listener (CRITICAL - Was missing)
+const unitToggle = document.getElementById('settingUnitToggle');
+if (unitToggle) {
+    unitToggle.onchange = () => {
+        // Trigger the toggle logic
+        if (typeof UNIT_mode !== 'undefined') {
+            UNIT_mode.toggle();
+        }
+        
+        // TUTORIAL HOOK: If we are in the settings step, this interaction counts
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            // Optional: You could advance the tutorial here if you wanted, 
+            // but the current flow waits for the "End Tutorial" button.
+            // We just ensure the tooltip doesn't block visibility.
+             clearTutorialTips();
+             setTimeout(() => {
+                 showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+             }, 500);
+        }
+    };
+}
+
+// 2. HOME: Settings Button (Safety Reinforcement)
+// Sometimes this button gets lost if the auth-state loads too fast or slow.
+const globalSettingsBtn = document.getElementById('settingsBtn');
+if (globalSettingsBtn) {
+    globalSettingsBtn.onclick = () => {
+        navigateTo(SCREENS.SETTINGS, 'forward');
+
+        // TUTORIAL LOGIC (Settings Step)
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            // Wait for slide-in animation
+            setTimeout(() => {
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                // Queue the final success message
+                setTimeout(() => {
+                    const endBtn = document.getElementById('endTutorialBtn');
+                    if (endBtn) endBtn.classList.add('flash-active');
+                    showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                }, 4000);
+            }, 600);
+        }
+    };
+}
+
+// 3. EDIT TOGGLE (Safety Reinforcement)
+const globalEditBtn = document.getElementById("editToggleBtn");
+if (globalEditBtn) {
+    globalEditBtn.onclick = () => {
+        // Toggle the global variable
+        if (typeof editMode !== 'undefined') {
+            editMode = !editMode;
+            
+            // Update UI
+            globalEditBtn.textContent = editMode ? "Done" : "Edit";
+            document.body.classList.toggle('edit-mode-active');
+            
+            // Save on exit
+            if (!editMode && typeof saveUserJson === 'function') {
+                saveUserJson();
+            }
+        }
+    };
+}
