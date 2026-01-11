@@ -3545,7 +3545,7 @@ function generateSmartRecap() {
     // 1. Get Data
     const sets = selectedExercise.sets;
     if (!sets || sets.length === 0) {
-        setRecapText(box, textEl, RECAP_TEMPLATES.welcome, 'recap-neutral');
+        box.classList.add('hidden');
         return;
     }
 
