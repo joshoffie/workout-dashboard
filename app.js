@@ -76,36 +76,34 @@ async function deleteClientFromFirestore(clientName) {
 }
 
 // =====================================================
-// TUTORIAL ENGINE
+// TUTORIAL ENGINE (Fixed & Consolidated)
 // =====================================================
-let isTutorialMode = false;
-let tutorialTimer = null; // <--- NEW: Tracks pending bubbles
-let tutorialStep = 0;
-let restTimerInterval = null; // Tracks the background interval
 
-// 1. FAKE DATA GENERATOR (8 Weeks of History)
+// 1. GLOBAL VARIABLES
+let isTutorialMode = false;
+let tutorialTimer = null;
+let tutorialStep = 0;
+
+// 2. FAKE DATA GENERATOR
 function generateTutorialData() {
   const now = new Date();
   const oneDay = 24 * 60 * 60 * 1000;
   const sets = [];
   
-  // Create 8 weeks of Bench Press data, 1 session per week
+  // Create 8 weeks of history
   for (let i = 0; i < 8; i++) {
-    const weeksAgo = 7 - i; // 7, 6, 5... 0
+    const weeksAgo = 7 - i;
     const date = new Date(now.getTime() - (weeksAgo * 7 * oneDay));
+    const weight = 135 + (i * 5); // Progressive overload
+    const reps = 8 + (i % 2);
     
-    // Progressive Overload Logic (Start at 135, end at 165)
-    const weight = 135 + (i * 5); 
-    const reps = 8 + (i % 2); // Toggle between 8 and 9 reps
-    
-    // Add 3 sets per workout
     for (let s = 0; s < 3; s++) {
       sets.push({
         reps: reps,
         weight: weight,
         volume: reps * weight,
-        notes: i === 7 ? "New PR!" : "Felt good",
-        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString() // 5 mins apart
+        notes: i === 7 ? "New PR!" : "Solid set",
+        timestamp: new Date(date.getTime() + (s * 5 * 60000)).toISOString()
       });
     }
   }
@@ -119,14 +117,8 @@ function generateTutorialData() {
           session_name: "Chest Day",
           date: new Date().toISOString(),
           exercises: [
-            {
-              exercise: "Bench Press",
-              sets: sets
-            },
-            {
-              exercise: "Incline Dumbbell",
-              sets: [] // Empty to show contrast
-            }
+            { exercise: "Bench Press", sets: sets },
+            { exercise: "Incline Dumbbell", sets: [] }
           ]
         }
       ]
@@ -134,52 +126,80 @@ function generateTutorialData() {
   };
 }
 
-// 2. TUTORIAL CONTROLS
+// 3. START BUTTON LOGIC (With Error Catching)
 const startTutorialBtn = document.getElementById('startTutorialBtn');
+if (startTutorialBtn) {
+    startTutorialBtn.onclick = () => {
+      try {
+        console.log("Starting Tutorial...");
+        isTutorialMode = true;
+        
+        // Reset tutorial stage tracker
+        document.body.dataset.tutorialStage = 'start';
+
+        // Hide Auth UI
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.classList.add('hidden');
+        
+        // Hide standard controls
+        const idsToHide = ['loginBtn', 'logoutBtn', 'editToggleBtn'];
+        idsToHide.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        // Show End Button
+        //const endBtn = document.getElementById('endTutorialBtn');
+        //if (endBtn) endBtn.classList.remove('hidden');
+        
+        // Load Data
+        clientsData = generateTutorialData();
+        renderClients();
+        
+        // Start Interaction
+        setTimeout(() => {
+          showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
+        }, 500);
+
+      } catch (err) {
+        alert("Tutorial Error: " + err.message);
+        console.error(err);
+      }
+    };
+}
+
+// 4. END BUTTON LOGIC
 const endTutorialBtn = document.getElementById('endTutorialBtn');
+if (endTutorialBtn) {
+    endTutorialBtn.onclick = () => {
+      isTutorialMode = false;
+      document.body.removeAttribute('data-tutorial-stage'); // Clear stage
+      
+      // Cleanup timers
+      if (tutorialTimer) clearTimeout(tutorialTimer);
+      tutorialTimer = null;
+      clearTutorialTips();
+      
+      // Reset UI
+      endTutorialBtn.classList.remove('flash-active');
+      endTutorialBtn.classList.add('hidden');
+      
+      document.getElementById('loginModal').classList.remove('hidden');
+      const idsToShow = ['loginBtn', 'editToggleBtn'];
+      idsToShow.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('hidden');
+      });
+      
+      // Clear Data
+      clientsData = {};
+      hideAllDetails();
+    };
+}
 
-startTutorialBtn.onclick = () => {
-  isTutorialMode = true;
-  
-  document.getElementById('loginModal').classList.add('hidden');
-  document.getElementById('loginBtn').classList.add('hidden');
-  document.getElementById('logoutBtn').classList.add('hidden');
-  document.getElementById('editToggleBtn').classList.add('hidden');
-  endTutorialBtn.classList.remove('hidden');
-  
-  clientsData = generateTutorialData();
-  renderClients();
-  
-  // OFFSET CHANGED: 40 (Points down at the list item "Mike")
-  showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
-};
-
-endTutorialBtn.onclick = () => {
-  isTutorialMode = false;
-  
-  // 1. STRICT CLEANUP: Kill timer and remove bubble immediately
-  if (tutorialTimer) clearTimeout(tutorialTimer);
-  tutorialTimer = null;
-  clearTutorialTips(); 
-  
-  // 2. Reset UI
-  endTutorialBtn.classList.remove('flash-active');
-  document.body.removeAttribute('data-tutorial-graph-ready'); 
-  
-  document.getElementById('loginModal').classList.remove('hidden');
-  document.getElementById('loginBtn').classList.remove('hidden');
-  document.getElementById('editToggleBtn').classList.remove('hidden');
-  endTutorialBtn.classList.add('hidden');
-  
-  clientsData = {};
-  hideAllDetails();
-};
-
-// 3. TOOLTIP SYSTEM
-// Updated helper with CSS class logic
+// 5. TOOLTIP SYSTEM
 function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
   clearTutorialTips();
-  
   const target = document.getElementById(targetId);
   if (!target) return;
   
@@ -189,11 +209,8 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
 
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
-  
-  // FIX 1: Add specific class if aligned right
-  if (align === 'right') {
-      tip.classList.add('right-aligned');
-  }
+  if (align === 'right') tip.classList.add('right-aligned');
+  if (align === 'left') tip.classList.add('left-aligned'); // Add support for left
 
   tip.textContent = text;
   document.body.appendChild(tip);
@@ -203,10 +220,9 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
   
   let left;
   if (align === 'right') {
-      // FIX 2: Point to the ball (right edge - 30px buffer)
-      left = rect.right - 30; 
+      left = rect.right - 30;
   } else if (align === 'left') {
-      left = rect.left + 40;
+      left = rect.left + 30; // Shift right slightly so it doesn't fall off screen
   } else {
       left = rect.left + (rect.width / 2);
   }
@@ -218,7 +234,6 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
 function clearTutorialTips() {
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
 }
-
 
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
@@ -329,95 +344,125 @@ const SCREENS = {
 };
 let currentScreen = SCREENS.CLIENTS;
 
+// [app.js] FULL Navigate To Function
 function navigateTo(targetScreenId, direction = 'forward') {
   const targetScreen = document.getElementById(targetScreenId);
   const currentScreenEl = document.getElementById(currentScreen);
   if (!targetScreen || targetScreen === currentScreenEl) return;
   
-  // ---------------------------------------------------
+  // 1. Pre-calculate size before showing
+  forceTitleResize(targetScreenId);
 
-  // --- NEW STEP: PRE-CALCULATE SIZE BEFORE SHOWING ---
-  // This runs while the element is still technically 'hidden' to the user
-  forceTitleResize(targetScreenId); 
-  // ---------------------------------------------------
-
-  switch (targetScreenId) {
+  // 2. Render specific screens
+switch (targetScreenId) {
     case SCREENS.CLIENTS: renderClients(); break;
     case SCREENS.SESSIONS: renderSessions(); break;
     case SCREENS.EXERCISES: renderExercises(); break;
     case SCREENS.SETS: renderSets(); break;
-    case SCREENS.SETTINGS: // <--- ADD THIS CASE
+    case SCREENS.SETTINGS: 
+        const settingsTitle = document.getElementById('settingsScreenTitle');
+        if(settingsTitle && typeof applyTitleStyling === 'function') {
+           applyTitleStyling(settingsTitle, 'Settings', null);
+        }
+        break;
     case SCREENS.CALENDAR:
           if(typeof renderCalendarScreen === 'function') renderCalendarScreen();
           break;
-      const settingsTitle = document.getElementById('settingsScreenTitle');
-      if(settingsTitle && typeof applyTitleStyling === 'function') {
-         applyTitleStyling(settingsTitle, 'Settings', null);
-      }
-      break;
-  }
+          
+    // --- THIS CASE WAS OUTSIDE THE SWITCH IN YOUR CODE ---
+    case SCREENS.GRAPH: 
+        if(typeof initChart === 'function') setTimeout(initChart, 50);
+        break;
+    // ---------------------------------------------------
+  } 
 
+  // 3. Handle Animations
   const enterClass = (direction === 'forward') ? 'slide-in-right' : 'slide-in-left';
   const exitClass = (direction === 'forward') ? 'slide-out-left' : 'slide-out-right';
 
   targetScreen.classList.remove('hidden', 'slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
-  
-  // Note: We don't need autoShrinkTitle here anymore because we did it above!
-
   targetScreen.classList.add(enterClass);
+  
   currentScreenEl.classList.remove('slide-in-right', 'slide-out-left', 'slide-in-left', 'slide-out-right');
   currentScreenEl.classList.add(exitClass);
-
+  
   currentScreen = targetScreenId;
-    // 3. NEW: Force timer to check visibility immediately after screen switch
+
+  // 4. Force Timer Check
   if (typeof masterClockTick === 'function') masterClockTick();
 
+  // 5. Cleanup Animation Classes
   currentScreenEl.addEventListener('animationend', () => {
     currentScreenEl.classList.add('hidden');
     currentScreenEl.classList.remove(exitClass);
   }, { once: true });
+  
   targetScreen.addEventListener('animationend', () => {
     targetScreen.classList.remove(enterClass);
   }, { once: true });
+
+  // === TUTORIAL BACK-FLOW LOGIC ===
+  if (typeof isTutorialMode !== 'undefined' && isTutorialMode && direction === 'back') {
+      checkTutorialNavigation(targetScreenId);
+  }
 }
 
-// --- Wire up Back Buttons ---
-document.getElementById('backToClientsBtn').onclick = () => {
-  selectedClient = null; selectedSession = null;
-  selectedExercise = null;
-  renderClients(); navigateTo(SCREENS.CLIENTS, 'back');
-};
-document.getElementById('backToSessionsBtn').onclick = () => {
-  selectedSession = null; selectedExercise = null;
-  renderSessions();
-  navigateTo(SCREENS.SESSIONS, 'back');
-};
-document.getElementById('backToExercisesBtn').onclick = () => {
-  selectedExercise = null;
-  renderExercises(); navigateTo(SCREENS.EXERCISES, 'back');
-};
-document.getElementById('backToSetsFromGraphBtn').onclick = () => {
-  navigateTo(SCREENS.SETS, 'back');
-};
-// 1. Open Calendar
-document.getElementById('openCalendarBtn').onclick = () => {
-  if (!selectedClient) return;
-  navigateTo(SCREENS.CALENDAR, 'forward');
-};
+// Helper function to guide user back up the stack
+function checkTutorialNavigation(targetScreenId) {
+    const stage = document.body.dataset.tutorialStage;
 
-// 2. Back from Calendar (To Sessions)
-document.getElementById('backToSessionsFromCalBtn').onclick = () => {
-  navigateTo(SCREENS.SESSIONS, 'back');
-};
+    // 1. Came back from Graph -> Sets
+    if (targetScreenId === SCREENS.SETS && stage === 'graph-touched') {
+        document.body.dataset.tutorialStage = 'sets-returned';
+        setTimeout(() => showTutorialTip('backToExercisesBtn', 'Go back to Exercises.', 30, 'left'), 600);
+    }
+    
+    // 2. Came back from Sets -> Exercises
+    else if (targetScreenId === SCREENS.EXERCISES && stage === 'sets-returned') {
+        document.body.dataset.tutorialStage = 'exercises-returned';
+        setTimeout(() => showTutorialTip('backToSessionsBtn', 'Go back to Sessions.', 30, 'left'), 600);
+    }
+
+    // 3. Came back from Exercises -> Sessions (TRIGGER CALENDAR)
+    else if (targetScreenId === SCREENS.SESSIONS && stage === 'exercises-returned') {
+        document.body.dataset.tutorialStage = 'sessions-returned';
+        setTimeout(() => showTutorialTip('openCalendarBtn', 'Now, check the Calendar.', 40), 600);
+    }
+
+    // 4. Came back from Calendar -> Sessions (TRIGGER HOME)
+    else if (targetScreenId === SCREENS.SESSIONS && stage === 'calendar-visited') {
+        document.body.dataset.tutorialStage = 'calendar-done';
+        setTimeout(() => showTutorialTip('backToClientsBtn', 'Go back to Home.', 30, 'left'), 600);
+    }
+
+    // 5. Came back from Sessions -> Home (TRIGGER SETTINGS)
+    else if (targetScreenId === SCREENS.CLIENTS && stage === 'calendar-done') {
+        document.body.dataset.tutorialStage = 'home-returned';
+        setTimeout(() => showTutorialTip('settingsBtn', 'Finally, tap Settings.', 45, 'right'), 600);
+    }
+}
 
 // [app.js] Add this logic for the new Settings system
 
 // 1. Open Settings
 if(settingsBtn) {
     settingsBtn.onclick = () => {
-        // Prevent opening if in Tutorial mode
-        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) return;
+        // ALLOW opening in tutorial mode now
         navigateTo(SCREENS.SETTINGS, 'forward');
+        
+        // --- TUTORIAL: Final Step (Settings) ---
+        if (isTutorialMode) {
+            setTimeout(() => {
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                setTimeout(() => {
+                    // Flash the end button
+                    const endBtn = document.getElementById('endTutorialBtn');
+                    endBtn.classList.add('flash-active');
+                    showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                }, 3000);
+            }, 500);
+        }
     };
 }
 
@@ -1032,9 +1077,10 @@ function selectClient(name) {
   selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
   
-  // --- ADD THIS ---
+  // --- TUTORIAL: Step 2 ---
   if (isTutorialMode) {
-    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to see exercises.', 40), 400);
+    document.body.dataset.tutorialStage = 'sessions';
+    setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to view your workout.', 40), 400);
   }
 }
 
@@ -1131,9 +1177,10 @@ function selectSession(sessionObject) {
   selectedSession = sessionObject;
   selectedExercise = null;
   renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
-  
-  // --- ADD THIS ---
+
+  // --- TUTORIAL: Step 3 ---
   if (isTutorialMode) {
+    document.body.dataset.tutorialStage = 'exercises';
     setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40), 400);
   }
 }
@@ -1218,28 +1265,28 @@ function renderExercises() {
   hookEditables();
 }
 
-// Inside selectExercise(idx)
 function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
-  
-  // --- UPDATED TUTORIAL LOGIC ---
-  if (isTutorialMode) {
-    if (selectedExercise.exercise === 'Bench Press') {
-       // Clear any existing timers
-       if (tutorialTimer) clearTimeout(tutorialTimer);
 
+  // --- TUTORIAL: Step 4 (The Hub) ---
+  if (isTutorialMode) {
+    document.body.dataset.tutorialStage = 'sets-view';
+    if (tutorialTimer) clearTimeout(tutorialTimer);
+    
+    // Sequence: Recap -> Banner -> Add Set
+    tutorialTimer = setTimeout(() => {
+       showTutorialTip('smartRecapBox', '1. This AI summary analyzes your progress automatically.', 20);
+       
        tutorialTimer = setTimeout(() => {
-         // Step 1: Show Comparison
-         showTutorialTip('comparisonBanner', 'This window shows your most current session stats vs your previous session.', 10);
-         
-         // Step 2: WAIT 5 SECONDS before pointing to Add Set
-         tutorialTimer = setTimeout(() => {
-            showTutorialTip('addSetBtn', 'Now, tap here to log a new set.', -10);
-         }, 5000); // Increased from 3500 to 5000
-       }, 400);
-    }
+          showTutorialTip('comparisonBanner', '2. This banner compares today vs. your last session.', 10);
+          
+          tutorialTimer = setTimeout(() => {
+             showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
+          }, 4000); 
+       }, 4000);
+    }, 500);
   }
 }
 // ------------------ SPIRAL WIDGET LOGIC ------------------
@@ -1578,32 +1625,33 @@ const handleSpiralEnd = (e) => { if (!spiralState.isDragging) return; spiralStat
 }
 
 // NEW SLIDER HANDLER
-
+// [app.js] REPLACE handleSliderMove
 const handleSliderMove = (e) => {
     const val = parseFloat(e.target.value);
     const len = (val / 100) * spiralState.totalLen;
     updateBallToLen(len);
 
-    // --- TUTORIAL INTERACTION LOGIC ---
-    if (isTutorialMode && document.body.dataset.tutorialStep === "waiting-for-slider") {
+    // --- TUTORIAL LOGIC ---
+    // We check specifically for the stage set in finishAddSet
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode && document.body.dataset.tutorialStage === "waiting-for-slider") {
         
-        // 1. Debounce: Only trigger if they actually moved it somewhat
+        // Only trigger if you actually moved it somewhat (less than 98%)
         if (val < 98) {
-            // 2. Clear flag so this doesn't fire continuously while dragging
-            document.body.dataset.tutorialStep = "slider-done";
+            // 1. Advance the stage immediately so this doesn't fire 100 times while dragging
+            document.body.dataset.tutorialStage = 'slider-done';
             clearTutorialTips();
 
-            // 3. Wait 2 seconds
+            // 2. Wait a moment, then scroll up and point to graph
             setTimeout(() => {
-                // 4. Scroll to top
-                document.querySelector('.app-container').scrollTo({ top: 0, behavior: 'smooth' });
+                // Scroll the SETS SCREEN to the top
+                const setsScreen = document.getElementById('setsDiv');
+                if (setsScreen) setsScreen.scrollTo({ top: 0, behavior: 'smooth' });
                 
-                // 5. Point to Graph Button
-                // Offset 20 pushes it DOWN closer to the button
+                // Point to the Graph button
                 setTimeout(() => {
-                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see your progress.', 20);
-                }, 600); 
-            }, 2000);
+                    showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+                }, 600); // Small delay after scroll starts
+            }, 1000);
         }
     }
 }
@@ -1923,7 +1971,6 @@ function drawChart() {
         }
     }, 2200);
 }
-
 const touchLayer = document.getElementById('touchLayer');
 const handleInteraction = (clientX) => {
     const rect = touchLayer.getBoundingClientRect();
@@ -1935,11 +1982,16 @@ const handleInteraction = (clientX) => {
         if (dist < closestDist) { closestDist = dist; closestIdx = i; }
     });
     if (closestIdx !== -1) updateDetailView(closestIdx);
-    // --- ADD THIS TUTORIAL LOGIC ---
+    // --- TUTORIAL: Step 8 (Touch Graph -> Go Back) ---
     if (isTutorialMode) {
-        clearTutorialTips(); // Remove bubble immediately
-        const endBtn = document.getElementById('endTutorialBtn');
-        if (endBtn) endBtn.classList.add('flash-active'); // Start red flash loop
+        clearTutorialTips();
+        // Set stage to 'graph-touched' so the back button logic knows what to do
+        document.body.dataset.tutorialStage = 'graph-touched';
+        
+        // Point to the specific Back button on the Graph screen
+        setTimeout(() => {
+             showTutorialTip('backToSetsFromGraphBtn', 'Now, tap Back to return.', 30, 'left');
+        }, 1000);
     }
 };
 
@@ -3078,11 +3130,12 @@ calcActionBtn.onclick = () => {
     finishAddSet();
 };
 
+// [app.js] REPLACE finishAddSet
 function finishAddSet() {
     const reps = parseInt(calcState.repsVal);
-    const displayWeight = parseFloat(calcState.weightVal); // Value in box (kg or lbs)
+    const displayWeight = parseFloat(calcState.weightVal);
 
-    if (isNaN(reps) || isNaN(displayWeight)) { /* Error handling */ return; }
+    if (isNaN(reps) || isNaN(displayWeight)) return;
 
     // CONVERT TO LBS FOR STORAGE
     const weightLBS = UNIT_mode.toStorage(displayWeight);
@@ -3090,7 +3143,6 @@ function finishAddSet() {
 
     const notes = ""; 
     const timestamp = new Date().toISOString();
-
     selectedExercise.sets.push({ 
         reps: reps, 
         weight: weightLBS, // Always LBS
@@ -3098,30 +3150,35 @@ function finishAddSet() {
         notes, 
         timestamp 
     });
-
     saveUserJson(); 
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
-  // -----------------------------
+    
+    // --- TUTORIAL LOGIC ---
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+        // 1. Clear previous tips
+        clearTutorialTips();
+        if (tutorialTimer) clearTimeout(tutorialTimer);
+        
+        // 2. Set stage to generic 'post-log' first
+        document.body.dataset.tutorialStage = 'post-log';
 
-  // --- RE-INSERTING YOUR TUTORIAL LOGIC ---
-  if (isTutorialMode && selectedExercise.exercise === 'Bench Press') {
-      clearTutorialTips();
-      if (tutorialTimer) clearTimeout(tutorialTimer);
-          
-      // Step 1: Point to the Spiral Widget immediately
-      setTimeout(() => {
-          showTutorialTip('spiralCanvas', 'This window displays your exercise history.', 20);
-          
-          // Step 2: Wait 3 seconds, then point to slider
-          tutorialTimer = setTimeout(() => {
-              document.body.dataset.tutorialStep = "waiting-for-slider";
-              showTutorialTip('spiralSlider', 'Drag the toggle backwards to view the history.', 10);
-          }, 3000); 
-      }, 500);
-  }
-  // ----------------------------------------
+        // Sequence: Rest Timer -> Spiral -> Slider
+        setTimeout(() => {
+            showTutorialTip('restTimer', 'A rest timer starts automatically.', 30);
+            
+            tutorialTimer = setTimeout(() => {
+                showTutorialTip('spiralCanvas', 'This spiral tracks your history.', 20);
+                
+                tutorialTimer = setTimeout(() => {
+                    // CRITICAL: Set the specific stage that handleSliderMove looks for
+                    document.body.dataset.tutorialStage = 'waiting-for-slider';
+                    showTutorialTip('spiralSlider', 'Drag the slider backwards to "Time Travel".', 10);
+                }, 3500);
+            }, 3500); 
+        }, 500);
+    }
 }
 
 // =====================================================
@@ -3843,4 +3900,158 @@ function setRecapText(box, el, templates, cssClass) {
     el.innerHTML = `${t[0]} <span style="opacity:0.7">${t[1]}</span>`;
     el.className = `smart-recap-text ${cssClass}`;
     box.classList.remove('hidden');
+}
+
+// ==========================================
+// MASTER NAVIGATION RE-BIND (Fixes "Stuck" Buttons)
+// ==========================================
+
+// 1. Sessions Screen -> Back to Home (Clients)
+const backToClientsBtn = document.getElementById('backToClientsBtn');
+if (backToClientsBtn) {
+    backToClientsBtn.onclick = () => {
+        navigateTo(SCREENS.CLIENTS, 'back');
+    };
+}
+
+// 2. Exercises Screen -> Back to Sessions
+const backToSessionsBtn = document.getElementById('backToSessionsBtn');
+if (backToSessionsBtn) {
+    backToSessionsBtn.onclick = () => {
+        navigateTo(SCREENS.SESSIONS, 'back');
+    };
+}
+
+// 3. Sets Screen -> Back to Exercises (The one you just reported)
+const backToExercisesBtn = document.getElementById('backToExercisesBtn');
+if (backToExercisesBtn) {
+    backToExercisesBtn.onclick = () => {
+        navigateTo(SCREENS.EXERCISES, 'back');
+        
+        // Cleanup: Hide timer on Sets screen so it doesn't linger visually
+        const localTimer = document.getElementById('restTimer');
+        if (localTimer) localTimer.classList.add('hidden');
+    };
+}
+
+// 4. Calendar Screen -> Back to Sessions
+const backToSessionsFromCalBtn = document.getElementById('backToSessionsFromCalBtn');
+if (backToSessionsFromCalBtn) {
+    backToSessionsFromCalBtn.onclick = () => {
+        navigateTo(SCREENS.SESSIONS, 'back');
+    };
+}
+
+const backToSetsFromGraphBtn = document.getElementById('backToSetsFromGraphBtn');
+if (backToSetsFromGraphBtn) {
+    backToSetsFromGraphBtn.onclick = () => {
+        // 1. Clear any specific tips relating to the graph
+        clearTutorialTips();
+        
+        // 2. Perform the navigation
+        navigateTo(SCREENS.SETS, 'back');
+        
+        // 3. Cleanup: Hide the cursor line so it doesn't get stuck
+        const cursor = document.getElementById('cursorLine');
+        if (cursor) cursor.classList.add('hidden');
+    };
+}
+
+// [app.js] FIX: Connect the Calendar Button & Tutorial Step
+const openCalendarBtn = document.getElementById('openCalendarBtn');
+if (openCalendarBtn) {
+    openCalendarBtn.onclick = () => {
+        // 1. Safety Check
+        if (!selectedClient) return;
+
+        // 2. Navigate
+        navigateTo(SCREENS.CALENDAR, 'forward');
+
+        // 3. TUTORIAL LOGIC: Advance to the next step
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+             document.body.dataset.tutorialStage = 'calendar-visited';
+             
+             // Point to the grid
+             setTimeout(() => showTutorialTip('calendarGrid', 'This grid tracks your workout consistency.', -20), 500);
+             
+             // Then point to the back button
+             setTimeout(() => {
+                 showTutorialTip('backToSessionsFromCalBtn', 'Tap back to return.', 30, 'left');
+             }, 4000);
+        }
+    };
+}
+
+// ==========================================
+// FINAL INTERACTION PATCH (The "Missing Links")
+// ==========================================
+
+// 1. SETTINGS: Lbs/Kg Toggle Listener (CRITICAL - Was missing)
+const unitToggle = document.getElementById('settingUnitToggle');
+if (unitToggle) {
+    unitToggle.onchange = () => {
+        // Trigger the toggle logic
+        if (typeof UNIT_mode !== 'undefined') {
+            UNIT_mode.toggle();
+        }
+        
+        // TUTORIAL HOOK: If we are in the settings step, this interaction counts
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            // Optional: You could advance the tutorial here if you wanted, 
+            // but the current flow waits for the "End Tutorial" button.
+            // We just ensure the tooltip doesn't block visibility.
+             clearTutorialTips();
+             setTimeout(() => {
+                 showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+             }, 500);
+        }
+    };
+}
+
+// 2. HOME: Settings Button (Safety Reinforcement)
+// Sometimes this button gets lost if the auth-state loads too fast or slow.
+// [app.js] Update settingsBtn logic to REVEAL the end button
+const globalSettingsBtn = document.getElementById('settingsBtn');
+if (globalSettingsBtn) {
+    globalSettingsBtn.onclick = () => {
+        navigateTo(SCREENS.SETTINGS, 'forward');
+
+        // TUTORIAL LOGIC (Settings Step)
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            // Wait for slide-in animation
+            setTimeout(() => {
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                // FINAL STEP: Reveal the End Button now
+                setTimeout(() => {
+                    const endBtn = document.getElementById('endTutorialBtn');
+                    if (endBtn) {
+                        endBtn.classList.remove('hidden'); // <--- REVEAL HERE
+                        endBtn.classList.add('flash-active');
+                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }
+                }, 4000);
+            }, 600);
+        }
+    };
+}
+
+// 3. EDIT TOGGLE (Safety Reinforcement)
+const globalEditBtn = document.getElementById("editToggleBtn");
+if (globalEditBtn) {
+    globalEditBtn.onclick = () => {
+        // Toggle the global variable
+        if (typeof editMode !== 'undefined') {
+            editMode = !editMode;
+            
+            // Update UI
+            globalEditBtn.textContent = editMode ? "Done" : "Edit";
+            document.body.classList.toggle('edit-mode-active');
+            
+            // Save on exit
+            if (!editMode && typeof saveUserJson === 'function') {
+                saveUserJson();
+            }
+        }
+    };
 }
