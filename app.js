@@ -462,36 +462,39 @@ function checkTutorialNavigation(targetScreenId) {
 }
 
 // [app.js] Add this logic for the new Settings system
-
+const settingsBtn = document.getElementById('settingsBtn');
 // 1. Open Settings
 if(settingsBtn) {
     settingsBtn.onclick = () => {
-        // Standard Navigation
+        // 1. Standard Navigation
         navigateTo(SCREENS.SETTINGS, 'forward');
 
-        // --- TUTORIAL: Final Step (Settings) ---
+        // 2. --- TUTORIAL: Final Step (Settings) ---
         if (isTutorialMode) {
+            
+            // A. IMMEDIATE SWAP: Hide Edit/Settings, Show End Button
+            // This happens instantly so the UI transforms as soon as they enter the screen.
+            settingsBtn.classList.add('hidden');
+            
+            const editBtn = document.getElementById('editToggleBtn');
+            if(editBtn) editBtn.classList.add('hidden');
+
+            const endBtn = document.getElementById('endTutorialBtn');
+            if (endBtn) {
+                endBtn.classList.remove('hidden');
+                endBtn.classList.add('flash-active');
+            }
+
+            // B. Tooltip Sequence
+            // We still guide them to the toggle first, then the exit.
             setTimeout(() => {
+                // Tip 1: Point to the toggle
                 showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                 
-                // Wait 3 seconds for them to read, then perform the swap
+                // Tip 2: After 3 seconds, point to the End button
                 setTimeout(() => {
-                    
-                    // 1. --- FIX: HIDE Edit & Settings Buttons ---
-                    settingsBtn.classList.add('hidden');
-                    const editBtn = document.getElementById('editToggleBtn');
-                    if(editBtn) editBtn.classList.add('hidden');
-
-                    // 2. --- FIX: REVEAL End Tutorial Button ---
-                    const endBtn = document.getElementById('endTutorialBtn');
-                    if (endBtn) {
-                        endBtn.classList.remove('hidden');
-                        endBtn.classList.add('flash-active');
-                        // Point the tip to the new button
-                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                    }
-                
-                }, 3000); // 3s Delay
+                     showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                }, 3000); 
             }, 500);
         }
     };
