@@ -1361,7 +1361,7 @@ function selectExercise(idx) {
     
     // Sequence: Recap -> Banner -> Add Set
     tutorialTimer = setTimeout(() => {
-       showTutorialTip('smartRecapBox', '1. This AI summary analyzes your progress automatically.', 20);
+       showTutorialTip('smartRecapBox', '1. This summary analyzes your progress!', 20);
        
        tutorialTimer = setTimeout(() => {
           showTutorialTip('comparisonBanner', '2. This banner compares today vs. your last session.', 10);
