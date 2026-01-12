@@ -216,8 +216,8 @@ if (endTutorialBtn) {
     };
 }
 
-// 5. TOOLTIP SYSTEM
-function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enableScroll = true) {
+// [app.js] SMART TOOLTIP POSITIONING ENGINE
+function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
   clearTutorialTips();
   const target = document.getElementById(targetId);
   if (!target) return;
@@ -226,28 +226,66 @@ function showTutorialTip(targetId, text, offsetY = -60, align = 'center', enable
       target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  // 1. Create & Append (To measure dimensions)
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
-  if (align === 'right') tip.classList.add('right-aligned');
-  if (align === 'left') tip.classList.add('left-aligned'); // Add support for left
-
   tip.textContent = text;
   document.body.appendChild(tip);
   
-  const rect = target.getBoundingClientRect();
-  const top = rect.top + window.scrollY + offsetY;
+  // 2. Get Measurements
+  const targetRect = target.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  const screenW = window.innerWidth;
+  const scrollY = window.scrollY;
   
-  let left;
-  if (align === 'right') {
-      left = rect.right - 30;
-  } else if (align === 'left') {
-      left = rect.left + 30; // Shift right slightly so it doesn't fall off screen
-  } else {
-      left = rect.left + (rect.width / 2);
+  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
+  const targetCenterX = targetRect.left + (targetRect.width / 2);
+  
+  // Start centered on the target
+  let left = targetCenterX - (tipRect.width / 2);
+  
+  // Safety Padding (10px from edge)
+  const padding = 10; 
+  
+  // Clamp Left: Don't go off the left edge
+  if (left < padding) left = padding;
+  
+  // Clamp Right: Don't go off the right edge
+  if (left + tipRect.width > screenW - padding) {
+      left = screenW - tipRect.width - padding;
   }
   
-  tip.style.top = `${top}px`;
+  // --- ARROW LOGIC (Point to Target) ---
+  // Calculate where the arrow needs to be relative to the text box
+  let arrowX = targetCenterX - left;
+  
+  // Keep arrow inside the box border-radius (don't let it float off the corner)
+  const cornerLimit = 20; 
+  if (arrowX < cornerLimit) arrowX = cornerLimit;
+  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
+  
+  // --- VERTICAL LOGIC (Auto-Flip) ---
+  let top;
+  const gap = 15; // Space between button and tip
+  const spaceAbove = targetRect.top; // Pixels available above target
+  
+  // If we have room above (and not forced below by being too high up), go Above
+  // 60px is a safety buffer for header/status bar
+  if (spaceAbove > tipRect.height + gap + 10) {
+      // POSITION ABOVE
+      top = scrollY + targetRect.top - tipRect.height - gap;
+      tip.classList.remove('tooltip-below');
+  } else {
+      // POSITION BELOW (Flip)
+      top = scrollY + targetRect.bottom + gap;
+      tip.classList.add('tooltip-below');
+  }
+
+  // 3. Apply Calculated Styles
   tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+  // Set the CSS variable for the arrow
+  tip.style.setProperty('--arrow-x', `${arrowX}px`);
 }
 
 function clearTutorialTips() {
