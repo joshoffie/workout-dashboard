@@ -137,26 +137,33 @@ if (startTutorialBtn) {
         // Reset tutorial stage tracker
         document.body.dataset.tutorialStage = 'start';
 
-        // Hide Auth UI
+        // 1. Hide Auth UI (Login Modal)
         const loginModal = document.getElementById('loginModal');
         if (loginModal) loginModal.classList.add('hidden');
-        
-        // Hide standard controls
-        const idsToHide = ['loginBtn', 'logoutBtn', 'editToggleBtn'];
+
+        // 2. Hide ONLY Login/Logout buttons (KEEP Edit & Settings)
+        const idsToHide = ['loginBtn', 'logoutBtn']; // Removed 'editToggleBtn'
         idsToHide.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
 
-        // Show End Button
-        //const endBtn = document.getElementById('endTutorialBtn');
-        //if (endBtn) endBtn.classList.remove('hidden');
-        
-        // Load Data
+        // 3. --- FIX: EXPLICITLY SHOW EDIT & SETTINGS ---
+        const editToggleBtn = document.getElementById('editToggleBtn');
+        if (editToggleBtn) editToggleBtn.classList.remove('hidden');
+
+        const settingsBtn = document.getElementById('settingsBtn');
+        if (settingsBtn) settingsBtn.classList.remove('hidden');
+
+        // 4. Show End Tutorial Button (So they can exit)
+        const endBtn = document.getElementById('endTutorialBtn');
+        if (endBtn) endBtn.classList.remove('hidden');
+
+        // 5. Load Data & Render
         clientsData = generateTutorialData();
         renderClients();
-        
-        // Start Interaction
+
+        // 6. Start Interaction
         setTimeout(() => {
           showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
         }, 500);
@@ -173,27 +180,38 @@ const endTutorialBtn = document.getElementById('endTutorialBtn');
 if (endTutorialBtn) {
     endTutorialBtn.onclick = () => {
       isTutorialMode = false;
-      document.body.removeAttribute('data-tutorial-stage'); // Clear stage
+      document.body.removeAttribute('data-tutorial-stage');
       
       // Cleanup timers
       if (tutorialTimer) clearTimeout(tutorialTimer);
       tutorialTimer = null;
       clearTutorialTips();
       
-      // Reset UI
+      // 1. Hide End Button
       endTutorialBtn.classList.remove('flash-active');
       endTutorialBtn.classList.add('hidden');
       
+      // 2. Show Login Modal (Back to start)
       document.getElementById('loginModal').classList.remove('hidden');
-      const idsToShow = ['loginBtn', 'editToggleBtn'];
-      idsToShow.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.remove('hidden');
-      });
-      
-      // Clear Data
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) loginBtn.classList.remove('hidden');
+
+      // 3. --- FIX: HIDE EDIT & SETTINGS (Reset to Logged Out State) ---
+      const editToggleBtn = document.getElementById('editToggleBtn');
+      if (editToggleBtn) {
+          editToggleBtn.classList.add('hidden');
+          editToggleBtn.textContent = "Edit"; // Reset text
+          editMode = false;
+          document.body.classList.remove('edit-mode-active');
+      }
+
+      const settingsBtn = document.getElementById('settingsBtn');
+      if (settingsBtn) settingsBtn.classList.add('hidden');
+
+      // 4. Clear Data
       clientsData = {};
       hideAllDetails();
+      renderClients();
     };
 }
 
@@ -500,13 +518,16 @@ auth.onAuthStateChanged(async (user) => {
     // 1. LOGGED IN STATE
     if (typeof modal !== 'undefined') modal.classList.add("hidden");
     
-    // Safety check for settings button
-    const settingsBtn = document.getElementById('settingsBtn'); // Grab it fresh
+    // --- FIX: Force UI Elements to Appear for Real Users ---
+    const settingsBtn = document.getElementById('settingsBtn'); 
+    const editToggleBtn = document.getElementById('editToggleBtn');
+    
     if (settingsBtn) settingsBtn.classList.remove("hidden");
+    if (editToggleBtn) editToggleBtn.classList.remove("hidden");
     
     if (userLabel) userLabel.textContent = `Logged in as ${user.displayName}`;
     
-    // 2. FORCE RESET UI (Fixes "Stuck on Settings")
+    // 2. FORCE RESET UI
     hideAllDetails(); 
 
     // 3. LOAD & RENDER DATA
@@ -515,10 +536,16 @@ auth.onAuthStateChanged(async (user) => {
 
   } else {
     // 4. LOGGED OUT STATE
-    if (typeof modal !== 'undefined') modal.classList.remove("hidden");
-    
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) settingsBtn.classList.add("hidden");
+    // Only hide UI if we are NOT in tutorial mode
+    if (!isTutorialMode) {
+        if (typeof modal !== 'undefined') modal.classList.remove("hidden");
+        
+        const settingsBtn = document.getElementById('settingsBtn');
+        if (settingsBtn) settingsBtn.classList.add("hidden");
+        
+        const editToggleBtn = document.getElementById('editToggleBtn');
+        if (editToggleBtn) editToggleBtn.classList.add("hidden");
+    }
     
     if (userLabel) userLabel.textContent = "";
     clientsData = {};
