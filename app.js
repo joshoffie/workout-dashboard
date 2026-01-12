@@ -2814,22 +2814,30 @@ let calcState = {
   isAutoFilled: { reps: false, weight: false }
 };
 
+// [app.js] UPDATED CALCULATOR MODAL OPENER
 function openAddSetModal() {
+  // --- FIX: Instantly clear tutorial tips so they don't block the inputs ---
+  if (typeof clearTutorialTips === 'function') {
+      clearTutorialTips();
+  }
+
   // Reset State
   calcState = { 
       activeField: 'reps', repsVal: '', weightVal: '', 
       plates: {}, plateStack: [], isAutoFilled: { reps: false, weight: false } 
   };
-  
+
   // 1. Update Label to show current unit
   const wBoxLabel = document.querySelector('#weightBox .field-label');
-  if (wBoxLabel) wBoxLabel.textContent = `WEIGHT (${UNIT_mode.getLabel().toUpperCase()})`;
+  if (wBoxLabel && typeof UNIT_mode !== 'undefined') {
+      wBoxLabel.textContent = `WEIGHT (${UNIT_mode.getLabel().toUpperCase()})`;
+  }
 
   // 2. Generate Plates (Metric vs Imperial)
   const plateGrid = document.getElementById('plateGrid');
   if (plateGrid) {
-      plateGrid.innerHTML = ''; 
-      const plates = UNIT_mode.current === 'lbs' 
+      plateGrid.innerHTML = '';
+      const plates = (typeof UNIT_mode !== 'undefined' && UNIT_mode.current === 'lbs')
           ? [2.5, 5, 10, 25, 35, 45] 
           : [1.25, 2.5, 5, 10, 15, 20]; // Standard Metric Plates
 
@@ -2839,12 +2847,13 @@ function openAddSetModal() {
           btn.dataset.weight = p;
           btn.innerHTML = `${p}<span class="plate-count hidden">x0</span>`;
           
-          // Re-attach the click logic (Copy existing logic but ensure it uses the new 'p' value)
+          // Re-attach the click logic
           btn.onclick = (e) => {
                 calcState.activeField = 'weight';
-                checkAndClearAutoFill();
+                if (typeof checkAndClearAutoFill === 'function') checkAndClearAutoFill();
                 
                 const weight = parseFloat(btn.dataset.weight);
+             
                 if (!calcState.plates[weight]) calcState.plates[weight] = 0;
                 calcState.plates[weight]++;
                 
@@ -2865,14 +2874,17 @@ function openAddSetModal() {
   }
 
   // 3. Auto-Fill with Conversion
-  const lastSet = getLastSet();
-  if (lastSet) {
-      calcState.repsVal = String(lastSet.reps);
-      // CRITICAL: Convert the stored LBS to the current display unit
-      calcState.weightVal = String(UNIT_mode.toDisplay(lastSet.weight));
-      
-      calcState.isAutoFilled.reps = true;
-      calcState.isAutoFilled.weight = true;
+  if (typeof getLastSet === 'function') {
+      const lastSet = getLastSet();
+      if (lastSet) {
+          calcState.repsVal = String(lastSet.reps);
+          // CRITICAL: Convert the stored LBS to the current display unit
+          if (typeof UNIT_mode !== 'undefined') {
+             calcState.weightVal = String(UNIT_mode.toDisplay(lastSet.weight));
+          }
+          calcState.isAutoFilled.reps = true;
+          calcState.isAutoFilled.weight = true;
+      }
   }
 
   updateCalcUI();
