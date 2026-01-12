@@ -1113,74 +1113,77 @@ input[type=range]:active::-webkit-slider-thumb {
   100% { transform: translate(0, 0); }
 }
 
-/* ===== TUTORIAL MODE STYLES (Professional Update) ===== */
+
+/* ===== SMART TUTORIAL TOOLTIPS (Responsive) ===== */
 .tutorial-tooltip {
   position: absolute;
-  /* Dark card background to match UI */
+  /* Appearance */
   background: var(--color-card);
   border: 1px solid var(--color-primary);
   color: var(--color-text);
-  
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
-  
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  pointer-events: none; /* Let clicks pass through to the button */
+
   /* Typography */
   font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.4;
-  
-  z-index: 9999;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  pointer-events: none; 
-  
-  /* Animation */
-  animation: float-attention 3s infinite ease-in-out;
-  transition: all 0.3s ease;
-  
-  /* Sizing limits */
-  max-width: 240px;
-  width: max-content;
-  transform: translate(-50%, -130%); 
   text-align: center;
-  transition: opacity 0.3s ease, transform 0.3s ease, top 0.3s ease, left 0.3s ease;
+
+  /* Sizing Constraints for Mobile */
+  width: max-content;
+  max-width: 280px; 
+
+  /* Smooth Movement */
+  transition: opacity 0.3s ease, top 0.3s ease, left 0.3s ease;
+  
+  /* Gentle Bobbing Animation (No Translation offsets) */
+  animation: float-bob 3s infinite ease-in-out;
 }
 
-/* Arrow Logic (Updated for Border) */
+/* Dynamic Arrow Construction */
 .tutorial-tooltip::before, .tutorial-tooltip::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
-  width: 0;
-  height: 0;
+  width: 0; height: 0;
   border-style: solid;
+  /* The Magic: Arrow X position is set by JS variable */
+  left: var(--arrow-x, 50%); 
+  transform: translateX(-50%);
 }
 
-/* The Border Triangle (Blue) */
-.tutorial-tooltip::before {
-  margin-left: -9px;
+/* STATE A: Tooltip is ABOVE target (Arrow points DOWN) */
+.tutorial-tooltip:not(.tooltip-below)::before {
+  top: 100%;
   border-width: 9px;
   border-color: var(--color-primary) transparent transparent transparent;
 }
-
-/* The Background Triangle (Card Color - covers part of the border) */
-.tutorial-tooltip::after {
-  margin-left: -8px;
+.tutorial-tooltip:not(.tooltip-below)::after {
+  top: 100%;
   border-width: 8px;
   border-color: var(--color-card) transparent transparent transparent;
 }
 
-/* Special alignment for edge cases (if needed) */
-.tutorial-tooltip.right-aligned {
-  transform: translate(-85%, -130%); 
+/* STATE B: Tooltip is BELOW target (Arrow points UP) */
+.tutorial-tooltip.tooltip-below::before {
+  bottom: 100%;
+  border-width: 9px;
+  border-color: transparent transparent var(--color-primary) transparent;
 }
-.tutorial-tooltip.right-aligned::before { left: 85%; margin-left: -9px; }
-.tutorial-tooltip.right-aligned::after { left: 85%; margin-left: -8px; }
+.tutorial-tooltip.tooltip-below::after {
+  bottom: 100%;
+  border-width: 8px;
+  border-color: transparent transparent var(--color-card) transparent;
+}
 
-@keyframes float-attention {
-  0%, 100% { transform: translate(-50%, -130%); }
-  50% { transform: translate(-50%, -140%); }
+/* Bobbing Animation */
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes flash-red-loop {
