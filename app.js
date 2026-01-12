@@ -217,12 +217,14 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
+// [app.js] UPDATED SMART TOOLTIP (Fixes Back Button Overlap)
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
   clearTutorialTips();
   const target = document.getElementById(targetId);
   if (!target) return;
   
   if (enableScroll) {
+      // Use 'nearest' to avoid jumping the whole page if the button is already visible
       target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -236,7 +238,8 @@ function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'cent
   const targetRect = target.getBoundingClientRect();
   const tipRect = tip.getBoundingClientRect();
   const screenW = window.innerWidth;
-  const scrollY = window.scrollY;
+  // Robust scroll calculation that works on all browsers
+  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
   
   // --- HORIZONTAL LOGIC (Clamp to Screen) ---
   const targetCenterX = targetRect.left + (targetRect.width / 2);
@@ -264,19 +267,20 @@ function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'cent
   if (arrowX < cornerLimit) arrowX = cornerLimit;
   if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
   
-  // --- VERTICAL LOGIC (Auto-Flip) ---
+  // --- VERTICAL LOGIC (Safety Fix) ---
   let top;
   const gap = 15; // Space between button and tip
-  const spaceAbove = targetRect.top; // Pixels available above target
-  
-  // If we have room above (and not forced below by being too high up), go Above
-  // 60px is a safety buffer for header/status bar
-  if (spaceAbove > tipRect.height + gap + 10) {
+  const spaceAbove = targetRect.top; 
+
+  // FIX: Increased threshold (+80px). 
+  // If the button is in the top header area (like the Back button),
+  // we FORCE the tooltip to appear BELOW it.
+  if (spaceAbove > tipRect.height + gap + 80) {
       // POSITION ABOVE
       top = scrollY + targetRect.top - tipRect.height - gap;
       tip.classList.remove('tooltip-below');
   } else {
-      // POSITION BELOW (Flip)
+      // POSITION BELOW (Default for Header Buttons)
       top = scrollY + targetRect.bottom + gap;
       tip.classList.add('tooltip-below');
   }
@@ -284,7 +288,6 @@ function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'cent
   // 3. Apply Calculated Styles
   tip.style.left = `${left}px`;
   tip.style.top = `${top}px`;
-  // Set the CSS variable for the arrow
   tip.style.setProperty('--arrow-x', `${arrowX}px`);
 }
 
