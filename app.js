@@ -137,27 +137,28 @@ if (startTutorialBtn) {
         // Reset tutorial stage tracker
         document.body.dataset.tutorialStage = 'start';
 
-        // 1. Hide Auth UI (Login Modal)
+        // 1. Hide Auth UI
         const loginModal = document.getElementById('loginModal');
         if (loginModal) loginModal.classList.add('hidden');
 
-        // 2. Hide ONLY Login/Logout buttons (KEEP Edit & Settings)
-        const idsToHide = ['loginBtn', 'logoutBtn']; // Removed 'editToggleBtn'
+        // 2. Hide Login/Logout (Keep Edit/Settings Visible)
+        const idsToHide = ['loginBtn', 'logoutBtn'];
         idsToHide.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
 
-        // 3. --- FIX: EXPLICITLY SHOW EDIT & SETTINGS ---
+        // 3. Explicitly SHOW Edit & Settings (so they are usable)
         const editToggleBtn = document.getElementById('editToggleBtn');
         if (editToggleBtn) editToggleBtn.classList.remove('hidden');
 
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) settingsBtn.classList.remove('hidden');
 
-        // 4. Show End Tutorial Button (So they can exit)
+        // 4. --- FIX: HIDE END BUTTON INITIALLY ---
+        // User cannot exit until the end step
         const endBtn = document.getElementById('endTutorialBtn');
-        if (endBtn) endBtn.classList.remove('hidden');
+        if (endBtn) endBtn.classList.add('hidden');
 
         // 5. Load Data & Render
         clientsData = generateTutorialData();
@@ -465,20 +466,32 @@ function checkTutorialNavigation(targetScreenId) {
 // 1. Open Settings
 if(settingsBtn) {
     settingsBtn.onclick = () => {
-        // ALLOW opening in tutorial mode now
+        // Standard Navigation
         navigateTo(SCREENS.SETTINGS, 'forward');
-        
+
         // --- TUTORIAL: Final Step (Settings) ---
         if (isTutorialMode) {
             setTimeout(() => {
                 showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                 
+                // Wait 3 seconds for them to read, then perform the swap
                 setTimeout(() => {
-                    // Flash the end button
+                    
+                    // 1. --- FIX: HIDE Edit & Settings Buttons ---
+                    settingsBtn.classList.add('hidden');
+                    const editBtn = document.getElementById('editToggleBtn');
+                    if(editBtn) editBtn.classList.add('hidden');
+
+                    // 2. --- FIX: REVEAL End Tutorial Button ---
                     const endBtn = document.getElementById('endTutorialBtn');
-                    endBtn.classList.add('flash-active');
-                    showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                }, 3000);
+                    if (endBtn) {
+                        endBtn.classList.remove('hidden');
+                        endBtn.classList.add('flash-active');
+                        // Point the tip to the new button
+                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }
+                
+                }, 3000); // 3s Delay
             }, 500);
         }
     };
