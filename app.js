@@ -2074,7 +2074,7 @@ const handleInteraction = (clientX) => {
         
         // Point to the specific Back button on the Graph screen
         setTimeout(() => {
-             showTutorialTip('backToSetsFromGraphBtn', 'Now, tap Back to return.', 30, 'left');
+             showTutorialTip('backToSetsFromGraphBtn', 'Press here to return.', 30, 'left');
         }, 1000);
     }
 };
