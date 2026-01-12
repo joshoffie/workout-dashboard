@@ -217,7 +217,7 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] UPDATED SMART TOOLTIP (Fixes Back Button Overlap)
+// [app.js] SMART TOOLTIP POSITIONING ENGINE
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
   clearTutorialTips();
   const target = document.getElementById(targetId);
@@ -3270,7 +3270,7 @@ function finishAddSet() {
                 tutorialTimer = setTimeout(() => {
                     // CRITICAL: Set the specific stage that handleSliderMove looks for
                     document.body.dataset.tutorialStage = 'waiting-for-slider';
-                    showTutorialTip('spiralSlider', 'Drag the slider backwards to "Time Travel".', 10);
+                    showTutorialTip('spiralSlider', 'Drag the slider backwards to see previous days data.', 10);
                 }, 3500);
             }, 3500); 
         }, 500);
