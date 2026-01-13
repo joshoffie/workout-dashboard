@@ -572,6 +572,7 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
+      // alert("DEBUG: User detected: " + user.email); // Uncomment if you need to prove it works
     // 1. LOGGED IN STATE
     if (typeof modal !== 'undefined') modal.classList.add("hidden");
     
@@ -594,6 +595,7 @@ auth.onAuthStateChanged(async (user) => {
   } else {
     // 4. LOGGED OUT STATE
     // Only hide UI if we are NOT in tutorial mode
+      // alert("DEBUG: No user found."); // Uncomment if you suspect it's failing silently
     if (!isTutorialMode) {
         if (typeof modal !== 'undefined') modal.classList.remove("hidden");
         
@@ -628,29 +630,21 @@ auth.getRedirectResult().then((result) => {
   }
 });
 
-// [app.js] HYBRID LOGIN LOGIC
+// [app.js] Revert to Popup (Now safe for iOS)
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    // 1. Check if we are inside the iOS App (via the URL param we added)
-    const urlParams = new URLSearchParams(window.location.search);
-    const isIOSApp = urlParams.get('source') === 'ios';
-
-    if (isIOSApp) {
-        // iOS APP: Must use Redirect to avoid "frozen" window issues
-        console.log("iOS App detected: Using Redirect");
-        await auth.signInWithRedirect(provider);
-    } else {
-        // REGULAR WEB: Use Popup (More reliable for cross-domain hosting)
-        console.log("Web detected: Using Popup");
-        await auth.signInWithPopup(provider);
-    }
+    // We use Popup because our iOS Wrapper now supports it properly!
+    await auth.signInWithPopup(provider);
+    
+    // Debug Alert (Remove this later)
+    alert("Login Success! Loading data...");
     
   } catch (err) {
-    alert("Login failed: " + err.message);
     console.error(err);
+    alert("Login Error: " + err.message);
   }
 };
 if (logoutBtn) {
