@@ -631,20 +631,19 @@ auth.getRedirectResult().then((result) => {
 });
 
 // [app.js] Revert to Popup (Now safe for iOS)
+// [app.js] Standard Popup Login
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    // We use Popup because our iOS Wrapper now supports it properly!
+    // We use standard Popup. The iOS App will now handle this 
+    // by opening a temporary "Modal Layer" WebView.
     await auth.signInWithPopup(provider);
     
-    // Debug Alert (Remove this later)
-    alert("Login Success! Loading data...");
-    
   } catch (err) {
-    console.error(err);
-    alert("Login Error: " + err.message);
+    console.error("Login Error:", err);
+    alert("Login failed: " + err.message);
   }
 };
 if (logoutBtn) {
