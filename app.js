@@ -616,10 +616,11 @@ auth.onAuthStateChanged(async (user) => {
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
-    // Force account selection even if logged in previously
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    await auth.signInWithPopup(provider);
+    // CHANGED: Use Redirect instead of Popup
+    await auth.signInWithRedirect(provider); 
+    
   } catch (err) {
     alert("Login failed: " + err.message);
   }
