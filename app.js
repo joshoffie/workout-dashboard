@@ -2749,6 +2749,9 @@ initOrganicSpiral();
 // ==========================================
 
 function initInstallPrompt() {
+    // 1. NEW: Check if running inside the iOS App Wrapper
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('source') === 'ios') return; // <--- EXIT IMMEDIATELY
     // 1. Check if already installed (Standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone) return;
