@@ -613,16 +613,44 @@ auth.onAuthStateChanged(async (user) => {
     hideAllDetails();
   }
 });
+
+// [app.js] Add this AFTER auth.onAuthStateChanged closes
+auth.getRedirectResult().then((result) => {
+  if (result.user) {
+    console.log("Redirect login successful:", result.user);
+  }
+}).catch((error) => {
+  console.error("Redirect login failed:", error);
+  if (error.code === 'auth/unauthorized-domain') {
+      alert("Configuration Error: You must add 'trunktracker.app' to the Authorized Domains list in the Firebase Console.");
+  } else {
+      alert("Login Error: " + error.message);
+  }
+});
+
+// [app.js] HYBRID LOGIN LOGIC
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    // CHANGED: Use Redirect instead of Popup
-    await auth.signInWithRedirect(provider); 
+    // 1. Check if we are inside the iOS App (via the URL param we added)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isIOSApp = urlParams.get('source') === 'ios';
+
+    if (isIOSApp) {
+        // iOS APP: Must use Redirect to avoid "frozen" window issues
+        console.log("iOS App detected: Using Redirect");
+        await auth.signInWithRedirect(provider);
+    } else {
+        // REGULAR WEB: Use Popup (More reliable for cross-domain hosting)
+        console.log("Web detected: Using Popup");
+        await auth.signInWithPopup(provider);
+    }
     
   } catch (err) {
     alert("Login failed: " + err.message);
+    console.error(err);
   }
 };
 if (logoutBtn) {
