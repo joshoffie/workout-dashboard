@@ -2,51 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Privacy Policy - Trunk</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        h2 { margin-top: 30px; color: #007aff; }
-        p { margin-bottom: 15px; }
-        .last-updated { color: #888; font-style: italic; font-size: 0.9em; }
+        /* RESET & VARS (Matching your app) */
+        :root {
+            --bg-color: #101010;
+            --card-color: #1c1c1c;
+            --text-color: #f0f0f0;
+            --primary-color: #007aff;
+            --border-color: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* NAVIGATION BAR (The Fix) */
+        .nav-bar {
+            background-color: var(--card-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            padding-top: max(1rem, env(safe-area-inset-top)); /* Notch support */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .btn-done {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 17px;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        /* CONTENT */
+        .content {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 50px; /* Scroll space */
+        }
+
+        h2 { margin-top: 30px; font-size: 1.2rem; color: #fff; }
+        p, li { color: #ccc; font-size: 0.95rem; }
+        ul { padding-left: 20px; }
+        a { color: var(--primary-color); }
+        .last-updated { color: #666; font-style: italic; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
-    <h1>Privacy Policy</h1>
-    <p class="last-updated">Last Updated: January 13, 2026</p>
+    <div class="nav-bar">
+        <span class="nav-title">Privacy Policy</span>
+        <a href="index.html" class="btn-done">Done</a>
+    </div>
 
-    <p>This Privacy Policy explains how <strong>Trunk</strong> ("we", "our", or "us") collects, uses, and discloses information about you when you use our workout tracking application.</p>
+    <div class="content">
+        <p class="last-updated">Last Updated: January 13, 2026</p>
 
-    <h2>1. Information We Collect</h2>
-    <p>We collect strictly the minimum amount of information required to provide our services:</p>
-    <ul>
-        <li><strong>Account Information:</strong> When you sign in via Google or Apple, we store your User ID (UID), email address, and name to create your account and sync your data across devices.</li>
-        <li><strong>Usage Data:</strong> We store the workout data you explicitly enter (exercises, sets, reps, weight, dates, and notes) to provide your history and analytics.</li>
-    </ul>
+        <p>This Privacy Policy explains how <strong>Trunk</strong> ("we", "our", or "us") collects, uses, and discloses information about you when you use our workout tracking application.</p>
 
-    <h2>2. How We Use Your Information</h2>
-    <p>We use your information solely to:</p>
-    <ul>
-        <li>Provide, maintain, and improve the App.</li>
-        <li>Sync your workout history securely to the cloud (Firebase).</li>
-        <li>Authenticate your identity so you can access your own data.</li>
-    </ul>
-    <p><strong>We do NOT sell, trade, or rent your personal identification information to others.</strong></p>
+        <h2>1. Information We Collect</h2>
+        <p>We collect strictly the minimum amount of information required to provide our services:</p>
+        <ul>
+            <li><strong>Account Information:</strong> When you sign in via Google or Apple, we store your User ID (UID), email address, and name to create your account and sync your data across devices.</li>
+            <li><strong>Usage Data:</strong> We store the workout data you explicitly enter (exercises, sets, reps, weight, dates) to provide your history and analytics.</li>
+        </ul>
 
-    <h2>3. Third-Party Services</h2>
-    <p>We use the following third-party services to facilitate our App's core functions:</p>
-    <ul>
-        <li><strong>Google Firebase:</strong> Used for secure authentication, database storage, and hosting. <a href="https://policies.google.com/privacy" target="_blank">Google Privacy Policy</a>.</li>
-        <li><strong>Sign in with Apple:</strong> Used for authentication. <a href="https://www.apple.com/legal/privacy/en-ww/" target="_blank">Apple Privacy Policy</a>.</li>
-    </ul>
+        <h2>2. How We Use Your Information</h2>
+        <p>We use your information solely to:</p>
+        <ul>
+            <li>Provide, maintain, and improve the App.</li>
+            <li>Sync your workout history securely to the cloud (Firebase).</li>
+            <li>Authenticate your identity so you can access your own data.</li>
+        </ul>
+        <p><strong>We do NOT sell, trade, or rent your personal identification information to others.</strong></p>
 
-    <h2>4. Data Retention and Deletion</h2>
-    <p>We retain your data only for as long as you maintain an account with us. You have the right to delete your account and all associated data at any time directly within the App settings.</p>
+        <h2>3. Third-Party Services</h2>
+        <p>We use the following third-party services to facilitate our App's core functions:</p>
+        <ul>
+            <li><strong>Google Firebase:</strong> Used for secure authentication, database storage, and hosting. <a href="https://policies.google.com/privacy" target="_blank">Google Privacy Policy</a>.</li>
+            <li><strong>Sign in with Apple:</strong> Used for authentication. <a href="https://www.apple.com/legal/privacy/en-ww/" target="_blank">Apple Privacy Policy</a>.</li>
+        </ul>
 
-    <h2>5. Contact Us</h2>
-    <p>If you have questions about this Privacy Policy, please contact us at: <strong>trunkfitnesstracker@gmail.com</strong></p>
+        <h2>4. Data Retention and Deletion</h2>
+        <p>We retain your data only for as long as you maintain an account with us. You have the right to delete your account and all associated data at any time directly within the App settings.</p>
+
+        <h2>5. Contact Us</h2>
+        <p>If you have questions about this Privacy Policy, please contact us at: <strong>[YOUR_EMAIL_HERE]</strong></p>
+    </div>
 
 </body>
 </html>
