@@ -2802,9 +2802,13 @@ initOrganicSpiral();
 // ==========================================
 
 function initInstallPrompt() {
+    // 0. NATIVE APP CHECK (The "Identity Card")
+    // If we see our secret flag, stop immediately. No prompt.
+    if (navigator.userAgent.includes("TrunkNativeApp")) return;
+
     // 1. NEW: Check if running inside the iOS App Wrapper
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('source') === 'ios') return; // <--- EXIT IMMEDIATELY
+    if (urlParams.get('source') === 'ios') return;
     // 1. Check if already installed (Standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone) return;
