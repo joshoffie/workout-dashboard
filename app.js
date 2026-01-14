@@ -564,6 +564,7 @@ const userLabel = document.getElementById("userLabel");
 const clientList = document.getElementById("clientList");
 const modal = document.getElementById("loginModal");
 const modalLoginBtn = document.getElementById("modalLoginBtn");
+const modalAppleBtn = document.getElementById("modalAppleBtn");
 
 const deleteModal = document.getElementById('deleteModal');
 const deleteModalMessage = document.getElementById('deleteModalMessage');
@@ -654,6 +655,37 @@ if (logoutBtn) {
             console.error("Logout error:", err);
         }
     };
+}
+
+// [app.js] Apple Sign In Logic
+if (modalAppleBtn) {
+  modalAppleBtn.onclick = async () => {
+    try {
+      // 1. Setup the provider
+      const provider = new firebase.auth.OAuthProvider('apple.com');
+      
+      // 2. Request name and email scopes (Apple only returns these on the very first login)
+      provider.addScope('email');
+      provider.addScope('name');
+      
+      // 3. Optional: Localize the flow to the user's browser language
+      provider.setCustomParameters({
+        locale: navigator.language || 'en'
+      });
+
+      // 4. Trigger the popup (handles iOS modal automatically via Firebase SDK)
+      await auth.signInWithPopup(provider);
+      
+    } catch (err) {
+      console.error("Apple Login Error:", err);
+      // Friendly error handling
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User just closed the popup, no need to alert
+        return;
+      }
+      alert("Sign In with Apple failed: " + err.message);
+    }
+  };
 }
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
