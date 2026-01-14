@@ -4222,3 +4222,67 @@ if (globalEditBtn) {
         }
     };
 }
+
+// ==========================================
+// ACCOUNT DELETION LOGIC (MANDATORY)
+// ==========================================
+const btnDeleteAccount = document.getElementById("btnDeleteAccount");
+
+if (btnDeleteAccount) {
+    btnDeleteAccount.onclick = async () => {
+        const user = auth.currentUser;
+
+        if (!user) {
+            alert("Error: No user currently signed in.");
+            return;
+        }
+
+        // --- WARNING 1 ---
+        const firstConfirm = confirm(
+            "⚠️ DELETE ACCOUNT?\n\nAre you sure you want to delete your account? This will permanently erase all your workouts and history.\n\nThis action cannot be undone."
+        );
+        if (!firstConfirm) return;
+
+        // --- WARNING 2 (FINAL) ---
+        const secondConfirm = confirm(
+            "🚨 FINAL WARNING\n\nAll data will be lost forever.\n\nClick OK to permanently delete your account now."
+        );
+        if (!secondConfirm) return;
+
+        // --- EXECUTE DELETION ---
+        try {
+            // UI Feedback: Show loading state
+            btnDeleteAccount.innerText = "Deleting...";
+            btnDeleteAccount.disabled = true;
+
+            // 1. Delete User Data from Firestore
+            // We assume your data is stored in a 'users' collection under the UID
+            const db = firebase.firestore();
+            await db.collection('users').doc(user.uid).delete();
+            console.log("✅ User data deleted from Firestore");
+
+            // 2. Delete Authentication User
+            await user.delete();
+            console.log("✅ User auth deleted");
+
+            // 3. Success & Redirect
+            alert("Your account has been deleted.");
+            window.location.reload(); // Reloads app, forcing a return to login screen
+
+        } catch (error) {
+            console.error("Delete Error:", error);
+            
+            // SPECIAL HANDLING: Requires Recent Login
+            // Firebase forbids deleting an account if the login is "stale" (security risk).
+            if (error.code === 'auth/requires-recent-login') {
+                alert("Security Limit: For your protection, you can only delete your account if you have logged in recently.\n\nPlease log out, log back in, and try deleting again.");
+            } else {
+                alert("Error deleting account: " + error.message);
+            }
+
+            // Reset button state
+            btnDeleteAccount.innerText = "Delete Account & Data";
+            btnDeleteAccount.disabled = false;
+        }
+    };
+}
