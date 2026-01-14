@@ -133,25 +133,29 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   color: #000000; 
   width: 100%;
   padding: 0.9rem 1.25rem; 
-  margin-top: 0.75rem; /* Spacing from Google button */
-  border: 1px solid transparent;
+  margin-top: 0.75rem; 
+  border: none; /* Remove border */
+  border-radius: 8px; /* Match your other buttons */
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
+  cursor: pointer;
+  position: relative;
 }
 
 .btn-apple:hover {
   background-color: #f5f5f5;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
 }
 
+/* FORCE the icon size so it doesn't get squashed */
 .apple-icon {
-  width: 18px;
-  height: 18px;
-  margin-bottom: 2px; /* Optical alignment */
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px; /* Prevents flexbox from shrinking it */
+  fill: #000000;   /* Ensure it's black */
+  display: block;
 }
 .btn {
   font-family: inherit; font-size: 0.95rem; font-weight: 600; padding: 0.75rem 1.25rem;
