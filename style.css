@@ -127,53 +127,41 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   font-weight: 400;
 }
 /* ===== BUTTONS ===== */
-/* ===== APPLE SIGN IN BUTTON (REVISED) ===== */
+/* ===== APPLE SIGN IN BUTTON (FINAL) ===== */
 .btn-apple {
-  /* Layout: Center items with a gap */
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 12px;
+  border: none !important;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 12px !important;
-
-  /* Appearance: White button, Black text */
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  
-  /* Sizing */
-  width: 100%;
-  padding: 12px 16px; /* Comfortable touch target */
-  margin-top: 10px;
-  
-  /* Styling */
-  border: none !important;
-  border-radius: 8px; /* Consistent with modern UI */
-  font-weight: 600;
-  font-size: 16px;
+  gap: 12px;
   cursor: pointer;
-  
-  /* Reset */
-  text-decoration: none;
-  line-height: 1.2;
 }
 
 .btn-apple:hover {
-  background-color: #f2f2f2 !important;
+  background-color: #f0f0f0 !important;
 }
 
 .apple-icon {
-  /* STRICT sizing to prevent "messed up" look */
-  width: 18px !important;
-  height: 18px !important;
-  min-width: 18px !important; /* Prevents squashing */
-  min-height: 18px !important;
+  /* STRICT Lock on dimensions */
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
   
-  /* Color: Inherit black from the button text */
-  fill: currentColor !important;
+  /* Ensure it doesn't get squashed */
+  flex-shrink: 0;
   
-  /* Reset margins */
-  margin: 0 !important;
-  padding: 0 !important;
-  display: block;
+  /* Color inherit */
+  fill: #000000 !important;
+  margin-bottom: 2px; /* Optical alignment correction */
 }
 .btn {
   font-family: inherit; font-size: 0.95rem; font-weight: 600; padding: 0.75rem 1.25rem;
