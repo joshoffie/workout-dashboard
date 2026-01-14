@@ -127,41 +127,62 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   font-weight: 400;
 }
 /* ===== BUTTONS ===== */
-/* ===== APPLE SIGN IN BUTTON (FINAL) ===== */
-.btn-apple {
-  background-color: #ffffff !important;
-  color: #000000 !important;
+/* ===== LOGIN BUTTONS (Unified Style) ===== */
+
+/* 1. Base style for both login buttons */
+.btn-google, .btn-apple {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 16px; /* Taller, comfortable touch target */
   margin-top: 12px;
-  border: none !important;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 24px; /* Rounded Pill shape (Standard for Sign In) */
+  font-weight: 500;
   font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* System font looks best here */
+  
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 12px;
+  gap: 10px; /* Space between icon and text */
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease, background-color 0.2s;
+  text-decoration: none;
 }
 
+/* 2. Google Button Specifics */
+.btn-google {
+  background-color: #ffffff;
+  color: #1f1f1f; /* Dark grey text */
+  border: 1px solid #dadce0; /* Subtle grey border */
+}
+.btn-google:hover {
+  background-color: #f7f8f8;
+  border-color: #d2e3fc;
+}
+
+/* 3. Apple Button Specifics */
+.btn-apple {
+  background-color: #000000; /* Apple suggests Black or White. Black pops more on your grey modal */
+  color: #ffffff; 
+  border: 1px solid #000000;
+}
 .btn-apple:hover {
-  background-color: #f0f0f0 !important;
+  background-color: #333333; /* Dark grey hover */
+  border-color: #333333;
 }
 
-.apple-icon {
-  /* STRICT Lock on dimensions */
+/* 4. Icon Sizing (Critical for alignment) */
+.google-icon, .apple-icon {
   width: 20px !important;
   height: 20px !important;
   min-width: 20px !important;
-  min-height: 20px !important;
-  
-  /* Ensure it doesn't get squashed */
-  flex-shrink: 0;
-  
-  /* Color inherit */
-  fill: #000000 !important;
-  margin-bottom: 2px; /* Optical alignment correction */
+  display: block;
+}
+
+/* Apple icon fill matches text */
+.apple-icon {
+  fill: currentColor; 
+  margin-bottom: 2px; /* Visual optical balance for the stem */
 }
 .btn {
   font-family: inherit; font-size: 0.95rem; font-weight: 600; padding: 0.75rem 1.25rem;
@@ -173,8 +194,6 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 .btn-secondary { background-color: var(--color-secondary); color: var(--color-text); border: 1px solid var(--color-border); }
 .btn-secondary:hover { background-color: #444; }
-#modalLoginBtn { width: 100%; font-size: 1rem;
-  padding: 0.9rem 1.25rem; flex: 1; }
 .btn-group { display: flex; gap: 0.5rem; }
 
 /* ===== HEADER ===== */
