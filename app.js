@@ -2811,51 +2811,51 @@ initOrganicSpiral();
 // INSTALL PROMPT LOGIC (First Time Only)
 // ==========================================
 
-function initInstallPrompt() {
-    // 0. NATIVE APP CHECK (The "Identity Card")
-    // If we see our secret flag, stop immediately. No prompt.
-    if (navigator.userAgent.includes("TrunkNativeApp")) return;
+// function initInstallPrompt() {
+//     // 0. NATIVE APP CHECK (The "Identity Card")
+//     // If we see our secret flag, stop immediately. No prompt.
+//     if (navigator.userAgent.includes("TrunkNativeApp")) return;
 
-    // 1. NEW: Check if running inside the iOS App Wrapper
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('source') === 'ios') return;
-    // 1. Check if already installed (Standalone mode)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) return;
+//     // 1. NEW: Check if running inside the iOS App Wrapper
+//     const urlParams = new URLSearchParams(window.location.search);
+//     if (urlParams.get('source') === 'ios') return;
+//     // 1. Check if already installed (Standalone mode)
+//     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+//     if (isStandalone) return;
 
-    // 2. Check LocalStorage (Has user seen this?)
-    const hasSeenPrompt = localStorage.getItem('trunk_install_prompt_seen');
-    if (hasSeenPrompt) return;
+//     // 2. Check LocalStorage (Has user seen this?)
+//     const hasSeenPrompt = localStorage.getItem('trunk_install_prompt_seen');
+//     if (hasSeenPrompt) return;
 
-    // 3. Detect OS
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    const promptEl = document.getElementById('installPrompt');
-    const textEl = document.getElementById('installText');
-    const closeBtn = document.getElementById('closeInstallBtn');
+//     // 3. Detect OS
+//     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+//     const promptEl = document.getElementById('installPrompt');
+//     const textEl = document.getElementById('installText');
+//     const closeBtn = document.getElementById('closeInstallBtn');
 
-    if (!promptEl) return;
+//     if (!promptEl) return;
 
-    // IOS DETECTION
-    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        promptEl.classList.remove('hidden');
-        promptEl.classList.add('ios-pos');
-        textEl.textContent = "Install as App:\n1. Tap the menu dots (...), then tap share button below\n2. Scroll down\n3. Tap 'Add to Home Screen'";
-    } 
-    // ANDROID DETECTION
-    else if (/android/i.test(userAgent)) {
-        promptEl.classList.remove('hidden');
-        promptEl.classList.add('android-pos');
-        textEl.textContent = "Install as App:\n1. Tap the menu dots (⋮)\n2. Tap 'Install App' or 'Add to Home Screen'";
-    }
-    // If neither (Desktop/Other), do nothing.
+//     // IOS DETECTION
+//     if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+//         promptEl.classList.remove('hidden');
+//         promptEl.classList.add('ios-pos');
+//         textEl.textContent = "Install as App:\n1. Tap the menu dots (...), then tap share button below\n2. Scroll down\n3. Tap 'Add to Home Screen'";
+//     } 
+//     // ANDROID DETECTION
+//     else if (/android/i.test(userAgent)) {
+//         promptEl.classList.remove('hidden');
+//         promptEl.classList.add('android-pos');
+//         textEl.textContent = "Install as App:\n1. Tap the menu dots (⋮)\n2. Tap 'Install App' or 'Add to Home Screen'";
+//     }
+//     // If neither (Desktop/Other), do nothing.
 
-    // 4. Close Logic
-    closeBtn.onclick = () => {
-        promptEl.classList.add('hidden');
-        // Mark as seen so it never shows again
-        localStorage.setItem('trunk_install_prompt_seen', 'true');
-    };
-}
+//     // 4. Close Logic
+//     closeBtn.onclick = () => {
+//         promptEl.classList.add('hidden');
+//         // Mark as seen so it never shows again
+//         localStorage.setItem('trunk_install_prompt_seen', 'true');
+//     };
+// }
 
 // Run on load
 window.addEventListener('load', () => {
