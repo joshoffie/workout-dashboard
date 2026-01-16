@@ -328,6 +328,7 @@ const UNIT_mode = {
     },
 
     toggle: function() {
+        sendHapticScoreToNative(-2); // <--- ADD THIS LINE (Toggle Click)
         this.current = this.current === 'lbs' ? 'kg' : 'lbs';
         localStorage.setItem('trunk_unit_preference', this.current);
         this.applyToUI();
@@ -575,6 +576,7 @@ auth.onAuthStateChanged(async (user) => {
   if (user) {
       // alert("DEBUG: User detected: " + user.email); // Uncomment if you need to prove it works
     // 1. LOGGED IN STATE
+      sendHapticScoreToNative(-4); // <--- ADD THIS LINE (Success Pulse)
     if (typeof modal !== 'undefined') modal.classList.add("hidden");
     
     // --- FIX: Force UI Elements to Appear for Real Users ---
@@ -1090,6 +1092,7 @@ function moveItem(type, index, direction) {
         const sortedClients = Object.values(clientsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const targetIndex = index + direction;
         if (targetIndex < 0 || targetIndex >= sortedClients.length) return;
+        sendHapticScoreToNative(-3); // <--- ADD THIS LINE (Mechanical Tick)
         // Swap order values
         const itemA = sortedClients[index];
         const itemB = sortedClients[targetIndex];
@@ -1176,6 +1179,7 @@ function renderClients() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete client "${name}"?`, async () => {
+        sendHapticScoreToNative(-1); // <--- ADD THIS LINE (Destructive Buzz)
         // OPTIMIZED DELETE
         await deleteClientFromFirestore(name); // <--- Add this
         delete clientsData[name]; 
@@ -1289,6 +1293,7 @@ function renderSessions() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete session "${sess.session_name}"?`, () => {
+        sendHapticScoreToNative(-1); // <--- ADD THIS LINE (Destructive Buzz)
         const sessionIndex = clientsData[selectedClient].sessions.findIndex(s => s === sess);
         if (sessionIndex > -1) { clientsData[selectedClient].sessions.splice(sessionIndex, 1); saveUserJson(); renderSessions(); }
         if (selectedSession === sess) navigateTo(SCREENS.SESSIONS, 'back');
@@ -1382,6 +1387,7 @@ function renderExercises() {
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
       showDeleteConfirm(`Are you sure you want to delete exercise "${ex.exercise}"?`, () => {
+        sendHapticScoreToNative(-1); // <--- ADD THIS LINE (Destructive Buzz)
         selectedSession.exercises.splice(idx, 1); saveUserJson(); renderExercises();
         if (selectedExercise === ex) navigateTo(SCREENS.EXERCISES, 'back');
       });
@@ -1929,6 +1935,7 @@ function renderSets() {
       delBtn.onclick = (e) => {
          e.stopPropagation();
          showDeleteConfirm(`Delete Set ${setIdx + 1} from ${dateStr}?`, () => {
+             sendHapticScoreToNative(-1); // <--- ADD THIS LINE (Destructive Buzz)
            selectedExercise.sets.splice(originalIndex, 1);
            saveUserJson();
            renderSets();
@@ -2348,6 +2355,7 @@ function runTitleOnlyLogic() {
 let editMode = false;
 const editToggleBtn = document.getElementById("editToggleBtn");
 editToggleBtn.onclick = () => {
+    sendHapticScoreToNative(-2); // <--- ADD THIS LINE (Toggle Click)
   editMode = !editMode;
   editToggleBtn.textContent = editMode ? "Done" : "Edit";
   document.body.classList.toggle('edit-mode-active');
