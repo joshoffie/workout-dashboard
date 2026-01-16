@@ -3308,6 +3308,21 @@ function finishAddSet() {
         timestamp 
     });
     saveUserJson(); 
+    // --- NEW: CALCULATE "GREEN SCORE" FOR HAPTICS ---
+    try {
+        // We reuse your existing logic that calculates improvements
+        // getExerciseColorData compares the current session vs previous session
+        const colorData = getExerciseColorData(selectedExercise);
+        
+        // colorData returns { red, green, yellow, total }
+        // We send the 'green' count to Swift
+        if (colorData && typeof colorData.green === 'number') {
+            sendHapticScoreToNative(colorData.green);
+        }
+    } catch (err) {
+        console.error("Haptic calc failed", err);
+    }
+    // ------------------------------------------------
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
@@ -4301,3 +4316,13 @@ window.addEventListener('load', () => {
         }
     };
 });
+
+// [app.js] - Helper to talk to iOS
+function sendHapticScoreToNative(greenScore) {
+    // Check if we are inside the iOS Wrapper (WKWebView)
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticHandler) {
+        window.webkit.messageHandlers.hapticHandler.postMessage(greenScore);
+    } else {
+        console.log("Haptic Debug: Score would be " + greenScore); // Fallback for browser testing
+    }
+}
