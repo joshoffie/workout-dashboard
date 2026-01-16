@@ -550,6 +550,7 @@ document.getElementById('backToClientsFromSettingsBtn').onclick = () => {
 // 3. Logout Action (Inside Settings)
 document.getElementById('settingsLogoutBtn').onclick = async () => {
     try {
+        sendHapticScoreToNative(-2); // <--- ADD THIS (Switch Off)
         // Just Sign Out. The auth.onAuthStateChanged listener will handle 
         // hiding Settings and showing the Login Modal/Home screen.
         await auth.signOut();
@@ -652,6 +653,7 @@ modalLoginBtn.onclick = async () => {
 if (logoutBtn) {
     logoutBtn.onclick = async () => { 
         try {
+            sendHapticScoreToNative(-2); // <--- ADD THIS (Switch Off)
             await auth.signOut(); 
         } catch(err) {
             console.error("Logout error:", err);
@@ -3455,6 +3457,7 @@ function initSettings() {
 // 2. Event Listeners for Toggles
 if (settingColorToggle) {
     settingColorToggle.addEventListener('change', (e) => {
+        sendHapticScoreToNative(-2); // <--- ADD THIS (Toggle Click)
         const isEnabled = e.target.checked;
         if (isEnabled) {
             document.body.classList.remove('no-colors');
@@ -3468,6 +3471,7 @@ if (settingColorToggle) {
 
 if (settingAnimToggle) {
     settingAnimToggle.addEventListener('change', (e) => {
+        sendHapticScoreToNative(-2); // <--- ADD THIS (Toggle Click)
         const isEnabled = e.target.checked;
         if (isEnabled) {
             document.body.classList.remove('no-animations');
@@ -4253,12 +4257,16 @@ window.addEventListener('load', () => {
             alert("Error: No user currently signed in.");
             return;
         }
+        // --- WARNING 1 (Standard Warning) ---
+        sendHapticScoreToNative(-1); // <--- ADD THIS (3 Heavy Thuds)
 
         // --- WARNING 1 ---
         const firstConfirm = confirm(
             "⚠️ DELETE ACCOUNT?\n\nAre you sure you want to delete your account? This will permanently erase all your workouts and history.\n\nThis action cannot be undone."
         );
         if (!firstConfirm) return;
+        // --- WARNING 2 (PANIC MODE) ---
+        sendHapticScoreToNative(-5); // <--- ADD THIS (5 Rapid Heavy Thuds)
 
         // --- WARNING 2 (FINAL) ---
         const secondConfirm = confirm(
