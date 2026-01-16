@@ -4323,38 +4323,3 @@ function sendHapticScoreToNative(greenScore) {
         console.log("Haptic Debug: Score would be " + greenScore); // Fallback for browser testing
     }
 }
-
-// [app.js] - Add to the very bottom
-
-// SAFEGUARD: Force a check when the popup closes
-function onPopupClosed() {
-    console.log("Popup closed. Checking auth status...");
-    
-    // Wait 1 second to allow the token to sync
-    setTimeout(() => {
-        const user = firebase.auth().currentUser;
-        
-        if (user) {
-            console.log("User found! Forcing UI update...");
-            
-            // 1. Hide Login Modal
-            const loginModal = document.getElementById("loginModal");
-            if (loginModal) loginModal.classList.add("hidden");
-            
-            // 2. Show UI Elements
-            const settingsBtn = document.getElementById('settingsBtn'); 
-            const editToggleBtn = document.getElementById('editToggleBtn');
-            if (settingsBtn) settingsBtn.classList.remove("hidden");
-            if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-            
-            // 3. Load Data
-            loadUserJson();
-            renderClients();
-            
-            // 4. Haptic Success
-            sendHapticScoreToNative(-4);
-        } else {
-            console.log("No user found yet.");
-        }
-    }, 1000);
-}
