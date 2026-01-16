@@ -4230,25 +4230,6 @@ if (finalSettingsBtn) {
     };
 }
 
-// 3. EDIT TOGGLE (Safety Reinforcement)
-const globalEditBtn = document.getElementById("editToggleBtn");
-if (globalEditBtn) {
-    globalEditBtn.onclick = () => {
-        // Toggle the global variable
-        if (typeof editMode !== 'undefined') {
-            editMode = !editMode;
-            
-            // Update UI
-            globalEditBtn.textContent = editMode ? "Done" : "Edit";
-            document.body.classList.toggle('edit-mode-active');
-            
-            // Save on exit
-            if (!editMode && typeof saveUserJson === 'function') {
-                saveUserJson();
-            }
-        }
-    };
-}
 
 // ==========================================
 // ACCOUNT DELETION LOGIC (SAFE LOAD V2)
