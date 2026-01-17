@@ -2062,3 +2062,30 @@ body.no-animations #logo-k {
 .recap-happy { color: var(--color-green); }
 .recap-neutral { color: var(--color-text-muted); }
 .recap-sad { color: var(--color-text-muted); }
+
+
+/* ===== CALCULATOR STEPPERS ===== */
+.stepper-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44px; /* Large touch target */
+  background: transparent;
+  border: none;
+  font-family: 'Fredoka', sans-serif; /* Matches numbers */
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.6;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.stepper-btn:hover { opacity: 1; }
+.stepper-btn:active { background: rgba(255, 255, 255, 0.1); }
+
+.stepper-btn.left { left: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.stepper-btn.right { right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
