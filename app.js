@@ -3431,6 +3431,8 @@ function initSettings() {
     // Check LocalStorage (Default to 'true' if null)
     const savedColors = localStorage.getItem('trunk_setting_colors');
     const savedAnims = localStorage.getItem('trunk_setting_anims');
+    const savedHaptics = localStorage.getItem('trunk_setting_haptics');
+    const settingHapticToggle = document.getElementById('settingHapticToggle');
 
     // Logic: If the value is "false", we DISABLE features. 
     // Defaults: We assume enabled unless specifically set to "false".
@@ -3451,6 +3453,11 @@ function initSettings() {
     } else {
         document.body.classList.remove('no-animations');
         if(settingAnimToggle) settingAnimToggle.checked = true;
+    }
+    // --- HAPTICS ---
+    // Default is TRUE. Only uncheck if explicitly saved as 'false'.
+    if (settingHapticToggle) {
+        settingHapticToggle.checked = (savedHaptics !== 'false');
     }
 }
 
@@ -3479,6 +3486,19 @@ if (settingAnimToggle) {
         } else {
             document.body.classList.add('no-animations');
             localStorage.setItem('trunk_setting_anims', 'false');
+        }
+    });
+}
+
+if (settingHapticToggle) {
+    settingHapticToggle.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            localStorage.setItem('trunk_setting_haptics', 'true');
+            // Give immediate feedback that it's back on
+            sendHapticScoreToNative(-2); 
+        } else {
+            localStorage.setItem('trunk_setting_haptics', 'false');
         }
     });
 }
@@ -4314,12 +4334,15 @@ window.addEventListener('load', () => {
     };
 });
 
-// [app.js] - Helper to talk to iOS
 function sendHapticScoreToNative(greenScore) {
+    // 0. SETTING CHECK
+    // If the user disabled haptics, stop immediately.
+    if (localStorage.getItem('trunk_setting_haptics') === 'false') return;
+
     // Check if we are inside the iOS Wrapper (WKWebView)
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticHandler) {
         window.webkit.messageHandlers.hapticHandler.postMessage(greenScore);
     } else {
-        console.log("Haptic Debug: Score would be " + greenScore); // Fallback for browser testing
+        console.log("Haptic Debug: Score would be " + greenScore);
     }
 }
