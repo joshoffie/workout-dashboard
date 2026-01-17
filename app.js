@@ -3158,6 +3158,44 @@ document.getElementById('repsBox').onclick = () => {
     calcState.activeField = 'reps';
     updateCalcUI();
 };
+
+// [app.js] REPS STEPPER LOGIC
+const adjustReps = (delta) => {
+    // 1. Ensure Reps is the active field
+    calcState.activeField = 'reps';
+    
+    // 2. Clear auto-fill flag so strict typing doesn't wipe it later
+    // (We are modifying the value intentionally, so we "claim" it)
+    if (calcState.isAutoFilled && calcState.isAutoFilled.reps) {
+        calcState.isAutoFilled.reps = false;
+    }
+
+    // 3. Get current val (default to 0 if empty)
+    let current = parseInt(calcState.repsVal) || 0;
+    
+    // 4. Calculate new val (Prevent negatives)
+    let newVal = current + delta;
+    if (newVal < 0) newVal = 0;
+    
+    // 5. Save & Render
+    calcState.repsVal = newVal.toString();
+    
+    // Optional: Add haptic tick for satisfaction
+    if (typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-3);
+
+    updateCalcUI();
+};
+
+document.getElementById('btnRepDec').onclick = (e) => {
+    e.stopPropagation(); // Don't trigger the box click
+    adjustReps(-1);
+};
+
+document.getElementById('btnRepInc').onclick = (e) => {
+    e.stopPropagation(); // Don't trigger the box click
+    adjustReps(1);
+};
+
 document.getElementById('weightBox').onclick = () => {
     calcState.activeField = 'weight';
     updateCalcUI();
