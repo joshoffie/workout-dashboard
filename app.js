@@ -83,6 +83,7 @@ async function deleteClientFromFirestore(clientName) {
 let isTutorialMode = false;
 let tutorialTimer = null;
 let tutorialStep = 0;
+let stableWindowHeight = window.innerHeight; // Stores the height WITHOUT keyboard
 
 // 2. FAKE DATA GENERATOR
 function generateTutorialData() {
@@ -1136,11 +1137,16 @@ const customInputCancel = document.getElementById('customInputCancel');
 let currentInputResolve = null; // Stores the Promise resolve function
 
 // [app.js] Updated showInputModal (With Reset & Safety Poll)
+// [app.js] - Updated Modal Logic
 function showInputModal(title, initialValue = "", placeholder = "", type = "text") {
   return new Promise((resolve) => {
     currentInputResolve = resolve; 
     
-    // Setup Type
+    // 1. CAPTURE STABLE HEIGHT
+    // We grab the screen height NOW, before the keyboard messes it up.
+    stableWindowHeight = window.innerHeight;
+
+    // 2. Setup Keyboard Type
     if (type === 'number') {
         customInputField.setAttribute('inputmode', 'decimal'); 
         customInputField.setAttribute('type', 'number');
@@ -1149,28 +1155,32 @@ function showInputModal(title, initialValue = "", placeholder = "", type = "text
         customInputField.setAttribute('type', 'text');
     }
 
-    // Setup Content
+    // 3. Setup Content
     customInputTitle.textContent = title;
     customInputField.value = initialValue;
     customInputField.placeholder = placeholder;
     customInputCount.textContent = `${initialValue.length}/40`;
 
-    // Reset Position (CRITICAL for the "second time" bug)
+    // 4. Force Reset Position
     const modalContainer = document.querySelector('.input-modal-card');
-    if (modalContainer) modalContainer.style.transform = 'scale(1) translateY(0)';
+    if (modalContainer) {
+        modalContainer.style.transform = 'scale(1) translateY(0)';
+        modalContainer.style.animation = 'none'; // Reset animation
+        modalContainer.offsetHeight; /* trigger reflow */
+        modalContainer.style.animation = 'modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+    }
 
-    // Show
+    // 5. Show & Focus
     customInputModal.classList.remove('hidden');
-    void customInputModal.offsetWidth; // Force Reflow
     
-    // Focus
-    customInputField.focus();
-    if (initialValue) { try { customInputField.select(); } catch(e) {} }
-
-    // TRIGGER SAFETY POLL
-    // This forces the app to check for the keyboard repeatedly 
-    // while it slides up, ensuring it catches the resize event.
-    if (typeof startKeyboardPoll === 'function') startKeyboardPoll();
+    // Tiny delay ensures the 'hidden' class removal is processed by the renderer
+    setTimeout(() => {
+        customInputField.focus();
+        if (initialValue) { try { customInputField.select(); } catch(e) {} }
+        
+        // Start the safety poll immediately after focusing
+        if (typeof startKeyboardPoll === 'function') startKeyboardPoll();
+    }, 10);
   });
 }
 
@@ -4486,51 +4496,64 @@ function sendHapticScoreToNative(greenScore) {
 }
 
 // =====================================================
-// IOS KEYBOARD FIX V2 (Robust & Polling)
+// ROBUST IOS KEYBOARD MANAGER (Reference Height Fix)
 // =====================================================
 
-// 1. Define the adjuster globally so we can call it manually
 function adjustModalPosition() {
     const modalContainer = document.querySelector('.input-modal-card');
     const overlay = document.getElementById('customInputModal');
     
-    // Only run if the modal is actually visible
+    // Exit if modal isn't open
     if (!overlay || overlay.classList.contains('hidden') || !modalContainer) return;
 
     if (window.visualViewport) {
-        const viewportHeight = window.visualViewport.height;
-        const windowHeight = window.innerHeight;
-        const heightLost = windowHeight - viewportHeight;
+        const currentViewportHeight = window.visualViewport.height;
+        
+        // LOGIC: Compare current viewport vs the "Stable" height we captured earlier.
+        // This works even if window.innerHeight shrinks behind the scenes.
+        const heightLost = stableWindowHeight - currentViewportHeight;
 
-        // Threshold: If we lost more than 150px, the keyboard is likely open
+        // If we lost more than 150px, the keyboard is definitely open.
         if (heightLost > 150) {
-            // Shift up by slightly less than half to keep some top-margin breathing room
-            // Using a fixed offset calculation is often more stable than centering exactly
-            const shiftAmount = Math.floor(heightLost / 2) + 20; 
+            // Shift up by half the keyboard height + a little buffer
+            const shiftAmount = Math.floor(heightLost / 2) + 10;
             modalContainer.style.transform = `scale(1) translateY(-${shiftAmount}px)`;
         } else {
-            // Keyboard closed
+            // Keyboard is closed (or closing) -> Reset
             modalContainer.style.transform = 'scale(1) translateY(0)';
         }
     }
 }
 
-// 2. Attach Listeners (Passive monitoring)
+// 1. Listeners
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', adjustModalPosition);
     window.visualViewport.addEventListener('scroll', adjustModalPosition);
 }
 
-// 3. Helper to "Poll" for changes (The safety net)
-// This checks the screen size every 50ms for a short time to catch the animation
+// 2. Safety Poll
+// This runs rapidly for 1 second after opening to catch any missed events
 let keyboardPollInterval = null;
-
 function startKeyboardPoll() {
     if (keyboardPollInterval) clearInterval(keyboardPollInterval);
     let checks = 0;
+    
+    // Check every 50ms
     keyboardPollInterval = setInterval(() => {
         adjustModalPosition();
         checks++;
-        if (checks > 15) clearInterval(keyboardPollInterval); // Stop after 750ms
+        // Stop after 1 second (20 checks)
+        if (checks > 20) clearInterval(keyboardPollInterval); 
     }, 50);
 }
+
+// 3. Backup Resize Listener 
+// Sometimes rotation or other resizing events happen when modal is closed; update our stable reference.
+window.addEventListener('resize', () => {
+    // Only update stable height if the modal is CLOSED. 
+    // If it's open, we trust the value we captured when it opened.
+    const overlay = document.getElementById('customInputModal');
+    if (overlay && overlay.classList.contains('hidden')) {
+        stableWindowHeight = window.innerHeight;
+    }
+});
