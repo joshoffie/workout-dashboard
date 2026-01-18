@@ -4480,3 +4480,44 @@ function sendHapticScoreToNative(greenScore) {
         console.log("Haptic Debug: Score would be " + greenScore);
     }
 }
+
+// =====================================================
+// IOS KEYBOARD FIX (Visual Viewport Adjustment)
+// =====================================================
+if (window.visualViewport) {
+    const adjustModalPosition = () => {
+        const modalContainer = document.querySelector('.input-modal-card');
+        const overlay = document.getElementById('customInputModal');
+        
+        // Only run if the modal is actually visible
+        if (!overlay || overlay.classList.contains('hidden') || !modalContainer) return;
+
+        // Calculate how much screen height we lost (Keyboard height)
+        // window.innerHeight = Total Screen
+        // visualViewport.height = Visible Screen above keyboard
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const heightLost = windowHeight - viewportHeight;
+
+        // If keyboard is open (heightLost > 100px), shift up.
+        // We shift up by half the lost height to re-center it in the visible area.
+        if (heightLost > 50) {
+            // "scale(1)" maintains the original size. 
+            // "translateY" moves it up.
+            const shiftAmount = Math.floor(heightLost / 2);
+            modalContainer.style.transform = `scale(1) translateY(-${shiftAmount}px)`;
+        } else {
+            // Keyboard closed: Reset to default center
+            modalContainer.style.transform = 'scale(1) translateY(0)';
+        }
+    };
+
+    // Listen for resize (keyboard open/close) and scroll
+    window.visualViewport.addEventListener('resize', adjustModalPosition);
+    window.visualViewport.addEventListener('scroll', adjustModalPosition);
+    
+    // Also trigger it whenever we open the modal
+    // We hook into your existing showInputModal logic implicitly by adding a listener
+    // But since we can't easily modify the promise function inside the promise, 
+    // we just rely on the resize event which fires immediately when the input focuses.
+}
