@@ -2089,3 +2089,100 @@ body.no-animations #logo-k {
 
 .stepper-btn.left { left: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
 .stepper-btn.right { right: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+
+/* =========================================
+   NEW CUSTOM INPUT MODAL (Native Feel)
+   ========================================= */
+
+.input-modal-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px; /* iOS-ish rounded corners */
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  
+  /* Pop Animation */
+  animation: modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: center;
+}
+
+@keyframes modal-pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.input-modal-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.3rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+/* The Cool Input Field */
+.custom-input-wrapper {
+  position: relative;
+  margin-bottom: 2rem;
+  background: #252525; /* Slightly lighter than bg */
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.custom-input-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(0, 122, 255, 0.2);
+}
+
+.custom-input-field {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-green); /* Growth Green Text */
+  font-family: 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  outline: none;
+}
+
+.custom-input-field::placeholder {
+  color: #444;
+  font-weight: 500;
+}
+
+.input-char-limit {
+  position: absolute;
+  bottom: -20px;
+  right: 5px;
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.modal-actions-row {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.modal-actions-row .btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+/* Green Pulse Animation on Save */
+@keyframes save-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); background-color: var(--color-green); border-color: var(--color-green); }
+  100% { transform: scale(1); }
+}
+.btn-save-anim {
+  animation: save-pulse 0.3s ease-in-out;
+}
