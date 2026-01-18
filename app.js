@@ -1136,14 +1136,12 @@ const customInputCancel = document.getElementById('customInputCancel');
 
 let currentInputResolve = null; // Stores the Promise resolve function
 
-// [app.js] Updated showInputModal (With Reset & Safety Poll)
-// [app.js] - Updated Modal Logic
+// [app.js] showInputModal (With 0.5s Delay)
 function showInputModal(title, initialValue = "", placeholder = "", type = "text") {
   return new Promise((resolve) => {
     currentInputResolve = resolve; 
     
-    // 1. CAPTURE STABLE HEIGHT
-    // We grab the screen height NOW, before the keyboard messes it up.
+    // 1. CAPTURE STABLE HEIGHT (Immediately)
     stableWindowHeight = window.innerHeight;
 
     // 2. Setup Keyboard Type
@@ -1165,22 +1163,26 @@ function showInputModal(title, initialValue = "", placeholder = "", type = "text
     const modalContainer = document.querySelector('.input-modal-card');
     if (modalContainer) {
         modalContainer.style.transform = 'scale(1) translateY(0)';
-        modalContainer.style.animation = 'none'; // Reset animation
+        modalContainer.style.animation = 'none'; 
         modalContainer.offsetHeight; /* trigger reflow */
         modalContainer.style.animation = 'modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
     }
 
-    // 5. Show & Focus
+    // 5. Show Modal
     customInputModal.classList.remove('hidden');
     
-    // Tiny delay ensures the 'hidden' class removal is processed by the renderer
+    // 6. DELAYED FOCUS (The 0.5s wait)
+    // We wait 500ms for the modal animation to finish, THEN trigger keyboard.
     setTimeout(() => {
         customInputField.focus();
+        
+        // Select text if it exists
         if (initialValue) { try { customInputField.select(); } catch(e) {} }
         
-        // Start the safety poll immediately after focusing
+        // Start the safety poll NOW (so we don't waste poll cycles during the wait)
         if (typeof startKeyboardPoll === 'function') startKeyboardPoll();
-    }, 10);
+        
+    }, 500); // <--- Half-second delay
   });
 }
 
