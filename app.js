@@ -1188,17 +1188,26 @@ function showInputModal(title, initialValue = "", placeholder = "", type = "text
 
 function closeInputModal(value) {
   customInputModal.classList.add('hidden');
-  customInputField.blur(); 
+  customInputField.blur(); // Hide keyboard
   
   // Clean Reset
   const modalContainer = document.querySelector('.input-modal-card');
   if (modalContainer) modalContainer.style.transform = 'scale(1) translateY(0)';
 
+  // Resolve the promise
   if (currentInputResolve) {
       currentInputResolve(value);
       currentInputResolve = null;
   }
+
+  // SCROLL TO TOP (Only if saved, not cancelled)
+  if (value !== null) {
+      setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 300); // Wait for keyboard to dismiss
+  }
 }
+
 
 // Event Listeners for the Modal
 if (customInputSave) {
