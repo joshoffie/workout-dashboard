@@ -1123,6 +1123,109 @@ function moveItem(type, index, direction) {
     }
 }
 
+// =====================================================
+// CUSTOM INPUT MODAL ENGINE (Native Replacement)
+// =====================================================
+const customInputModal = document.getElementById('customInputModal');
+const customInputTitle = document.getElementById('customInputTitle');
+const customInputField = document.getElementById('customInputField');
+const customInputCount = document.getElementById('customInputCount');
+const customInputSave = document.getElementById('customInputSave');
+const customInputCancel = document.getElementById('customInputCancel');
+
+let currentInputResolve = null; // Stores the Promise resolve function
+
+function showInputModal(title, initialValue = "", placeholder = "", type = "text") {
+  return new Promise((resolve) => {
+    // 1. Setup State
+    currentInputResolve = resolve; // Save reference to resolve later
+    
+    // 2. Setup UI
+    customInputTitle.textContent = title;
+    customInputField.value = initialValue;
+    customInputField.placeholder = placeholder;
+    customInputCount.textContent = `${initialValue.length}/40`;
+    
+    // 3. Setup Keyboard Type
+    if (type === 'number') {
+        customInputField.setAttribute('inputmode', 'decimal');
+        customInputField.setAttribute('type', 'number');
+    } else {
+        customInputField.setAttribute('inputmode', 'text');
+        customInputField.setAttribute('type', 'text');
+    }
+
+    // 4. Show Modal
+    customInputModal.classList.remove('hidden');
+    
+    // 5. Focus Input (Small delay for animation)
+    setTimeout(() => {
+        customInputField.focus();
+        // Select all text if editing
+        if (initialValue) customInputField.select();
+    }, 100);
+  });
+}
+
+function closeInputModal(value) {
+  customInputModal.classList.add('hidden');
+  customInputField.blur(); // Hide keyboard
+  
+  if (currentInputResolve) {
+      currentInputResolve(value);
+      currentInputResolve = null;
+  }
+}
+
+// Event Listeners for the Modal
+if (customInputSave) {
+    customInputSave.onclick = () => {
+        const val = customInputField.value.trim();
+        if (!val) {
+            // Shake animation if empty?
+            customInputField.parentElement.style.borderColor = 'var(--color-red)';
+            setTimeout(() => customInputField.parentElement.style.borderColor = '', 500);
+            return;
+        }
+        
+        // Success Haptic
+        if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4); // Success pulse
+        
+        // Visual Confirm
+        customInputSave.classList.add('btn-save-anim');
+        setTimeout(() => {
+             customInputSave.classList.remove('btn-save-anim');
+             closeInputModal(val);
+        }, 200);
+    };
+}
+
+if (customInputCancel) {
+    customInputCancel.onclick = () => {
+        closeInputModal(null); // Resolve with null
+    };
+}
+
+// Character Count & Haptic on Type
+if (customInputField) {
+    customInputField.oninput = (e) => {
+        const len = e.target.value.length;
+        customInputCount.textContent = `${len}/40`;
+        // Limit
+        if (len > 40) {
+            e.target.value = e.target.value.substring(0, 40);
+            customInputCount.style.color = 'var(--color-red)';
+        } else {
+            customInputCount.style.color = '#555';
+        }
+    };
+    
+    // Enter key to save
+    customInputField.onkeydown = (e) => {
+        if (e.key === 'Enter') customInputSave.click();
+    };
+}
+
 // ------------------ RENDER CLIENTS ------------------
 function renderClients() {
     if (clientList) clientList.innerHTML = ""; // Safety check added
@@ -1207,11 +1310,11 @@ function renderClients() {
   hookEditables();
 }
 
-document.getElementById("addClientBtn").onclick = () => {
-  const name = prompt("Enter name:");
+document.getElementById("addClientBtn").onclick = async () => {
+  const name = await showInputModal("New Profile Name", "", "e.g., Mike");
   if (!name) return;
+  
   if (clientsData[name]) { alert("Client already exists."); return; }
-  // NEW: Add default order index
   const newOrder = Object.keys(clientsData).length;
   clientsData[name] = { client_name: name, sessions: [], order: newOrder };
   saveUserJson(); renderClients();
@@ -1233,12 +1336,12 @@ function getSortedSessions(sessionsArray) {
   // REMOVED FORCED DATE SORTING TO ALLOW MANUAL ORDERING
   return sessionsArray || [];
 }
-
-document.getElementById("addSessionBtn").onclick = () => {
-  if (!selectedClient) { alert("Select a client first"); return;
-  }
-  const name = prompt("Enter session name:");
+document.getElementById("addSessionBtn").onclick = async () => {
+  if (!selectedClient) { alert("Select a client first"); return; }
+  
+  const name = await showInputModal("New Session Name", "", "e.g., Push Day");
   if (!name) return;
+
   const session = { session_name: name, exercises: [], date: new Date().toISOString() };
   clientsData[selectedClient].sessions.push(session);
   saveUserJson(); renderSessions();
@@ -1331,13 +1434,13 @@ function selectSession(sessionObject) {
 }
 
 const exerciseList = document.getElementById("exerciseList");
-document.getElementById("addExerciseBtn").onclick = () => {
+document.getElementById("addExerciseBtn").onclick = async () => {
   if (!selectedSession) { alert("Select a session first"); return; }
   
-  const name = prompt("Enter exercise name:");
+  const name = await showInputModal("New Exercise", "", "e.g., Bench Press");
   if (!name) return;
 
-  // NEW: Character Limit Check
+  // NEW: Character Limit Check (Redundant now due to modal limit, but good safety)
   if (name.length > 41) {
     alert(`Exercise name is too long (${name.length} chars).\nPlease limit to 41 characters.`);
     return;
@@ -2366,59 +2469,59 @@ editToggleBtn.onclick = () => {
 function makeEditable(element, type, parentIdx, sortedSets) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
-  element.addEventListener("click", (e) => {
+  
+  // Need async listener
+  element.addEventListener("click", async (e) => {
     if (!editMode) return;
     e.stopPropagation();
     
-    // --- FIX START: Sanitize text to replace Non-Breaking Spaces with regular spaces ---
+    // Sanitize text
     const rawText = element.textContent;
     const currentVal = rawText.replace(/\u00A0/g, ' '); 
-    // --- FIX END ---
 
-    const newVal = prompt(`Edit ${type}:`, currentVal);
+    // Determine Input Type (Number vs Text)
+    const isNumeric = (type.includes('Reps') || type.includes('Weight'));
+    const inputType = isNumeric ? 'number' : 'text';
+
+    // --- USE CUSTOM MODAL INSTEAD OF PROMPT ---
+    const newVal = await showInputModal(`Edit ${type}`, currentVal, "", inputType);
+    
     if (!newVal || newVal === currentVal) return;
     
     let originalIndex = -1;
     if (type.startsWith("Set")) {
-        const sortedSetObject = sortedSets[parentIdx];
-        if (!sortedSetObject) return;
-        originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
-        if (originalIndex === -1) return;
+       const sortedSetObject = sortedSets[parentIdx];
+       if (!sortedSetObject) return;
+       originalIndex = selectedExercise.sets.indexOf(sortedSetObject);
+       if (originalIndex === -1) return;
     }
  
     switch(type) {
       case "Client":
         if (clientsData[currentVal]) {
             const data = clientsData[currentVal];
-            
-            // OPTIMIZED RENAME: Delete the old ID from Firestore
-            deleteClientFromFirestore(currentVal); // <--- Add this
-
-            delete clientsData[currentVal]; 
+            await deleteClientFromFirestore(currentVal);
+            delete clientsData[currentVal];
             data.client_name = newVal; 
             clientsData[newVal] = data; 
             if (selectedClient === currentVal) selectedClient = newVal;
-            renderClients(); 
+            renderClients();
         }
         break;
       case "Session":
         if (clientsData[selectedClient]) {
-            const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal); 
+            const sessionToEdit = clientsData[selectedClient].sessions.find(s => s.session_name === currentVal);
             if (sessionToEdit) {
-                sessionToEdit.session_name = newVal; 
+                sessionToEdit.session_name = newVal;
                 renderSessions(); 
             }
         }
         break;
       case "Exercise":
         if (selectedSession) {
-            // <--- NEW: Validation Logic for Rename
             if (newVal.length > 41) {
-                alert(`Exercise name is too long (${newVal.length} chars).\nPlease keep it under 41 characters.`);
-                return;
+                alert("Name too long."); return;
             }
-            // -----------------------------------
-
             const exerciseToEdit = selectedSession.exercises.find(ex => ex.exercise === currentVal);
             if(exerciseToEdit) {
                 exerciseToEdit.exercise = newVal;
@@ -2428,29 +2531,17 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
       case "Set Reps":
         selectedExercise.sets[originalIndex].reps = parseInt(newVal) || selectedExercise.sets[originalIndex].reps;
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
+        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight;
         renderSets(); 
         break;
       case "Set Weight":
-                    // Inside makeEditable... case "Set Weight":
-        
-        // 1. Get raw input (User types "100" meaning 100kg)
         const userVal = parseFloat(newVal);
-        
         if (!isNaN(userVal)) {
-            // 2. Convert to LBS for storage
             const storageVal = UNIT_mode.toStorage(userVal);
-        
             selectedExercise.sets[originalIndex].weight = storageVal;
-        
-            // 3. Recalculate Volume (LBS * Reps)
             selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * storageVal;
-        
             renderSets();
         }
-        selectedExercise.sets[originalIndex].weight = parseFloat(newVal) || selectedExercise.sets[originalIndex].weight; 
-        selectedExercise.sets[originalIndex].volume = selectedExercise.sets[originalIndex].reps * selectedExercise.sets[originalIndex].weight; 
-        renderSets(); 
         break;
       case "Set Notes":
         selectedExercise.sets[originalIndex].notes = newVal;
@@ -2458,8 +2549,6 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
     }
     saveUserJson();
-
-    // --- NEW LINE: Auto-exit edit mode after saving ---
     exitEditMode();
   });
 }
