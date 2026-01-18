@@ -1135,35 +1135,42 @@ const customInputCancel = document.getElementById('customInputCancel');
 
 let currentInputResolve = null; // Stores the Promise resolve function
 
+// [app.js] Updated Modal Logic (Instant Focus Fix)
 function showInputModal(title, initialValue = "", placeholder = "", type = "text") {
   return new Promise((resolve) => {
     // 1. Setup State
-    currentInputResolve = resolve; // Save reference to resolve later
+    currentInputResolve = resolve; 
     
-    // 2. Setup UI
-    customInputTitle.textContent = title;
-    customInputField.value = initialValue;
-    customInputField.placeholder = placeholder;
-    customInputCount.textContent = `${initialValue.length}/40`;
-    
-    // 3. Setup Keyboard Type
+    // 2. Setup Keyboard Type (Do this BEFORE setting value to avoid conflicts)
     if (type === 'number') {
-        customInputField.setAttribute('inputmode', 'decimal');
+        customInputField.setAttribute('inputmode', 'decimal'); 
         customInputField.setAttribute('type', 'number');
     } else {
         customInputField.setAttribute('inputmode', 'text');
         customInputField.setAttribute('type', 'text');
     }
 
+    // 3. Setup UI Content
+    customInputTitle.textContent = title;
+    customInputField.value = initialValue;
+    customInputField.placeholder = placeholder;
+    customInputCount.textContent = `${initialValue.length}/40`;
+
     // 4. Show Modal
     customInputModal.classList.remove('hidden');
     
-    // 5. Focus Input (Small delay for animation)
-    setTimeout(() => {
-        customInputField.focus();
-        // Select all text if editing
-        if (initialValue) customInputField.select();
-    }, 100);
+    // 5. CRITICAL FIX: Force Reflow & Focus Immediately
+    // By reading 'offsetWidth', we force the browser to render the modal (remove display:none) 
+    // instantly, allowing the subsequent .focus() to work within the same click event loop.
+    void customInputModal.offsetWidth; 
+    
+    // Trigger keyboard instantly
+    customInputField.focus();
+    
+    // 6. Select text (if value exists)
+    if (initialValue) {
+        try { customInputField.select(); } catch(e) {}
+    }
   });
 }
 
