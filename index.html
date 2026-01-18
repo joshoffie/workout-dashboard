@@ -386,6 +386,21 @@
     <p id="installText"></p>
     <button id="closeInstallBtn" class="btn-text">Got it</button>
   </div>
+  <div id="customInputModal" class="overlay hidden" style="z-index: 10001;">
+    <div class="input-modal-card">
+      <h3 id="customInputTitle" class="input-modal-title">New Item</h3>
+      
+      <div class="custom-input-wrapper">
+        <input type="text" id="customInputField" class="custom-input-field" placeholder="Type here..." autocomplete="off">
+        <div id="customInputCount" class="input-char-limit">0/40</div>
+      </div>
+      
+      <div class="modal-actions-row">
+        <button id="customInputCancel" class="btn btn-secondary">Cancel</button>
+        <button id="customInputSave" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
