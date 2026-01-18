@@ -1135,13 +1135,12 @@ const customInputCancel = document.getElementById('customInputCancel');
 
 let currentInputResolve = null; // Stores the Promise resolve function
 
-// [app.js] Updated Modal Logic (Instant Focus Fix)
+// [app.js] Updated showInputModal (With Reset & Safety Poll)
 function showInputModal(title, initialValue = "", placeholder = "", type = "text") {
   return new Promise((resolve) => {
-    // 1. Setup State
     currentInputResolve = resolve; 
     
-    // 2. Setup Keyboard Type (Do this BEFORE setting value to avoid conflicts)
+    // Setup Type
     if (type === 'number') {
         customInputField.setAttribute('inputmode', 'decimal'); 
         customInputField.setAttribute('type', 'number');
@@ -1150,34 +1149,39 @@ function showInputModal(title, initialValue = "", placeholder = "", type = "text
         customInputField.setAttribute('type', 'text');
     }
 
-    // 3. Setup UI Content
+    // Setup Content
     customInputTitle.textContent = title;
     customInputField.value = initialValue;
     customInputField.placeholder = placeholder;
     customInputCount.textContent = `${initialValue.length}/40`;
 
-    // 4. Show Modal
+    // Reset Position (CRITICAL for the "second time" bug)
+    const modalContainer = document.querySelector('.input-modal-card');
+    if (modalContainer) modalContainer.style.transform = 'scale(1) translateY(0)';
+
+    // Show
     customInputModal.classList.remove('hidden');
+    void customInputModal.offsetWidth; // Force Reflow
     
-    // 5. CRITICAL FIX: Force Reflow & Focus Immediately
-    // By reading 'offsetWidth', we force the browser to render the modal (remove display:none) 
-    // instantly, allowing the subsequent .focus() to work within the same click event loop.
-    void customInputModal.offsetWidth; 
-    
-    // Trigger keyboard instantly
+    // Focus
     customInputField.focus();
-    
-    // 6. Select text (if value exists)
-    if (initialValue) {
-        try { customInputField.select(); } catch(e) {}
-    }
+    if (initialValue) { try { customInputField.select(); } catch(e) {} }
+
+    // TRIGGER SAFETY POLL
+    // This forces the app to check for the keyboard repeatedly 
+    // while it slides up, ensuring it catches the resize event.
+    if (typeof startKeyboardPoll === 'function') startKeyboardPoll();
   });
 }
 
 function closeInputModal(value) {
   customInputModal.classList.add('hidden');
-  customInputField.blur(); // Hide keyboard
+  customInputField.blur(); 
   
+  // Clean Reset
+  const modalContainer = document.querySelector('.input-modal-card');
+  if (modalContainer) modalContainer.style.transform = 'scale(1) translateY(0)';
+
   if (currentInputResolve) {
       currentInputResolve(value);
       currentInputResolve = null;
@@ -4482,42 +4486,51 @@ function sendHapticScoreToNative(greenScore) {
 }
 
 // =====================================================
-// IOS KEYBOARD FIX (Visual Viewport Adjustment)
+// IOS KEYBOARD FIX V2 (Robust & Polling)
 // =====================================================
-if (window.visualViewport) {
-    const adjustModalPosition = () => {
-        const modalContainer = document.querySelector('.input-modal-card');
-        const overlay = document.getElementById('customInputModal');
-        
-        // Only run if the modal is actually visible
-        if (!overlay || overlay.classList.contains('hidden') || !modalContainer) return;
 
-        // Calculate how much screen height we lost (Keyboard height)
-        // window.innerHeight = Total Screen
-        // visualViewport.height = Visible Screen above keyboard
+// 1. Define the adjuster globally so we can call it manually
+function adjustModalPosition() {
+    const modalContainer = document.querySelector('.input-modal-card');
+    const overlay = document.getElementById('customInputModal');
+    
+    // Only run if the modal is actually visible
+    if (!overlay || overlay.classList.contains('hidden') || !modalContainer) return;
+
+    if (window.visualViewport) {
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
         const heightLost = windowHeight - viewportHeight;
 
-        // If keyboard is open (heightLost > 100px), shift up.
-        // We shift up by half the lost height to re-center it in the visible area.
-        if (heightLost > 50) {
-            // "scale(1)" maintains the original size. 
-            // "translateY" moves it up.
-            const shiftAmount = Math.floor(heightLost / 2);
+        // Threshold: If we lost more than 150px, the keyboard is likely open
+        if (heightLost > 150) {
+            // Shift up by slightly less than half to keep some top-margin breathing room
+            // Using a fixed offset calculation is often more stable than centering exactly
+            const shiftAmount = Math.floor(heightLost / 2) + 20; 
             modalContainer.style.transform = `scale(1) translateY(-${shiftAmount}px)`;
         } else {
-            // Keyboard closed: Reset to default center
+            // Keyboard closed
             modalContainer.style.transform = 'scale(1) translateY(0)';
         }
-    };
+    }
+}
 
-    // Listen for resize (keyboard open/close) and scroll
+// 2. Attach Listeners (Passive monitoring)
+if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', adjustModalPosition);
     window.visualViewport.addEventListener('scroll', adjustModalPosition);
-    
-    // Also trigger it whenever we open the modal
-    // We hook into your existing showInputModal logic implicitly by adding a listener
-    // But since we can't easily modify the promise function inside the promise, 
-    // we just rely on the resize event which fires immediately when the input focuses.
+}
+
+// 3. Helper to "Poll" for changes (The safety net)
+// This checks the screen size every 50ms for a short time to catch the animation
+let keyboardPollInterval = null;
+
+function startKeyboardPoll() {
+    if (keyboardPollInterval) clearInterval(keyboardPollInterval);
+    let checks = 0;
+    keyboardPollInterval = setInterval(() => {
+        adjustModalPosition();
+        checks++;
+        if (checks > 15) clearInterval(keyboardPollInterval); // Stop after 750ms
+    }, 50);
 }
