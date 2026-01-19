@@ -1989,9 +1989,7 @@ function renderSets() {
       const summary = document.createElement("div");
         const dispWeight = UNIT_mode.toDisplay(s.weight);
         const dispVol = UNIT_mode.toDisplay(s.volume);
-        const uLabel = UNIT_mode.getLabel();
-        const currentNotes = s.notes || ""; // Grab notes early for preview
-        
+        const uLabel = UNIT_mode.getLabel();        
       summary.className = "set-summary";
         summary.innerHTML = `
         <div class="set-index-badge">${setIdx + 1}</div>
