@@ -2075,27 +2075,32 @@ function renderSets() {
 
       // 2. Define the Save & Cleanup Action
       const finishEditing = () => {
-          // A. Save the note
-          selectedExercise.sets[originalIndex].notes = noteInput.value;
+          const val = noteInput.value.trim();
+
+          // A. Save to Data
+          selectedExercise.sets[originalIndex].notes = val;
           saveUserJson();
 
-          // B. THE FIX: Reset the global window position.
-          // This prevents the "website mode" glitch where the header is cut off,
-          // but it DOES NOT scroll your list. You stay exactly where you are.
+          // B. SURGICAL UPDATE: Update the preview text immediately!
+          const previewEl = summary.querySelector(".set-note-preview");
+          if (previewEl) {
+              previewEl.textContent = val ? '"' + val + '"' : '';
+          }
+
+          // C. Reset Viewport (Fixes the "Website Mode" bug)
           setTimeout(() => {
               window.scrollTo(0, 0); 
           }, 100);
       };
 
-      // 3. Trigger on "Done" (The Checkmark)
-      // When you tap the checkmark, the input loses focus (change event), running the code above.
+      // 3. Trigger on "Done" (Blur event)
       noteInput.addEventListener("change", finishEditing);
 
       // 4. Trigger on "Return" key
       noteInput.addEventListener("keydown", (e) => {
           if (e.key === 'Enter') {
-              e.preventDefault(); // Stop new line
-              noteInput.blur();   // dismiss keyboard -> triggers 'change' -> runs finishEditing()
+              e.preventDefault(); 
+              noteInput.blur(); // Triggers 'change' -> runs finishEditing()
           }
       });
 
