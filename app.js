@@ -1990,15 +1990,22 @@ function renderSets() {
         const dispWeight = UNIT_mode.toDisplay(s.weight);
         const dispVol = UNIT_mode.toDisplay(s.volume);
         const uLabel = UNIT_mode.getLabel();
+        const currentNotes = s.notes || ""; // Grab notes early for preview
         
       summary.className = "set-summary";
-      summary.innerHTML = `
+        summary.innerHTML = `
         <div class="set-index-badge">${setIdx + 1}</div>
+        
         <div class="set-main-data">
           <span class="set-reps-val">${s.reps}</span>
           <span class="set-x">x</span>
           <span class="set-weight-val">${dispWeight}<span style="font-size:0.7em; margin-left:2px;">${uLabel}</span></span>
         </div>
+
+        <div class="set-note-preview">
+           ${currentNotes ? '"' + currentNotes + '"' : ''}
+        </div>
+
         <div class="set-meta-data">
           <span class="set-vol">${Math.round(dispVol).toLocaleString()} ${uLabel}</span>
           <span class="set-date">${dateStr}</span>
