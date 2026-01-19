@@ -52,7 +52,13 @@
   scroll-behavior: smooth;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent; /* <--- Kills the gray flash box */
+  outline: none; /* <--- Kills the focus outline box */
+}
 body { background-color: var(--color-bg); color: var(--color-text); min-height: 100vh;
 }
 .hidden { display: none !important; }
@@ -213,10 +219,19 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   transition: transform 0.3s ease;
 }
 
-#settingsBtn:hover {
-  transform: rotate(45deg); /* Nice little rotation effect */
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
+/* Only rotate and show background if the user has a mouse */
+@media (hover: hover) {
+  #settingsBtn:hover {
+    transform: rotate(45deg);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* On touch, just do the click animation (optional, but feels better) */
+#settingsBtn:active {
+  transform: scale(0.9);
+  background: transparent; /* Ensures no box sticks */
 }
 
 /* Ensure settings items (like Logout) justify space properly */
@@ -306,8 +321,22 @@ td .btn-delete {
   opacity: 1;
   transform: scale(1);
 }
+
 .btn-move { color: var(--color-text-muted); font-size: 1.2rem; }
-.btn-move:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.1); }
+
+/* Only show background on mouse hover */
+@media (hover: hover) {
+  .btn-move:hover { 
+    color: var(--color-text); 
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* On touch, ensure background stays clean */
+.btn-move:active {
+  background: transparent;
+  opacity: 0.6; /* Simple visual feedback instead of a box */
+}
 
 .edit-mode-active .editable { color: var(--color-primary) !important; text-decoration: underline dashed 1px; }
 
