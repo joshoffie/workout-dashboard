@@ -2058,13 +2058,35 @@ function renderSets() {
           }
       };
 
-      // --- LOGIC: Note Autosave ---
+// --- LOGIC: Note Autosave ---
       const noteInput = details.querySelector(".set-note-input");
       const charCount = details.querySelector(".char-count");
-      noteInput.addEventListener("input", (e) => { charCount.textContent = `${e.target.value.length}/40`; });
-      noteInput.addEventListener("change", (e) => {
-         selectedExercise.sets[originalIndex].notes = e.target.value;
-         saveUserJson();
+
+      // 1. Update character count while typing
+      noteInput.addEventListener("input", (e) => { 
+          charCount.textContent = `${e.target.value.length}/40`; 
+      });
+
+      // 2. Handle "Done" / Save
+      const finishEditing = () => {
+          selectedExercise.sets[originalIndex].notes = noteInput.value;
+          saveUserJson();
+          
+          // ROBUST FIX: Wait 100ms for keyboard to fully close, then force scroll top
+          setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
+      };
+
+      // Trigger on blur (hitting "Done" or clicking away)
+      noteInput.addEventListener("change", finishEditing);
+
+      // Trigger on "Enter" key (prevents new lines, acts as Done)
+      noteInput.addEventListener("keydown", (e) => {
+          if (e.key === 'Enter') {
+              e.preventDefault(); // Stop new line
+              noteInput.blur();   // trigger 'change' event -> finishEditing()
+          }
       });
 
       // --- LOGIC: Delete ---
