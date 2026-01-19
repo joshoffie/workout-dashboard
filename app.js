@@ -2062,30 +2062,35 @@ function renderSets() {
       const noteInput = details.querySelector(".set-note-input");
       const charCount = details.querySelector(".char-count");
 
-      // 1. Update character count while typing
+      // 1. Live Character Count
       noteInput.addEventListener("input", (e) => { 
           charCount.textContent = `${e.target.value.length}/40`; 
       });
 
-      // 2. Handle "Done" / Save
+      // 2. Define the Save & Scroll Action
       const finishEditing = () => {
+          // A. Save the note
           selectedExercise.sets[originalIndex].notes = noteInput.value;
           saveUserJson();
-          
-          // ROBUST FIX: Wait 100ms for keyboard to fully close, then force scroll top
-          setTimeout(() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-          }, 100);
+
+          // B. FIX: Scroll the *Screen Container*, not the Window
+          const setsScreen = document.getElementById('setsDiv');
+          if (setsScreen) {
+              // Wait 50ms for the keyboard to begin closing, then scroll
+              setTimeout(() => {
+                  setsScreen.scrollTo({ top: 0, behavior: 'smooth' });
+              }, 50);
+          }
       };
 
-      // Trigger on blur (hitting "Done" or clicking away)
+      // 3. Trigger on "Done" (Blur event)
       noteInput.addEventListener("change", finishEditing);
 
-      // Trigger on "Enter" key (prevents new lines, acts as Done)
+      // 4. Trigger on "Enter" / "Return" key
       noteInput.addEventListener("keydown", (e) => {
           if (e.key === 'Enter') {
-              e.preventDefault(); // Stop new line
-              noteInput.blur();   // trigger 'change' event -> finishEditing()
+              e.preventDefault(); // Prevent new line
+              noteInput.blur();   // Close keyboard -> Triggers 'change' -> runs finishEditing()
           }
       });
 
