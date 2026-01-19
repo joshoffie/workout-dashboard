@@ -2498,6 +2498,20 @@ editToggleBtn.onclick = () => {
   document.body.classList.toggle('edit-mode-active');
   if (!editMode) saveUserJson();
 };
+
+// [app.js] Fix for the "Edit" glitch
+function exitEditMode() {
+  editMode = false;
+  
+  const btn = document.getElementById("editToggleBtn");
+  if (btn) btn.textContent = "Edit";
+  
+  document.body.classList.remove('edit-mode-active');
+  
+  // Note: We do NOT call saveUserJson() here because 
+  // makeEditable() calls it explicitly right before this function.
+}
+
 function makeEditable(element, type, parentIdx, sortedSets) {
   element.classList.add("editable");
   element.style.cursor = "pointer";
@@ -2581,7 +2595,11 @@ function makeEditable(element, type, parentIdx, sortedSets) {
         break;
     }
     saveUserJson();
-    exitEditMode();
+    if (typeof exitEditMode === 'function') {
+        exitEditMode(); 
+    } else {
+        console.error("exitEditMode missing"); // Safety fallback
+    }
   });
 }
 
