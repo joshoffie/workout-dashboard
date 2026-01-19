@@ -219,10 +219,15 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   transition: transform 0.3s ease;
 }
 
-/* Only rotate and show background if the user has a mouse */
+/* 1. Animation: Rotate on Hover (Mouse) AND Active (Touch press) */
+#settingsBtn:hover,
+#settingsBtn:active {
+  transform: rotate(45deg);
+}
+
+/* 2. Background Box: ONLY show this if the user has a mouse */
 @media (hover: hover) {
   #settingsBtn:hover {
-    transform: rotate(45deg);
     background: rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-sm);
   }
