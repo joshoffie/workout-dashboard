@@ -2067,30 +2067,29 @@ function renderSets() {
           charCount.textContent = `${e.target.value.length}/40`; 
       });
 
-      // 2. Define the Save & Scroll Action
+      // 2. Define the Save & Cleanup Action
       const finishEditing = () => {
           // A. Save the note
           selectedExercise.sets[originalIndex].notes = noteInput.value;
           saveUserJson();
 
-          // B. FIX: Scroll the *Screen Container*, not the Window
-          const setsScreen = document.getElementById('setsDiv');
-          if (setsScreen) {
-              // Wait 50ms for the keyboard to begin closing, then scroll
-              setTimeout(() => {
-                  setsScreen.scrollTo({ top: 0, behavior: 'smooth' });
-              }, 50);
-          }
+          // B. THE FIX: Reset the global window position.
+          // This prevents the "website mode" glitch where the header is cut off,
+          // but it DOES NOT scroll your list. You stay exactly where you are.
+          setTimeout(() => {
+              window.scrollTo(0, 0); 
+          }, 100);
       };
 
-      // 3. Trigger on "Done" (Blur event)
+      // 3. Trigger on "Done" (The Checkmark)
+      // When you tap the checkmark, the input loses focus (change event), running the code above.
       noteInput.addEventListener("change", finishEditing);
 
-      // 4. Trigger on "Enter" / "Return" key
+      // 4. Trigger on "Return" key
       noteInput.addEventListener("keydown", (e) => {
           if (e.key === 'Enter') {
-              e.preventDefault(); // Prevent new line
-              noteInput.blur();   // Close keyboard -> Triggers 'change' -> runs finishEditing()
+              e.preventDefault(); // Stop new line
+              noteInput.blur();   // dismiss keyboard -> triggers 'change' -> runs finishEditing()
           }
       });
 
