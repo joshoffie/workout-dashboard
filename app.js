@@ -3179,6 +3179,7 @@ const KEY_GLOBAL_TIMER = "trunk_last_active_timer";
 const TIMER_LIMIT_MS = 1800000; // 30 Minutes
 
 let masterTimerInterval = null;
+let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
 
 // 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
@@ -3203,19 +3204,51 @@ function startRestTimer(reset = false) {
         masterClockTick();
         
         // ---------------------------------------------------------
-        // D. TRIGGER NATIVE LIVE ACTIVITY
+        // D. TRIGGER HAPTICS & NOTIFICATIONS (HYBRID SYSTEM)
+        // ---------------------------------------------------------
+        
+        // 1. Cleanup Old Timers
+        // Clear JS timeouts (Foreground)
+        foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+        foregroundHapticTimeouts = [];
+        
+        // Clear Native Notifications (Background)
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            window.webkit.messageHandlers.notificationHandler.postMessage("cancel");
+        }
+
+        // 2. Schedule New Timers
+        // Tell Native to schedule background alerts (1m, 3m, 10m)
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
+        }
+
+        // Schedule JS Foreground Haptics (In case app stays open)
+        // 1 Minute (Code 10)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+        }, 60000));
+        
+        // 3 Minutes (Code 30)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
+        }, 180000));
+
+        // 10 Minutes (Code 100)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
+        }, 600000));
+
+        // ---------------------------------------------------------
+        // E. TRIGGER LIVE ACTIVITY (LOCK SCREEN WIDGET)
         // ---------------------------------------------------------
         try {
             const sets = selectedExercise.sets;
-            
-            // Safety Check: Ensure sets exist
             if (sets && sets.length > 0) {
                 const lastSet = sets[sets.length - 1]; 
 
-                // Check: Does the native handler exist?
                 if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
                     
-                    // Format Weight (Metric vs Imperial)
                     let displayWeight = lastSet.weight;
                     let unitLabel = "lbs";
                     
@@ -3226,7 +3259,6 @@ function startRestTimer(reset = false) {
                     
                     const weightString = `${displayWeight} ${unitLabel}`;
 
-                    // Send Payload
                     const payload = {
                         exercise: selectedExercise.exercise,
                         weight: weightString,
@@ -3308,11 +3340,45 @@ function formatTimer(ms) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-// 3. INIT (Start the loop)
+// 3. INIT (Start the loop & Restore Haptics)
 function initMasterClock() {
     if (masterTimerInterval) clearInterval(masterTimerInterval);
-    masterClockTick(); // Run once immediately
+    masterClockTick(); 
     masterTimerInterval = setInterval(masterClockTick, 1000);
+
+    // --- REHYDRATE FOREGROUND HAPTICS ---
+    // If user refreshes, we restore the specific haptic timeouts
+    // so they don't miss the buzz if the app is open.
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+    if (rawGlobal) {
+        try {
+            const data = JSON.parse(rawGlobal);
+            const elapsed = Date.now() - parseInt(data.time);
+            
+            // Clear lists first
+            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+            foregroundHapticTimeouts = [];
+
+            // If < 1 min, schedule 1m buzz
+            if (elapsed < 60000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                }, 60000 - elapsed));
+            }
+            // If < 3 mins, schedule 3m buzz
+            if (elapsed < 180000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
+                }, 180000 - elapsed));
+            }
+            // If < 10 mins, schedule 10m buzz
+            if (elapsed < 600000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
+                }, 600000 - elapsed));
+            }
+        } catch(e) { console.error("Rehydrate error", e); }
+    }
 }
 
 // Start the engine
