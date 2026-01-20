@@ -3175,74 +3175,148 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // =====================================================
 
 // Single source of truth for the Header Timer
-const KEY_GLOBAL_TIMER = "trunk_last_active_timer"; 
-
-// 30 Minutes in milliseconds (30 * 60 * 1000)
-const TIMER_LIMIT_MS = 1800000; 
+const KEY_GLOBAL_TIMER = "trunk_last_active_timer";
+const TIMER_LIMIT_MS = 1800000; // 30 Minutes
 
 let masterTimerInterval = null;
 
 // 1. TRIGGER (Only called when user actively saves a new set)
-// [app.js] - Updated startRestTimer function
-
 function startRestTimer(reset = false) {
-    if (!selectedExercise) return; [cite_start]// [cite: 688]
+    if (!selectedExercise) return;
 
+    // Only update if we are explicitly resetting (New Set Input)
     if (reset) {
-        const now = Date.now(); [cite_start]// [cite: 689]
+        const now = Date.now();
         
-        // 1. Standard App Logic (Existing)
+        // A. Update LOCAL Exercise History
         const localKey = `restTimer_${selectedExercise.exercise}`;
-        localStorage.setItem(localKey, now); [cite_start]// [cite: 691]
+        localStorage.setItem(localKey, now);
 
+        // B. Update GLOBAL History
         const globalData = {
             time: now,
             label: selectedExercise.exercise
         };
-        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData)); [cite_start]// [cite: 693]
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
 
-        masterClockTick(); [cite_start]// [cite: 694]
+        // C. Force immediate UI update
+        masterClockTick();
         
         // ---------------------------------------------------------
-        // 2. NEW: TRIGGER NATIVE LIVE ACTIVITY
+        // D. TRIGGER NATIVE LIVE ACTIVITY
         // ---------------------------------------------------------
         try {
-            // A. Get the last set we just added (to show weight/reps)
-            // We use your existing helper function logic
             const sets = selectedExercise.sets;
-            const lastSet = sets[sets.length - 1]; // The one just added
+            
+            // Safety Check: Ensure sets exist
+            if (sets && sets.length > 0) {
+                const lastSet = sets[sets.length - 1]; 
 
-            if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
-                
-                // B. Format Weight using your Unit Converter
-                // (We want the user to see what they typed, e.g. "100 kg" not the raw "220 lbs")
-                let displayWeight = lastSet.weight;
-                let unitLabel = "lbs";
-                
-                if (typeof UNIT_mode !== 'undefined') {
-                    displayWeight = UNIT_mode.toDisplay(lastSet.weight); [cite_start]// [cite: 77]
-                    unitLabel = UNIT_mode.getLabel(); [cite_start]// [cite: 80]
+                // Check: Does the native handler exist?
+                if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
+                    
+                    // Format Weight (Metric vs Imperial)
+                    let displayWeight = lastSet.weight;
+                    let unitLabel = "lbs";
+                    
+                    if (typeof UNIT_mode !== 'undefined') {
+                        displayWeight = UNIT_mode.toDisplay(lastSet.weight);
+                        unitLabel = UNIT_mode.getLabel();
+                    }
+                    
+                    const weightString = `${displayWeight} ${unitLabel}`;
+
+                    // Send Payload
+                    const payload = {
+                        exercise: selectedExercise.exercise,
+                        weight: weightString,
+                        reps: String(lastSet.reps),
+                        startTime: now
+                    };
+
+                    window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
+                    console.log("🚀 Sent Live Activity Payload", payload);
                 }
-                
-                const weightString = `${displayWeight} ${unitLabel}`;
-
-                // C. Send Payload to Swift
-                const payload = {
-                    exercise: selectedExercise.exercise,
-                    weight: weightString,
-                    reps: String(lastSet.reps),
-                    startTime: now // This anchors the native timer to match the web timer perfectly
-                };
-
-                window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
-                console.log("🚀 Sent Live Activity Payload", payload);
             }
         } catch (err) {
             console.error("Live Activity Trigger Failed:", err);
         }
-        // ---------------------------------------------------------
     }
 }
+
+// 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
+function masterClockTick() {
+    const now = Date.now();
+    
+    // --- TASK 1: UPDATE GLOBAL HEADER ---
+    const globalEl = document.getElementById('globalHeaderTimer');
+    const globalText = document.getElementById('globalHeaderTimerText');
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+    
+    if (globalEl && globalText) {
+        if (!rawGlobal) {
+            globalEl.classList.add('hidden');
+        } else {
+            try {
+                const data = JSON.parse(rawGlobal);
+                const diff = now - parseInt(data.time);
+                
+                // EXPIRATION LOGIC (30 Mins)
+                if (diff > TIMER_LIMIT_MS) { 
+                    globalEl.classList.add('hidden');
+                    localStorage.removeItem(KEY_GLOBAL_TIMER);
+                } else {
+                    globalText.textContent = formatTimer(diff);
+                    globalEl.classList.remove('hidden');
+                }
+            } catch (e) { 
+                console.error("Timer parse error", e);
+                localStorage.removeItem(KEY_GLOBAL_TIMER);
+            }
+        }
+    }
+
+    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER ---
+    if (typeof SCREENS !== 'undefined' && currentScreen === SCREENS.SETS && selectedExercise) {
+        const localEl = document.getElementById('restTimer');
+        const localText = document.getElementById('restTimerText');
+        const localKey = `restTimer_${selectedExercise.exercise}`;
+        const localTime = localStorage.getItem(localKey);
+        
+        if (localEl && localText) {
+            if (!localTime) {
+                localEl.classList.add('hidden');
+            } else {
+                const diff = now - parseInt(localTime);
+                if (diff > TIMER_LIMIT_MS) {
+                    localEl.classList.add('hidden');
+                    localStorage.removeItem(localKey);
+                } else {
+                    localText.textContent = formatTimer(diff);
+                    localEl.classList.remove('hidden');
+                }
+            }
+        }
+    }
+}
+
+// Helper: Milliseconds -> MM:SS
+function formatTimer(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// 3. INIT (Start the loop)
+function initMasterClock() {
+    if (masterTimerInterval) clearInterval(masterTimerInterval);
+    masterClockTick(); // Run once immediately
+    masterTimerInterval = setInterval(masterClockTick, 1000);
+}
+
+// Start the engine
+initMasterClock();
 
 // 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
 function masterClockTick() {
