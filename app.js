@@ -3183,29 +3183,40 @@ let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
 
 // 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
-    if (!selectedExercise) return;
+    // DEBUG LOG 1: Did the function even start?
+    console.log("🔎 JS DEBUG: startRestTimer called. Reset is: " + reset);
 
-    // Only update if we are explicitly resetting (New Set Input)
+    if (!selectedExercise) {
+        console.log("❌ JS DEBUG: No selectedExercise, cancelling.");
+        return;
+    }
+
     if (reset) {
-        const now = Date.now();
+        console.log("🔎 JS DEBUG: Inside Reset Block. Attempting to contact Native...");
         
-        // A. Update LOCAL Exercise History
+        // ... (Your existing local storage code) ...
+        const now = Date.now();
         const localKey = `restTimer_${selectedExercise.exercise}`;
         localStorage.setItem(localKey, now);
-
-        // B. Update GLOBAL History
-        const globalData = {
-            time: now,
-            label: selectedExercise.exercise
-        };
-        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
-
-        // C. Force immediate UI update
-        masterClockTick();
         
+        const globalData = { time: now, label: selectedExercise.exercise };
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
+        
+        masterClockTick();
+
         // ---------------------------------------------------------
-        // D. TRIGGER HAPTICS & NOTIFICATIONS (HYBRID SYSTEM)
+        // D. TRIGGER HAPTICS & NOTIFICATIONS
         // ---------------------------------------------------------
+        
+        // DEBUG LOG 2: Checking the Bridge
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            console.log("🚀 JS DEBUG: Bridge found! Sending 'schedule' command now...");
+            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
+        } else {
+            console.error("❌ JS DEBUG: CRITICAL! 'notificationHandler' NOT FOUND in window.webkit.");
+        }
+        
+        // ... (The rest of your existing code for timeouts and haptics) ...
         
         // 1. Cleanup Old Timers
         // Clear JS timeouts (Foreground)
