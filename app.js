@@ -3183,27 +3183,64 @@ const TIMER_LIMIT_MS = 1800000;
 let masterTimerInterval = null;
 
 // 1. TRIGGER (Only called when user actively saves a new set)
-function startRestTimer(reset = false) {
-    if (!selectedExercise) return;
-    
-    // Only update if we are explicitly resetting (New Set Input)
-    if (reset) {
-        const now = Date.now();
-        
-        // A. Update LOCAL Exercise History (For this specific exercise page)
-        const localKey = `restTimer_${selectedExercise.exercise}`;
-        localStorage.setItem(localKey, now);
+// [app.js] - Updated startRestTimer function
 
-        // B. Update GLOBAL History (The Header)
-        // This OVERWRITES any previous global timer. There is no queue.
+function startRestTimer(reset = false) {
+    if (!selectedExercise) return; [cite_start]// [cite: 688]
+
+    if (reset) {
+        const now = Date.now(); [cite_start]// [cite: 689]
+        
+        // 1. Standard App Logic (Existing)
+        const localKey = `restTimer_${selectedExercise.exercise}`;
+        localStorage.setItem(localKey, now); [cite_start]// [cite: 691]
+
         const globalData = {
             time: now,
             label: selectedExercise.exercise
         };
-        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData)); [cite_start]// [cite: 693]
 
-        // C. Force immediate UI update
-        masterClockTick();
+        masterClockTick(); [cite_start]// [cite: 694]
+        
+        // ---------------------------------------------------------
+        // 2. NEW: TRIGGER NATIVE LIVE ACTIVITY
+        // ---------------------------------------------------------
+        try {
+            // A. Get the last set we just added (to show weight/reps)
+            // We use your existing helper function logic
+            const sets = selectedExercise.sets;
+            const lastSet = sets[sets.length - 1]; // The one just added
+
+            if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
+                
+                // B. Format Weight using your Unit Converter
+                // (We want the user to see what they typed, e.g. "100 kg" not the raw "220 lbs")
+                let displayWeight = lastSet.weight;
+                let unitLabel = "lbs";
+                
+                if (typeof UNIT_mode !== 'undefined') {
+                    displayWeight = UNIT_mode.toDisplay(lastSet.weight); [cite_start]// [cite: 77]
+                    unitLabel = UNIT_mode.getLabel(); [cite_start]// [cite: 80]
+                }
+                
+                const weightString = `${displayWeight} ${unitLabel}`;
+
+                // C. Send Payload to Swift
+                const payload = {
+                    exercise: selectedExercise.exercise,
+                    weight: weightString,
+                    reps: String(lastSet.reps),
+                    startTime: now // This anchors the native timer to match the web timer perfectly
+                };
+
+                window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
+                console.log("🚀 Sent Live Activity Payload", payload);
+            }
+        } catch (err) {
+            console.error("Live Activity Trigger Failed:", err);
+        }
+        // ---------------------------------------------------------
     }
 }
 
