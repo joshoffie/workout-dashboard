@@ -3203,131 +3203,129 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // =====================================================
 
 // =====================================================
-// MASTER TIMER ENGINE (Global + Local)
+// MASTER TIMER ENGINE (Customizable V2)
 // =====================================================
 
-// Single source of truth for the Header Timer
 const KEY_GLOBAL_TIMER = "trunk_last_active_timer";
-const TIMER_LIMIT_MS = 1800000; // 30 Minutes
+const KEY_TIMER_CONFIG = "trunk_timer_config_v1";
+const TIMER_LIMIT_MS = 3600000; // 60 Minutes (Extended for custom long timers)
 
 let masterTimerInterval = null;
-let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
+let foregroundHapticTimeouts = [];
 
-// 1. TRIGGER (Only called when user actively saves a new set)
-function startRestTimer(reset = false) {
-    // DEBUG LOG 1: Did the function even start?
-    console.log("🔎 JS DEBUG: startRestTimer called. Reset is: " + reset);
+// DEFAULT CONFIG: 1m, 3m, 10m
+const DEFAULT_TIMER_CONFIG = [
+    { id: 0, enabled: true, seconds: 60, label: "Short" },
+    { id: 1, enabled: true, seconds: 180, label: "Medium" },
+    { id: 2, enabled: true, seconds: 600, label: "Long" }
+];
 
-    if (!selectedExercise) {
-        console.log("❌ JS DEBUG: No selectedExercise, cancelling.");
-        return;
+let activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
+
+// 1. Load Config on Startup
+function loadTimerConfig() {
+    const saved = localStorage.getItem(KEY_TIMER_CONFIG);
+    if (saved) {
+        try {
+            activeTimerConfig = JSON.parse(saved);
+        } catch(e) {
+            activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
+        }
+    } else {
+        activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
     }
+}
+loadTimerConfig();
+
+// 2. TRIGGER FUNCTION
+function startRestTimer(reset = false) {
+    if (!selectedExercise) return;
 
     if (reset) {
-        console.log("🔎 JS DEBUG: Inside Reset Block. Attempting to contact Native...");
-        
-        // ... (Your existing local storage code) ...
         const now = Date.now();
+        // A. Storage
         const localKey = `restTimer_${selectedExercise.exercise}`;
         localStorage.setItem(localKey, now);
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify({ time: now, label: selectedExercise.exercise }));
         
-        const globalData = { time: now, label: selectedExercise.exercise };
-        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
-        
-        masterClockTick();
+        masterClockTick(); // Update UI immediately
 
-        // ---------------------------------------------------------
-        // D. TRIGGER HAPTICS & NOTIFICATIONS
-        // ---------------------------------------------------------
-        
-        // DEBUG LOG 2: Checking the Bridge
-        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            console.log("🚀 JS DEBUG: Bridge found! Sending 'schedule' command now...");
-            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
-        } else {
-            console.error("❌ JS DEBUG: CRITICAL! 'notificationHandler' NOT FOUND in window.webkit.");
-        }
-        
-        // ... (The rest of your existing code for timeouts and haptics) ...
-        
-        // 1. Cleanup Old Timers
-        // Clear JS timeouts (Foreground)
+        // B. CLEANUP OLD
         foregroundHapticTimeouts.forEach(id => clearTimeout(id));
         foregroundHapticTimeouts = [];
         
-        // Clear Native Notifications (Background)
+        // Cancel Native
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
             window.webkit.messageHandlers.notificationHandler.postMessage("cancel");
         }
 
-        // 2. Schedule New Timers
-        // Tell Native to schedule background alerts (1m, 3m, 10m)
-        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
-        }
-
-        // Schedule JS Foreground Haptics (In case app stays open)
-        // 1 Minute (Code 10)
-        foregroundHapticTimeouts.push(setTimeout(() => {
-            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
-        }, 60000));
+        // C. PREPARE NEW BATCH
+        const nativePayload = [];
         
-        // 3 Minutes (Code 30)
-        foregroundHapticTimeouts.push(setTimeout(() => {
-            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
-        }, 180000));
+        activeTimerConfig.forEach((timer) => {
+            if (!timer.enabled) return; // Skip disabled
+            
+            // 1. Schedule Foreground JS Haptic
+            const ms = timer.seconds * 1000;
+            foregroundHapticTimeouts.push(setTimeout(() => {
+                // Determine haptic intensity based on duration
+                let score = 10; // Default (Short)
+                if (timer.seconds >= 120) score = 30; // Medium
+                if (timer.seconds >= 400) score = 100; // Long (Flurry)
+                
+                if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(score);
+            }, ms));
 
-        // 10 Minutes (Code 100)
-        foregroundHapticTimeouts.push(setTimeout(() => {
-            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
-        }, 600000));
+            // 2. Prepare Background Native Notification
+            nativePayload.push({
+                seconds: parseFloat(timer.seconds),
+                title: `${formatSecondsToMMSS(timer.seconds)} Timer`,
+                body: "Time is up. Get back to work."
+            });
+        });
 
-        // ---------------------------------------------------------
-        // E. TRIGGER LIVE ACTIVITY (LOCK SCREEN WIDGET)
-        // ---------------------------------------------------------
-        try {
-            const sets = selectedExercise.sets;
-            if (sets && sets.length > 0) {
-                const lastSet = sets[sets.length - 1]; 
-
-                if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
-                    
-                    let displayWeight = lastSet.weight;
-                    let unitLabel = "lbs";
-                    
-                    if (typeof UNIT_mode !== 'undefined') {
-                        displayWeight = UNIT_mode.toDisplay(lastSet.weight);
-                        unitLabel = UNIT_mode.getLabel();
-                    }
-                    
-                    const weightString = `${displayWeight} ${unitLabel}`;
-
-                    const payload = {
-                        exercise: selectedExercise.exercise,
-                        weight: weightString,
-                        reps: String(lastSet.reps),
-                        startTime: now
-                    };
-
-                    window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
-                    console.log("🚀 Sent Live Activity Payload", payload);
-                }
-            }
-        } catch (err) {
-            console.error("Live Activity Trigger Failed:", err);
+        // D. SEND BATCH TO NATIVE
+        if (nativePayload.length > 0 && window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            const message = {
+                command: "schedule",
+                batches: nativePayload
+            };
+            window.webkit.messageHandlers.notificationHandler.postMessage(message);
         }
+
+        // E. Live Activity Logic (Existing)
+        try {
+           const sets = selectedExercise.sets;
+           if (sets && sets.length > 0) {
+               const lastSet = sets[sets.length - 1];
+               if (window.webkit && window.webkit.messageHandlers.liveActivityHandler) {
+                   let displayWeight = lastSet.weight;
+                   let unitLabel = "lbs";
+                   if (typeof UNIT_mode !== 'undefined') {
+                       displayWeight = UNIT_mode.toDisplay(lastSet.weight);
+                       unitLabel = UNIT_mode.getLabel();
+                   }
+                   const payload = {
+                       exercise: selectedExercise.exercise,
+                       weight: `${displayWeight} ${unitLabel}`,
+                       reps: String(lastSet.reps),
+                       startTime: now
+                   };
+                   window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
+               }
+           }
+        } catch (err) { console.error("Live Activity Error", err); }
     }
 }
 
-// 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
+// 3. MASTER TICK (Updates UI)
 function masterClockTick() {
     const now = Date.now();
-    
-    // --- TASK 1: UPDATE GLOBAL HEADER ---
     const globalEl = document.getElementById('globalHeaderTimer');
     const globalText = document.getElementById('globalHeaderTimerText');
-    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
     
+    // Check Global
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
     if (globalEl && globalText) {
         if (!rawGlobal) {
             globalEl.classList.add('hidden');
@@ -3335,8 +3333,6 @@ function masterClockTick() {
             try {
                 const data = JSON.parse(rawGlobal);
                 const diff = now - parseInt(data.time);
-                
-                // EXPIRATION LOGIC (30 Mins)
                 if (diff > TIMER_LIMIT_MS) { 
                     globalEl.classList.add('hidden');
                     localStorage.removeItem(KEY_GLOBAL_TIMER);
@@ -3344,14 +3340,11 @@ function masterClockTick() {
                     globalText.textContent = formatTimer(diff);
                     globalEl.classList.remove('hidden');
                 }
-            } catch (e) { 
-                console.error("Timer parse error", e);
-                localStorage.removeItem(KEY_GLOBAL_TIMER);
-            }
+            } catch (e) { localStorage.removeItem(KEY_GLOBAL_TIMER); }
         }
     }
-
-    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER ---
+    
+    // Check Local (Exercise Specific)
     if (typeof SCREENS !== 'undefined' && currentScreen === SCREENS.SETS && selectedExercise) {
         const localEl = document.getElementById('restTimer');
         const localText = document.getElementById('restTimerText');
@@ -3383,48 +3376,19 @@ function formatTimer(ms) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-// 3. INIT (Start the loop & Restore Haptics)
+// Helper: Seconds -> MM:SS (For Settings UI)
+function formatSecondsToMMSS(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// 4. INIT
 function initMasterClock() {
     if (masterTimerInterval) clearInterval(masterTimerInterval);
     masterClockTick(); 
     masterTimerInterval = setInterval(masterClockTick, 1000);
-
-    // --- REHYDRATE FOREGROUND HAPTICS ---
-    // If user refreshes, we restore the specific haptic timeouts
-    // so they don't miss the buzz if the app is open.
-    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
-    if (rawGlobal) {
-        try {
-            const data = JSON.parse(rawGlobal);
-            const elapsed = Date.now() - parseInt(data.time);
-            
-            // Clear lists first
-            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
-            foregroundHapticTimeouts = [];
-
-            // If < 1 min, schedule 1m buzz
-            if (elapsed < 60000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
-                }, 60000 - elapsed));
-            }
-            // If < 3 mins, schedule 3m buzz
-            if (elapsed < 180000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
-                }, 180000 - elapsed));
-            }
-            // If < 10 mins, schedule 10m buzz
-            if (elapsed < 600000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
-                }, 600000 - elapsed));
-            }
-        } catch(e) { console.error("Rehydrate error", e); }
-    }
 }
-
-// Start the engine
 initMasterClock();
 
 // Update the Screen & Button Text based on State
@@ -4770,3 +4734,118 @@ window.addEventListener('resize', () => {
         stableWindowHeight = window.innerHeight;
     }
 });
+// =====================================================
+// TIMER SETTINGS UI ENGINE
+// =====================================================
+
+const timerSettingsModal = document.getElementById('timerSettingsModal');
+const timerSettingsList = document.getElementById('timerSettingsList');
+const openTimerSettingsBtn = document.getElementById('openTimerSettingsBtn');
+const closeTimerSettingsBtn = document.getElementById('closeTimerSettingsBtn');
+
+// 1. OPEN
+if (openTimerSettingsBtn) {
+    openTimerSettingsBtn.onclick = () => {
+        loadTimerConfig(); // Refresh data
+        renderTimerSettings();
+        timerSettingsModal.classList.remove('hidden');
+    };
+}
+
+// 2. CLOSE
+if (closeTimerSettingsBtn) {
+    closeTimerSettingsBtn.onclick = () => {
+        timerSettingsModal.classList.add('hidden');
+    };
+}
+
+// 3. RENDER THE LIST
+function renderTimerSettings() {
+    if (!timerSettingsList) return;
+    timerSettingsList.innerHTML = '';
+    
+    activeTimerConfig.forEach((timer, index) => {
+        const row = document.createElement('div');
+        row.className = `timer-row ${timer.enabled ? '' : 'disabled'}`;
+        
+        // A. Toggle Switch
+        const switchContainer = document.createElement('div');
+        switchContainer.innerHTML = `
+            <label class="switch">
+                <input type="checkbox" ${timer.enabled ? 'checked' : ''}>
+                <span class="slider"></span>
+            </label>
+        `;
+        const checkbox = switchContainer.querySelector('input');
+        checkbox.onchange = (e) => {
+            // Update State
+            activeTimerConfig[index].enabled = e.target.checked;
+            // Update UI (Dimming)
+            if(e.target.checked) row.classList.remove('disabled');
+            else row.classList.add('disabled');
+            // Save immediately
+            saveTimerConfig();
+            sendHapticScoreToNative(-2); // Toggle haptic
+        };
+        
+        // B. Time Display (Clickable)
+        const timeBtn = document.createElement('div');
+        timeBtn.className = 'timer-time-display';
+        timeBtn.textContent = formatSecondsToMMSS(timer.seconds);
+        
+        timeBtn.onclick = async () => {
+            if (!activeTimerConfig[index].enabled) return; // Prevent edit if disabled
+            
+            // USE YOUR EXISTING CUSTOM INPUT MODAL
+            // We ask user to enter MM:SS or just Seconds
+            const currentVal = formatSecondsToMMSS(timer.seconds);
+            const rawInput = await showInputModal("Set Duration", currentVal, "e.g. 1:30 or 90");
+            
+            if (rawInput) {
+                const parsedSeconds = parseTimeInput(rawInput);
+                if (parsedSeconds > 0) {
+                    activeTimerConfig[index].seconds = parsedSeconds;
+                    saveTimerConfig();
+                    renderTimerSettings(); // Re-render to show new time
+                } else {
+                    alert("Invalid time format. Try '1:30' or '90'.");
+                }
+            }
+        };
+
+        // C. Label (Static)
+        const label = document.createElement('div');
+        label.style.fontWeight = '600';
+        label.style.fontSize = '0.9rem';
+        label.style.color = 'var(--color-text-muted)';
+        label.textContent = timer.label || `Timer ${index + 1}`;
+        
+        row.appendChild(switchContainer);
+        row.appendChild(timeBtn);
+        row.appendChild(label);
+        
+        timerSettingsList.appendChild(row);
+    });
+}
+
+// 4. HELPER: SAVE TO DISK
+function saveTimerConfig() {
+    localStorage.setItem(KEY_TIMER_CONFIG, JSON.stringify(activeTimerConfig));
+}
+
+// 5. HELPER: PARSE USER INPUT ("1:30" -> 90)
+function parseTimeInput(str) {
+    // Remove non-numeric/colon chars
+    const clean = str.replace(/[^0-9:]/g, '');
+    
+    if (clean.includes(':')) {
+        // Format MM:SS
+        const parts = clean.split(':');
+        const m = parseInt(parts[0]) || 0;
+        const s = parseInt(parts[1]) || 0;
+        return (m * 60) + s;
+    } else {
+        // Just seconds (e.g. "90")
+        return parseInt(clean) || 0;
+    }
+}
