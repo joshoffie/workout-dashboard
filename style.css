@@ -219,33 +219,10 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   transition: transform 0.3s ease;
 }
 
-/* Updated Settings Button Animation */
-#settingsBtn {
-  color: var(--color-text);
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Smooth spring-like rotation for open/close */
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
-  border-radius: var(--radius-sm);
-}
-
-/* State: Settings Open */
-#settingsBtn.rotate-active {
-  transform: rotate(90deg); /* Rotates CW when opening */
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Hover effect (only when closed) */
-@media (hover: hover) {
-  #settingsBtn:not(.rotate-active):hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-}
-
+/* 1. Animation: Rotate on Hover (Mouse) AND Active (Touch press) */
+#settingsBtn:hover,
 #settingsBtn:active {
-  transform: scale(0.95); /* Subtle click press effect */
+  transform: rotate(45deg);
 }
 
 /* 2. Background Box: ONLY show this if the user has a mouse */
