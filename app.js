@@ -403,9 +403,10 @@ const SCREENS = {
   SETS: 'setsDiv',
   GRAPH: 'graphContainer',
   SETTINGS: 'settingsDiv',
-    CALENDAR: 'calendarDiv'
+  CALENDAR: 'calendarDiv'
 };
 let currentScreen = SCREENS.CLIENTS;
+let lastActiveScreen = SCREENS.CLIENTS; // <--- NEW: Memory State
 
 // [app.js] FULL Navigate To Function
 function navigateTo(targetScreenId, direction = 'forward') {
@@ -505,20 +506,52 @@ function checkTutorialNavigation(targetScreenId) {
     }
 }
 
-// [app.js] Add this logic for the new Settings system
+// [app.js] NEW: Intelligent Settings Navigation System
+
 const settingsBtn = document.getElementById('settingsBtn');
-// 1. Open Settings
-if(settingsBtn) {
+
+// Helper to handle the "Exit" animation and routing
+function exitSettingsScreen() {
+    // 1. Animate Gear Backwards
+    if (settingsBtn) {
+        settingsBtn.classList.remove('gear-roll-back');
+        void settingsBtn.offsetWidth; // Force Reflow to restart animation
+        settingsBtn.classList.add('gear-roll-back');
+        
+        // Remove class after animation finishes to reset state
+        setTimeout(() => {
+            settingsBtn.classList.remove('gear-roll-back');
+        }, 400);
+    }
+
+    // 2. Navigate to the memory screen (Safety fallback: Clients)
+    const target = lastActiveScreen && lastActiveScreen !== SCREENS.SETTINGS 
+                   ? lastActiveScreen 
+                   : SCREENS.CLIENTS;
+                   
+    navigateTo(target, 'back');
+}
+
+if (settingsBtn) {
     settingsBtn.onclick = () => {
-        // 1. Standard Navigation
+        // SCENARIO A: We are IN Settings -> Treat Gear as "Close/Back"
+        if (currentScreen === SCREENS.SETTINGS) {
+            exitSettingsScreen();
+            return;
+        }
+
+        // SCENARIO B: We are OUTSIDE Settings -> Save State & Enter
+        // 1. Capture Memory (Never save 'Settings' as the return point)
+        if (currentScreen !== SCREENS.SETTINGS) {
+            lastActiveScreen = currentScreen;
+        }
+
+        // 2. Standard Navigation
         navigateTo(SCREENS.SETTINGS, 'forward');
 
-        // 2. --- TUTORIAL: Final Step (Settings) ---
-        if (isTutorialMode) {
-            
-            // A. IMMEDIATE SWAP: Hide Edit/Settings, Show End Button
-            // This happens instantly so the UI transforms as soon as they enter the screen.
-            settingsBtn.classList.add('hidden');
+        // 3. --- TUTORIAL LOGIC (Preserved) ---
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            settingsBtn.classList.add('hidden'); // Hide gear during tutorial final step
             
             const editBtn = document.getElementById('editToggleBtn');
             if(editBtn) editBtn.classList.add('hidden');
@@ -529,25 +562,25 @@ if(settingsBtn) {
                 endBtn.classList.add('flash-active');
             }
 
-            // B. Tooltip Sequence
-            // We still guide them to the toggle first, then the exit.
             setTimeout(() => {
-                // Tip 1: Point to the toggle
-                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-                
-                // Tip 2: After 3 seconds, point to the End button
-                setTimeout(() => {
-                     showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                }, 3000); 
+                if(typeof showTutorialTip === 'function') {
+                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                    setTimeout(() => {
+                         showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }, 3000); 
+                }
             }, 500);
         }
     };
 }
 
-// 2. Back Button in Settings (Returns to Profile list)
-document.getElementById('backToClientsFromSettingsBtn').onclick = () => {
-    navigateTo(SCREENS.CLIENTS, 'back');
-};
+// 2. Back Button in Settings (Now uses the helper to return to previous)
+const backFromSettingsBtn = document.getElementById('backToClientsFromSettingsBtn');
+if (backFromSettingsBtn) {
+    backFromSettingsBtn.onclick = () => {
+        exitSettingsScreen();
+    };
+}
 
 // 3. Logout Action (Inside Settings)
 document.getElementById('settingsLogoutBtn').onclick = async () => {
