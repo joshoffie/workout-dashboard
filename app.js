@@ -4871,3 +4871,78 @@ function parseTimeInput(str) {
         return parseInt(clean) || 0;
     }
 }
+
+// ==========================================
+// FIXED SETTINGS NAVIGATION (Paste at Bottom of app.js)
+// ==========================================
+
+// 1. Initialize History Tracker (Safe Declaration)
+// We use 'var' here to prevent "Identifier already declared" crashes if you pasted it twice.
+var lastScreenBeforeSettings = lastScreenBeforeSettings || 'clientsDiv';
+
+// 2. The Settings Toggle Button
+const settingsToggleRef = document.getElementById('settingsBtn');
+
+if (settingsToggleRef) {
+    settingsToggleRef.onclick = () => {
+        // A. If Settings is ALREADY open -> Close it (Go Back)
+        if (currentScreen === 'settingsDiv') {
+            // Rotate the icon back
+            settingsToggleRef.classList.remove('rotate-active');
+            
+            // Go back to wherever we came from
+            // Safety check: if history is empty, default to home
+            const target = lastScreenBeforeSettings || 'clientsDiv';
+            navigateTo(target, 'back');
+        } 
+        // B. If Settings is CLOSED -> Open it
+        else {
+            // Save current location BEFORE navigating
+            lastScreenBeforeSettings = currentScreen;
+            
+            // Rotate the icon
+            settingsToggleRef.classList.add('rotate-active');
+            
+            // Navigate to Settings
+            navigateTo('settingsDiv', 'forward');
+
+            // --- TUTORIAL LOGIC ---
+            if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+                settingsToggleRef.classList.add('hidden'); 
+                const editBtn = document.getElementById('editToggleBtn');
+                if (editBtn) editBtn.classList.add('hidden');
+                
+                const endBtn = document.getElementById('endTutorialBtn');
+                if (endBtn) {
+                    endBtn.classList.remove('hidden');
+                    endBtn.classList.add('flash-active');
+                }
+                
+                // Show tips
+                setTimeout(() => {
+                    if (typeof showTutorialTip === 'function') {
+                        showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                    }
+                    setTimeout(() => {
+                         if (typeof showTutorialTip === 'function') {
+                            showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                         }
+                    }, 3000); 
+                }, 500);
+            }
+        }
+    };
+}
+
+// 3. The Back Button inside Settings
+const settingsBackRef = document.getElementById('backToClientsFromSettingsBtn');
+if (settingsBackRef) {
+    settingsBackRef.onclick = () => {
+        // Reset the gear icon rotation
+        if (settingsToggleRef) settingsToggleRef.classList.remove('rotate-active');
+        
+        // Go back to history
+        const target = lastScreenBeforeSettings || 'clientsDiv';
+        navigateTo(target, 'back');
+    };
+}
