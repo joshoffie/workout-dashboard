@@ -4614,48 +4614,6 @@ if (unitToggle) {
     };
 }
 
-// 2. HOME: Settings Button (Safety Reinforcement)
-// Sometimes this button gets lost if the auth-state loads too fast or slow.
-// [app.js] Update settingsBtn logic to REVEAL the end button
-const finalSettingsBtn = document.getElementById('settingsBtn');
-
-if (finalSettingsBtn) {
-    finalSettingsBtn.onclick = () => {
-        // 1. Navigate to Settings Screen
-        navigateTo(SCREENS.SETTINGS, 'forward');
-
-        // 2. CHECK: Are we in Tutorial Mode?
-        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-            
-            // --- A. INSTANT SWAP (Synchronous) ---
-            // This forces the buttons to hide immediately when clicked
-            finalSettingsBtn.classList.add('hidden');
-
-            const editBtn = document.getElementById('editToggleBtn');
-            if (editBtn) editBtn.classList.add('hidden');
-
-            const endBtn = document.getElementById('endTutorialBtn');
-            if (endBtn) {
-                endBtn.classList.remove('hidden');
-                endBtn.classList.add('flash-active');
-            }
-
-            // --- B. PLAY TUTORIAL TIPS ---
-            setTimeout(() => {
-                if (typeof showTutorialTip === 'function') {
-                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-                }
-                
-                setTimeout(() => {
-                     if (typeof showTutorialTip === 'function') {
-                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                     }
-                }, 3000); 
-            }, 500);
-        }
-    };
-}
-
 
 // ==========================================
 // ACCOUNT DELETION LOGIC (SAFE LOAD V2)
