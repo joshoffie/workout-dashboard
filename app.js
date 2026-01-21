@@ -506,52 +506,59 @@ function checkTutorialNavigation(targetScreenId) {
     }
 }
 
-// [app.js] NEW: Intelligent Settings Navigation System
+// [app.js] ROBUST SETTINGS & MEMORY SYSTEM
 
+// 1. Define the Button
 const settingsBtn = document.getElementById('settingsBtn');
 
-// Helper to handle the "Exit" animation and routing
+// 2. Define the Exit Helper
 function exitSettingsScreen() {
-    // 1. Animate Gear Backwards
+    // Safety Fallback: If memory is empty, go Home (Clients)
+    if (!lastActiveScreen || lastActiveScreen === SCREENS.SETTINGS) {
+        lastActiveScreen = SCREENS.CLIENTS;
+    }
+
+    // A. Animate Gear Backwards (Visual Feedback)
     if (settingsBtn) {
+        // Reset animation class to allow re-triggering
         settingsBtn.classList.remove('gear-roll-back');
-        void settingsBtn.offsetWidth; // Force Reflow to restart animation
+        void settingsBtn.offsetWidth; // Force Reflow
         settingsBtn.classList.add('gear-roll-back');
         
-        // Remove class after animation finishes to reset state
+        // Cleanup class after animation
         setTimeout(() => {
             settingsBtn.classList.remove('gear-roll-back');
         }, 400);
     }
 
-    // 2. Navigate to the memory screen (Safety fallback: Clients)
-    const target = lastActiveScreen && lastActiveScreen !== SCREENS.SETTINGS 
-                   ? lastActiveScreen 
-                   : SCREENS.CLIENTS;
-                   
-    navigateTo(target, 'back');
+    // B. Navigate Back
+    console.log("Exiting Settings -> Going to:", lastActiveScreen);
+    navigateTo(lastActiveScreen, 'back');
 }
 
+// 3. Main Gear Button Logic
 if (settingsBtn) {
     settingsBtn.onclick = () => {
-        // SCENARIO A: We are IN Settings -> Treat Gear as "Close/Back"
+        // SCENARIO A: We are ALREADY in Settings -> Exit
         if (currentScreen === SCREENS.SETTINGS) {
             exitSettingsScreen();
             return;
         }
 
-        // SCENARIO B: We are OUTSIDE Settings -> Save State & Enter
-        // 1. Capture Memory (Never save 'Settings' as the return point)
+        // SCENARIO B: We are OUTSIDE Settings -> Enter
+        
+        // 1. Capture Memory (Only if we aren't already in Settings)
         if (currentScreen !== SCREENS.SETTINGS) {
+            console.log("Saving Memory State:", currentScreen);
             lastActiveScreen = currentScreen;
         }
 
-        // 2. Standard Navigation
+        // 2. Go to Settings
         navigateTo(SCREENS.SETTINGS, 'forward');
 
-        // 3. --- TUTORIAL LOGIC (Preserved) ---
+        // 3. Tutorial Logic (Keep existing functionality)
         if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-            settingsBtn.classList.add('hidden'); // Hide gear during tutorial final step
+            settingsBtn.classList.add('hidden'); 
             
             const editBtn = document.getElementById('editToggleBtn');
             if(editBtn) editBtn.classList.add('hidden');
@@ -562,6 +569,7 @@ if (settingsBtn) {
                 endBtn.classList.add('flash-active');
             }
 
+            // Tutorial Tips
             setTimeout(() => {
                 if(typeof showTutorialTip === 'function') {
                     showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
@@ -574,7 +582,7 @@ if (settingsBtn) {
     };
 }
 
-// 2. Back Button in Settings (Now uses the helper to return to previous)
+// 4. Update the "Back" Arrow inside Settings to use the same logic
 const backFromSettingsBtn = document.getElementById('backToClientsFromSettingsBtn');
 if (backFromSettingsBtn) {
     backFromSettingsBtn.onclick = () => {
