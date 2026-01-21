@@ -3243,34 +3243,29 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // REST TIMER ENGINE
 // =====================================================
 // =====================================================
-// TIMER SETTINGS ENGINE (Restored & Robust)
+// TIMER SETTINGS ENGINE (Restored from Backup)
 // =====================================================
 const timerSettingsModal = document.getElementById('timerSettingsModal');
 const timerSettingsList = document.getElementById('timerSettingsList');
 const openTimerSettingsBtn = document.getElementById('openTimerSettingsBtn');
+const KEY_TIMER_CONFIG = 'trunk_timer_config';
 
-// 1. DEFAULT CONFIG (Minutes:Seconds)
+// 1. DEFAULT CONFIG (With "isActive" flags)
 let activeTimerConfig = [
     { seconds: 60, label: '1:00', isActive: true },
     { seconds: 180, label: '3:00', isActive: true },
     { seconds: 600, label: '10:00', isActive: true }
 ];
 
-// 2. LOAD/SAVE HELPERS
+// 2. LOAD CONFIG
 function loadTimerConfig() {
-    const saved = localStorage.getItem('trunk_timer_config');
+    const saved = localStorage.getItem(KEY_TIMER_CONFIG);
     if (saved) {
         try { activeTimerConfig = JSON.parse(saved); } catch (e) {}
     }
 }
 
-function saveTimerConfig() {
-    localStorage.setItem('trunk_timer_config', JSON.stringify(activeTimerConfig));
-    // Refresh the master timer if needed
-    if (typeof startRestTimer === 'function') startRestTimer(false);
-}
-
-// 3. RENDER THE LIST
+// 3. RENDER SETTINGS LIST (The "Switch" UI)
 function renderTimerSettings() {
     if (!timerSettingsList) return;
     timerSettingsList.innerHTML = '';
@@ -3279,77 +3274,101 @@ function renderTimerSettings() {
         const row = document.createElement('div');
         row.className = 'timer-row';
         row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
         row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
         row.style.marginBottom = '12px';
         row.style.padding = '10px';
         row.style.background = 'var(--color-bg)';
         row.style.borderRadius = '8px';
 
-        // A. Label (e.g., "Timer 1")
-        const label = document.createElement('span');
-        label.textContent = `Timer ${index + 1}`;
-        label.style.fontWeight = '500';
-        label.style.color = 'var(--color-text)';
+        // A. Toggle Switch
+        const switchContainer = document.createElement('label');
+        switchContainer.className = 'switch';
+        switchContainer.style.marginRight = '12px';
+        
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = timer.isActive;
+        input.onchange = (e) => {
+            activeTimerConfig[index].isActive = e.target.checked;
+            saveTimerConfig();
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-2);
+        };
+        
+        const slider = document.createElement('span');
+        slider.className = 'slider round';
+        
+        switchContainer.appendChild(input);
+        switchContainer.appendChild(slider);
 
-        // B. Time Display Button (Click to Edit)
+        // B. Time Button
         const timeBtn = document.createElement('button');
         timeBtn.className = 'btn btn-secondary';
+        timeBtn.style.marginRight = '12px';
+        timeBtn.style.minWidth = '80px';
+        
         const m = Math.floor(timer.seconds / 60);
         const s = timer.seconds % 60;
         timeBtn.textContent = `${m}:${s.toString().padStart(2, '0')}`;
         
         timeBtn.onclick = async () => {
-            // Use your existing Custom Input Modal
             const currentVal = timer.seconds.toString();
-            const val = await showInputModal(`Set Timer ${index + 1} (Seconds)`, currentVal, "e.g. 120", "number");
+            const val = await showInputModal(`Set Timer ${index + 1} (Seconds)`, currentVal, "e.g. 90", "number");
             
             if (val) {
                 const newSecs = parseInt(val);
                 if (!isNaN(newSecs) && newSecs > 0) {
                     activeTimerConfig[index].seconds = newSecs;
+                    activeTimerConfig[index].label = `${Math.floor(newSecs/60)}:${(newSecs%60).toString().padStart(2,'0')}`;
                     saveTimerConfig();
                     renderTimerSettings();
                 }
             }
         };
 
-        const rightGroup = document.createElement('div');
-        rightGroup.appendChild(timeBtn);
+        // C. Label
+        const label = document.createElement('div');
+        label.style.fontWeight = '600';
+        label.style.fontSize = '0.9rem';
+        label.style.color = 'var(--color-text-muted)';
+        label.textContent = timer.label || `Timer ${index + 1}`;
+        
+        // Assemble
+        const leftGroup = document.createElement('div');
+        leftGroup.style.display = 'flex';
+        leftGroup.style.alignItems = 'center';
+        leftGroup.appendChild(switchContainer);
+        leftGroup.appendChild(timeBtn);
 
+        row.appendChild(leftGroup);
         row.appendChild(label);
-        row.appendChild(rightGroup);
+        
         timerSettingsList.appendChild(row);
     });
 }
 
-// 4. OPEN BUTTON LOGIC
+// 4. SAVE HELPER
+function saveTimerConfig() {
+    localStorage.setItem(KEY_TIMER_CONFIG, JSON.stringify(activeTimerConfig));
+}
+
+// 5. BUTTON LOGIC
 if (openTimerSettingsBtn) {
     openTimerSettingsBtn.onclick = () => {
         loadTimerConfig();
         renderTimerSettings();
         if (timerSettingsModal) {
             timerSettingsModal.classList.remove('hidden');
-            // Ensure it sits on top of Settings
             timerSettingsModal.style.zIndex = "10002"; 
         }
     };
 }
 
-// 5. CLOSE MODAL LOGIC (Clicking Background)
 if (timerSettingsModal) {
     timerSettingsModal.onclick = (e) => {
         if (e.target === timerSettingsModal) {
             timerSettingsModal.classList.add('hidden');
         }
-    };
-}
-
-// 6. DONE BUTTON (If exists in your HTML)
-const closeTimerSettingsBtn = document.getElementById('closeTimerSettingsBtn');
-if (closeTimerSettingsBtn) {
-    closeTimerSettingsBtn.onclick = () => {
-        timerSettingsModal.classList.add('hidden');
     };
 }
 
@@ -3391,35 +3410,36 @@ function startRestTimer(reset = false) {
         masterClockTick();
 
         // ---------------------------------------------------------
-        // D. TRIGGER HAPTICS & NOTIFICATIONS (DYNAMIC SYSTEM)
+        // D. TRIGGER HAPTICS & NOTIFICATIONS (Restored Logic)
         // ---------------------------------------------------------
+        
+        // 1. Prepare Payload (Filter only ACTIVE timers)
+        const batches = activeTimerConfig
+            .filter(t => t.isActive) // <--- Only send enabled timers
+            .map(t => ({
+                seconds: parseFloat(t.seconds),
+                title: "Rest Complete",
+                body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
+            }));
 
-        // 1. Prepare the Payload for Native iOS
-        // We map your custom settings into a clean list of seconds/messages
-        const nativePayload = activeTimerConfig.map(t => ({
-            seconds: parseFloat(t.seconds),
-            title: "Rest Complete",
-            body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
-        }));
-
-        // 2. Send to Native (Cancel old -> Schedule new)
+        // 2. Send to Native
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            // Native code handles the "cancel" logic internally when it receives a new array
-            window.webkit.messageHandlers.notificationHandler.postMessage(nativePayload);
-            console.log("🚀 Sent Custom Timers to Native:", nativePayload);
+            // "batches" is an Array of Objects. Your Swift code expects this.
+            window.webkit.messageHandlers.notificationHandler.postMessage(batches);
         }
 
-        // 3. Schedule JS Foreground Haptics (For when app is open)
-        // First, clear any existing timeouts
+        // 3. Schedule JS Foreground Haptics
         foregroundHapticTimeouts.forEach(id => clearTimeout(id));
         foregroundHapticTimeouts = [];
         
-        // Loop through your custom config and set a timeout for each
         activeTimerConfig.forEach(t => {
-            const ms = t.seconds * 1000;
-            foregroundHapticTimeouts.push(setTimeout(() => {
-                if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10); // Standard Buzz
-            }, ms));
+            // Only schedule buzz if switch is ON
+            if (t.isActive) {
+                const ms = t.seconds * 1000;
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                    if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                }, ms));
+            }
         });
 
         // ---------------------------------------------------------
@@ -4868,3 +4888,4 @@ window.addEventListener('resize', () => {
         stableWindowHeight = window.innerHeight;
     }
 });
+
