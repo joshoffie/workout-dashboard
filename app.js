@@ -3243,14 +3243,14 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // REST TIMER ENGINE
 // =====================================================
 // =====================================================
-// TIMER SETTINGS ENGINE (Restored from Backup)
+// TIMER SETTINGS ENGINE (Fully Restored & Robust)
 // =====================================================
 const timerSettingsModal = document.getElementById('timerSettingsModal');
 const timerSettingsList = document.getElementById('timerSettingsList');
 const openTimerSettingsBtn = document.getElementById('openTimerSettingsBtn');
 const KEY_TIMER_CONFIG = 'trunk_timer_config';
 
-// 1. DEFAULT CONFIG (With "isActive" flags)
+// 1. DEFAULT CONFIG
 let activeTimerConfig = [
     { seconds: 60, label: '1:00', isActive: true },
     { seconds: 180, label: '3:00', isActive: true },
@@ -3265,7 +3265,25 @@ function loadTimerConfig() {
     }
 }
 
-// 3. RENDER SETTINGS LIST (The "Switch" UI)
+// 3. HELPER: PARSE INPUT ("1:30" -> 90)
+// This is the magic function that was missing!
+function parseTimeInput(str) {
+    // Remove anything that isn't a number or colon
+    const clean = str.replace(/[^0-9:]/g, '');
+    
+    if (clean.includes(':')) {
+        // Handle "MM:SS" format
+        const parts = clean.split(':');
+        const m = parseInt(parts[0]) || 0;
+        const s = parseInt(parts[1]) || 0;
+        return (m * 60) + s;
+    } else {
+        // Handle raw seconds (e.g. "90")
+        return parseInt(clean) || 0;
+    }
+}
+
+// 4. RENDER SETTINGS
 function renderTimerSettings() {
     if (!timerSettingsList) return;
     timerSettingsList.innerHTML = '';
@@ -3297,7 +3315,6 @@ function renderTimerSettings() {
         
         const slider = document.createElement('span');
         slider.className = 'slider round';
-        
         switchContainer.appendChild(input);
         switchContainer.appendChild(slider);
 
@@ -3307,17 +3324,30 @@ function renderTimerSettings() {
         timeBtn.style.marginRight = '12px';
         timeBtn.style.minWidth = '80px';
         
+        // Format display
         const m = Math.floor(timer.seconds / 60);
         const s = timer.seconds % 60;
         timeBtn.textContent = `${m}:${s.toString().padStart(2, '0')}`;
         
         timeBtn.onclick = async () => {
-            const currentVal = timer.seconds.toString();
-            const val = await showInputModal(`Set Timer ${index + 1} (Seconds)`, currentVal, "e.g. 90", "number");
+            // 1. Show current value (e.g. "1:30")
+            const currentM = Math.floor(timer.seconds / 60);
+            const currentS = timer.seconds % 60;
+            const displayVal = `${currentM}:${currentS.toString().padStart(2, '0')}`;
+            
+            // 2. Ask for "text" input (so you can type ":")
+            const val = await showInputModal(
+                `Set Timer ${index + 1}`, 
+                displayVal, 
+                "e.g. 1:30 or 90", 
+                "text" // <--- CHANGED FROM "NUMBER" TO "TEXT"
+            );
             
             if (val) {
-                const newSecs = parseInt(val);
-                if (!isNaN(newSecs) && newSecs > 0) {
+                // 3. Use the helper to calculate seconds
+                const newSecs = parseTimeInput(val);
+                
+                if (newSecs > 0) {
                     activeTimerConfig[index].seconds = newSecs;
                     activeTimerConfig[index].label = `${Math.floor(newSecs/60)}:${(newSecs%60).toString().padStart(2,'0')}`;
                     saveTimerConfig();
@@ -3347,12 +3377,12 @@ function renderTimerSettings() {
     });
 }
 
-// 4. SAVE HELPER
+// 5. SAVE HELPER
 function saveTimerConfig() {
     localStorage.setItem(KEY_TIMER_CONFIG, JSON.stringify(activeTimerConfig));
 }
 
-// 5. BUTTON LOGIC
+// 6. OPEN BUTTON
 if (openTimerSettingsBtn) {
     openTimerSettingsBtn.onclick = () => {
         loadTimerConfig();
@@ -3364,11 +3394,20 @@ if (openTimerSettingsBtn) {
     };
 }
 
+// 7. CLOSE LOGIC (Background Click)
 if (timerSettingsModal) {
     timerSettingsModal.onclick = (e) => {
         if (e.target === timerSettingsModal) {
             timerSettingsModal.classList.add('hidden');
         }
+    };
+}
+
+// 8. CLOSE BUTTON (The "Done" Button)
+const closeTimerSettingsBtn = document.getElementById('closeTimerSettingsBtn');
+if (closeTimerSettingsBtn) {
+    closeTimerSettingsBtn.onclick = () => {
+        timerSettingsModal.classList.add('hidden');
     };
 }
 
