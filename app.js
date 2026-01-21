@@ -85,6 +85,7 @@ let isTutorialMode = false;
 let tutorialTimer = null;
 let tutorialStep = 0;
 let stableWindowHeight = window.innerHeight; // Stores the height WITHOUT keyboard
+let lastScreenBeforeSettings = SCREENS.CLIENTS; // Default to Home
 
 // 2. FAKE DATA GENERATOR
 function generateTutorialData() {
@@ -4537,48 +4538,69 @@ if (unitToggle) {
     };
 }
 
-// 2. HOME: Settings Button (Safety Reinforcement)
-// Sometimes this button gets lost if the auth-state loads too fast or slow.
-// [app.js] Update settingsBtn logic to REVEAL the end button
+// 2. SETTINGS BUTTON: Smart Toggle & History Tracking
 const finalSettingsBtn = document.getElementById('settingsBtn');
 
 if (finalSettingsBtn) {
     finalSettingsBtn.onclick = () => {
-        // 1. Navigate to Settings Screen
-        navigateTo(SCREENS.SETTINGS, 'forward');
-
-        // 2. CHECK: Are we in Tutorial Mode?
-        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+        // A. If Settings is ALREADY open -> Close it (Go Back)
+        if (currentScreen === SCREENS.SETTINGS) {
+            // Rotate the icon back
+            finalSettingsBtn.classList.remove('rotate-active');
             
-            // --- A. INSTANT SWAP (Synchronous) ---
-            // This forces the buttons to hide immediately when clicked
-            finalSettingsBtn.classList.add('hidden');
+            // Go back to wherever we came from
+            navigateTo(lastScreenBeforeSettings, 'back');
+        } 
+        // B. If Settings is CLOSED -> Open it
+        else {
+            // Save current location
+            lastScreenBeforeSettings = currentScreen;
+            
+            // Rotate the icon
+            finalSettingsBtn.classList.add('rotate-active');
+            
+            // Navigate
+            navigateTo(SCREENS.SETTINGS, 'forward');
 
-            const editBtn = document.getElementById('editToggleBtn');
-            if (editBtn) editBtn.classList.add('hidden');
-
-            const endBtn = document.getElementById('endTutorialBtn');
-            if (endBtn) {
-                endBtn.classList.remove('hidden');
-                endBtn.classList.add('flash-active');
-            }
-
-            // --- B. PLAY TUTORIAL TIPS ---
-            setTimeout(() => {
-                if (typeof showTutorialTip === 'function') {
-                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-                }
+            // --- TUTORIAL LOGIC (Preserved) ---
+            if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+                finalSettingsBtn.classList.add('hidden'); // Hide during tutorial sequence if needed
                 
+                const editBtn = document.getElementById('editToggleBtn');
+                if (editBtn) editBtn.classList.add('hidden');
+
+                const endBtn = document.getElementById('endTutorialBtn');
+                if (endBtn) {
+                    endBtn.classList.remove('hidden');
+                    endBtn.classList.add('flash-active');
+                }
+
                 setTimeout(() => {
-                     if (typeof showTutorialTip === 'function') {
-                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                     }
-                }, 3000); 
-            }, 500);
+                    if (typeof showTutorialTip === 'function') {
+                        showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                    }
+                    setTimeout(() => {
+                         if (typeof showTutorialTip === 'function') {
+                            showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                         }
+                    }, 3000); 
+                }, 500);
+            }
         }
     };
 }
 
+// 3. SETTINGS BACK BUTTON: Now sends you back to history, not just Home.
+const settingsBackBtn = document.getElementById('backToClientsFromSettingsBtn');
+if (settingsBackBtn) {
+    settingsBackBtn.onclick = () => {
+        // Reset the gear icon rotation
+        if (finalSettingsBtn) finalSettingsBtn.classList.remove('rotate-active');
+        
+        // Go back to previous screen
+        navigateTo(lastScreenBeforeSettings, 'back');
+    };
+}
 
 // ==========================================
 // ACCOUNT DELETION LOGIC (SAFE LOAD V2)
