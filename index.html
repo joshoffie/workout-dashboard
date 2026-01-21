@@ -258,7 +258,10 @@
         </button>
         <h2 id="settingsScreenTitle" class="animated-title" aria-label="Settings">Settings</h2>
       </div>
-      
+      <li id="openTimerSettingsBtn">
+            <span>Timer Settings</span>
+            <span style="color: var(--color-text-muted); font-size: 0.9rem;">Customize ↗</span>
+        </li>
       <ul class="item-list" id="settingsList">
         <li>
           <div class="switch-container">
@@ -398,6 +401,18 @@
       <div class="modal-actions-row">
         <button id="customInputCancel" class="btn btn-secondary">Cancel</button>
         <button id="customInputSave" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="timerSettingsModal" class="overlay hidden">
+    <div class="input-modal-card">
+      <h3 class="input-modal-title">Custom Timers</h3>
+      
+      <div id="timerSettingsList" class="timer-settings-list">
+        </div>
+
+      <div class="modal-actions-row" style="margin-top: 1.5rem;">
+        <button id="closeTimerSettingsBtn" class="btn btn-primary" style="width:100%">Done</button>
       </div>
     </div>
   </div>
