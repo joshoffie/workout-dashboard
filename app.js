@@ -3449,22 +3449,32 @@ function startRestTimer(reset = false) {
         masterClockTick();
 
         // ---------------------------------------------------------
-        // D. TRIGGER HAPTICS & NOTIFICATIONS (Restored Logic)
+        // D. TRIGGER HAPTICS & NOTIFICATIONS (Fixed Bridge)
         // ---------------------------------------------------------
         
-        // 1. Prepare Payload (Filter only ACTIVE timers)
-        const batches = activeTimerConfig
-            .filter(t => t.isActive) // <--- Only send enabled timers
+        // 1. Prepare Data for Native (Wrapped in Dictionary)
+        const timerBatches = activeTimerConfig
+            .filter(t => t.isActive)
             .map(t => ({
                 seconds: parseFloat(t.seconds),
                 title: "Rest Complete",
                 body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
             }));
 
-        // 2. Send to Native
+        // 2. Send to Native (MATCHING SWIFT STRUCTURE)
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            // "batches" is an Array of Objects. Your Swift code expects this.
-            window.webkit.messageHandlers.notificationHandler.postMessage(batches);
+            
+            // THE FIX: Swift expects { command: "schedule", batches: [...] }
+            const payload = {
+                command: "schedule",
+                batches: timerBatches
+            };
+            
+            console.log("🚀 Sending Payload to Native:", payload);
+            window.webkit.messageHandlers.notificationHandler.postMessage(payload);
+        
+        } else {
+            console.log("❌ Native bridge not found");
         }
 
         // 3. Schedule JS Foreground Haptics
@@ -3472,10 +3482,10 @@ function startRestTimer(reset = false) {
         foregroundHapticTimeouts = [];
         
         activeTimerConfig.forEach(t => {
-            // Only schedule buzz if switch is ON
             if (t.isActive) {
                 const ms = t.seconds * 1000;
                 foregroundHapticTimeouts.push(setTimeout(() => {
+                    // Send haptic score (10 = Warning Bump)
                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
                 }, ms));
             }
