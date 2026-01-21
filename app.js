@@ -10,19 +10,20 @@ function minifySet(s) {
         w: s.weight,
         v: s.volume,
         n: s.notes || "",
-        t: s.timestamp
+        t: s.timestamp,
+        p: s.plates || null // <--- NEW: Store Plate Data
     };
 }
 
 // Expand a single set (Short keys -> Long keys)
 function expandSet(s) {
-    // Handle both legacy (long) and new (short) formats for robustness
     return {
         reps: s.r ?? s.reps,
         weight: s.w ?? s.weight,
         volume: s.v ?? s.volume,
         notes: s.n ?? s.notes ?? "",
-        timestamp: s.t ?? s.timestamp
+        timestamp: s.t ?? s.timestamp,
+        plates: s.p ?? s.plates ?? null // <--- NEW: Retrieve Plate Data
     };
 }
 
@@ -3063,10 +3064,7 @@ let calcState = {
 
 // [app.js] UPDATED CALCULATOR MODAL OPENER
 function openAddSetModal() {
-  // --- FIX: Instantly clear tutorial tips so they don't block the inputs ---
-  if (typeof clearTutorialTips === 'function') {
-      clearTutorialTips();
-  }
+  if (typeof clearTutorialTips === 'function') clearTutorialTips();
 
   // Reset State
   calcState = { 
@@ -3074,69 +3072,103 @@ function openAddSetModal() {
       plates: {}, plateStack: [], isAutoFilled: { reps: false, weight: false } 
   };
 
-  // 1. Update Label to show current unit
+  // 1. Update Label
   const wBoxLabel = document.querySelector('#weightBox .field-label');
   if (wBoxLabel && typeof UNIT_mode !== 'undefined') {
       wBoxLabel.textContent = `WEIGHT (${UNIT_mode.getLabel().toUpperCase()})`;
   }
 
-  // 2. Generate Plates (Metric vs Imperial)
+  // 2. Generate Plates (Metric vs Imperial Logic)
   const plateGrid = document.getElementById('plateGrid');
   if (plateGrid) {
       plateGrid.innerHTML = '';
       const plates = (typeof UNIT_mode !== 'undefined' && UNIT_mode.current === 'lbs')
           ? [2.5, 5, 10, 25, 35, 45] 
-          : [1.25, 2.5, 5, 10, 15, 20]; // Standard Metric Plates
+          : [1.25, 2.5, 5, 10, 15, 20]; 
 
       plates.forEach(p => {
           const btn = document.createElement('button');
           btn.className = p < 10 ? 'plate-btn small' : 'plate-btn';
           btn.dataset.weight = p;
-          btn.innerHTML = `${p}<span class="plate-count hidden">x0</span>`;
+          // Note: added class 'plate-badge' for easier targeting
+          btn.innerHTML = `${p}<span class="plate-count hidden plate-badge">x0</span>`;
           
-          // Re-attach the click logic
           btn.onclick = (e) => {
                 calcState.activeField = 'weight';
                 if (typeof checkAndClearAutoFill === 'function') checkAndClearAutoFill();
                 
                 const weight = parseFloat(btn.dataset.weight);
-             
                 if (!calcState.plates[weight]) calcState.plates[weight] = 0;
                 calcState.plates[weight]++;
                 
                 let currentWeight = parseFloat(calcState.weightVal) || 0;
                 currentWeight += weight;
-                currentWeight = Math.round(currentWeight * 100) / 100; // Fix floating point
+                currentWeight = Math.round(currentWeight * 100) / 100; 
 
                 calcState.weightVal = currentWeight.toString();
                 calcState.plateStack.push(weight);
                 updateCalcUI();
-                
-                const badge = btn.querySelector('.plate-count');
-                badge.textContent = `x${calcState.plates[weight]}`;
-                badge.classList.remove('hidden');
+                updatePlateBadges(); // <--- Helper Function
           };
           plateGrid.appendChild(btn);
       });
   }
 
-  // 3. Auto-Fill with Conversion
+  // 3. Auto-Fill Logic (NOW WITH PLATES!)
   if (typeof getLastSet === 'function') {
       const lastSet = getLastSet();
       if (lastSet) {
           calcState.repsVal = String(lastSet.reps);
-          // CRITICAL: Convert the stored LBS to the current display unit
           if (typeof UNIT_mode !== 'undefined') {
              calcState.weightVal = String(UNIT_mode.toDisplay(lastSet.weight));
           }
           calcState.isAutoFilled.reps = true;
           calcState.isAutoFilled.weight = true;
+
+          // --- RESTORE PLATES ---
+          if (lastSet.plates) {
+              calcState.plates = JSON.parse(JSON.stringify(lastSet.plates)); // Deep copy
+              
+              // Rebuild the 'plateStack' so "Backspace" works correctly
+              // We push them in arbitrary order since we don't save order, only counts.
+              calcState.plateStack = [];
+              for (const [wStr, count] of Object.entries(calcState.plates)) {
+                  const w = parseFloat(wStr);
+                  for(let i=0; i<count; i++) {
+                      calcState.plateStack.push(w);
+                  }
+              }
+          }
+          // ----------------------
       }
   }
 
   updateCalcUI();
-  resetPlateCounters();
+  updatePlateBadges(); // Ensure badges appear immediately
   if(addSetModal) addSetModal.classList.remove('hidden');
+}
+
+// NEW HELPER: Centralized Badge Updater
+function updatePlateBadges() {
+    const plateGrid = document.getElementById('plateGrid');
+    if (!plateGrid) return;
+    
+    // Loop through buttons and check calcState
+    const btns = plateGrid.querySelectorAll('.plate-btn');
+    btns.forEach(btn => {
+        const w = parseFloat(btn.dataset.weight);
+        const count = calcState.plates[w] || 0;
+        const badge = btn.querySelector('.plate-count');
+        
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = `x${count}`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    });
 }
 
 // HELPER: surgical clear of auto-filled data on first touch
@@ -3572,16 +3604,7 @@ if (backspaceBtn) {
             // 3. Decrement the visual "x1" counter
             if (calcState.plates[removedWeight] > 0) {
                 calcState.plates[removedWeight]--;
-                const plateBtn = document.querySelector(`.plate-btn[data-weight="${removedWeight}"]`);
-                if (plateBtn) {
-                    const badge = plateBtn.querySelector('.plate-count');
-                    if (badge) {
-                        badge.textContent = calcState.plates[removedWeight] > 0 
-                            ? `x${calcState.plates[removedWeight]}` 
-                            : "";
-                        if (calcState.plates[removedWeight] === 0) badge.classList.add('hidden');
-                    }
-                }
+                updatePlateBadges();
             }
             
             updateCalcUI();
@@ -3609,7 +3632,8 @@ if (backspaceBtn) {
 
 function resetPlateCounters() {
   calcState.plates = {};
-  document.querySelectorAll('.plate-count').forEach(el => el.classList.add('hidden'));
+    updatePlateBadges(); // Use the new helper
+  //document.querySelectorAll('.plate-count').forEach(el => el.classList.add('hidden'));
 }
 
 // Handle "Next" / "Save" Action
@@ -3631,14 +3655,30 @@ function finishAddSet() {
 
     const notes = ""; 
     const timestamp = new Date().toISOString();
+    
+    // --- NEW: CAPTURE PLATES ---
+    // We only save plates that have a count > 0
+    let savedPlates = null;
+    if (calcState.plates && Object.keys(calcState.plates).length > 0) {
+        savedPlates = {};
+        for (const [plateWeight, count] of Object.entries(calcState.plates)) {
+            if (count > 0) savedPlates[plateWeight] = count;
+        }
+        // If empty after filtering, keep null
+        if (Object.keys(savedPlates).length === 0) savedPlates = null;
+    }
+    // ---------------------------
+
     selectedExercise.sets.push({ 
         reps: reps, 
-        weight: weightLBS, // Always LBS
+        weight: weightLBS, 
         volume: volumeLBS, 
         notes, 
-        timestamp 
+        timestamp,
+        plates: savedPlates // <--- Add to object
     });
-    saveUserJson(); 
+
+    saveUserJson();
     // --- NEW: CALCULATE "GREEN SCORE" FOR HAPTICS ---
     try {
         // We reuse your existing logic that calculates improvements
