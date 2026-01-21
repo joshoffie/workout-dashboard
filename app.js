@@ -85,7 +85,6 @@ let isTutorialMode = false;
 let tutorialTimer = null;
 let tutorialStep = 0;
 let stableWindowHeight = window.innerHeight; // Stores the height WITHOUT keyboard
-let lastScreenBeforeSettings = SCREENS.CLIENTS; // Default to Home
 
 // 2. FAKE DATA GENERATOR
 function generateTutorialData() {
@@ -504,6 +503,45 @@ function checkTutorialNavigation(targetScreenId) {
         document.body.dataset.tutorialStage = 'home-returned';
         setTimeout(() => showTutorialTip('settingsBtn', 'Finally, tap Settings.', 45, 'right'), 600);
     }
+}
+
+// [app.js] Add this logic for the new Settings system
+const settingsBtn = document.getElementById('settingsBtn');
+// 1. Open Settings
+if(settingsBtn) {
+    settingsBtn.onclick = () => {
+        // 1. Standard Navigation
+        navigateTo(SCREENS.SETTINGS, 'forward');
+
+        // 2. --- TUTORIAL: Final Step (Settings) ---
+        if (isTutorialMode) {
+            
+            // A. IMMEDIATE SWAP: Hide Edit/Settings, Show End Button
+            // This happens instantly so the UI transforms as soon as they enter the screen.
+            settingsBtn.classList.add('hidden');
+            
+            const editBtn = document.getElementById('editToggleBtn');
+            if(editBtn) editBtn.classList.add('hidden');
+
+            const endBtn = document.getElementById('endTutorialBtn');
+            if (endBtn) {
+                endBtn.classList.remove('hidden');
+                endBtn.classList.add('flash-active');
+            }
+
+            // B. Tooltip Sequence
+            // We still guide them to the toggle first, then the exit.
+            setTimeout(() => {
+                // Tip 1: Point to the toggle
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                // Tip 2: After 3 seconds, point to the End button
+                setTimeout(() => {
+                     showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                }, 3000); 
+            }, 500);
+        }
+    };
 }
 
 // 2. Back Button in Settings (Returns to Profile list)
@@ -3165,129 +3203,131 @@ document.getElementById('calcCloseBtn').onclick = closeAddSetModal;
 // =====================================================
 
 // =====================================================
-// MASTER TIMER ENGINE (Customizable V2)
+// MASTER TIMER ENGINE (Global + Local)
 // =====================================================
 
+// Single source of truth for the Header Timer
 const KEY_GLOBAL_TIMER = "trunk_last_active_timer";
-const KEY_TIMER_CONFIG = "trunk_timer_config_v1";
-const TIMER_LIMIT_MS = 3600000; // 60 Minutes (Extended for custom long timers)
+const TIMER_LIMIT_MS = 1800000; // 30 Minutes
 
 let masterTimerInterval = null;
-let foregroundHapticTimeouts = [];
+let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
 
-// DEFAULT CONFIG: 1m, 3m, 10m
-const DEFAULT_TIMER_CONFIG = [
-    { id: 0, enabled: true, seconds: 60, label: "Short" },
-    { id: 1, enabled: true, seconds: 180, label: "Medium" },
-    { id: 2, enabled: true, seconds: 600, label: "Long" }
-];
-
-let activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
-
-// 1. Load Config on Startup
-function loadTimerConfig() {
-    const saved = localStorage.getItem(KEY_TIMER_CONFIG);
-    if (saved) {
-        try {
-            activeTimerConfig = JSON.parse(saved);
-        } catch(e) {
-            activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
-        }
-    } else {
-        activeTimerConfig = [...DEFAULT_TIMER_CONFIG];
-    }
-}
-loadTimerConfig();
-
-// 2. TRIGGER FUNCTION
+// 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
-    if (!selectedExercise) return;
+    // DEBUG LOG 1: Did the function even start?
+    console.log("🔎 JS DEBUG: startRestTimer called. Reset is: " + reset);
+
+    if (!selectedExercise) {
+        console.log("❌ JS DEBUG: No selectedExercise, cancelling.");
+        return;
+    }
 
     if (reset) {
+        console.log("🔎 JS DEBUG: Inside Reset Block. Attempting to contact Native...");
+        
+        // ... (Your existing local storage code) ...
         const now = Date.now();
-        // A. Storage
         const localKey = `restTimer_${selectedExercise.exercise}`;
         localStorage.setItem(localKey, now);
-        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify({ time: now, label: selectedExercise.exercise }));
         
-        masterClockTick(); // Update UI immediately
+        const globalData = { time: now, label: selectedExercise.exercise };
+        localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
+        
+        masterClockTick();
 
-        // B. CLEANUP OLD
+        // ---------------------------------------------------------
+        // D. TRIGGER HAPTICS & NOTIFICATIONS
+        // ---------------------------------------------------------
+        
+        // DEBUG LOG 2: Checking the Bridge
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            console.log("🚀 JS DEBUG: Bridge found! Sending 'schedule' command now...");
+            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
+        } else {
+            console.error("❌ JS DEBUG: CRITICAL! 'notificationHandler' NOT FOUND in window.webkit.");
+        }
+        
+        // ... (The rest of your existing code for timeouts and haptics) ...
+        
+        // 1. Cleanup Old Timers
+        // Clear JS timeouts (Foreground)
         foregroundHapticTimeouts.forEach(id => clearTimeout(id));
         foregroundHapticTimeouts = [];
         
-        // Cancel Native
+        // Clear Native Notifications (Background)
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
             window.webkit.messageHandlers.notificationHandler.postMessage("cancel");
         }
 
-        // C. PREPARE NEW BATCH
-        const nativePayload = [];
-        
-        activeTimerConfig.forEach((timer) => {
-            if (!timer.enabled) return; // Skip disabled
-            
-            // 1. Schedule Foreground JS Haptic
-            const ms = timer.seconds * 1000;
-            foregroundHapticTimeouts.push(setTimeout(() => {
-                // Determine haptic intensity based on duration
-                let score = 10; // Default (Short)
-                if (timer.seconds >= 120) score = 30; // Medium
-                if (timer.seconds >= 400) score = 100; // Long (Flurry)
-                
-                if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(score);
-            }, ms));
-
-            // 2. Prepare Background Native Notification
-            nativePayload.push({
-                seconds: parseFloat(timer.seconds),
-                title: `${formatSecondsToMMSS(timer.seconds)} Timer`,
-                body: "Time is up. Get back to work."
-            });
-        });
-
-        // D. SEND BATCH TO NATIVE
-        if (nativePayload.length > 0 && window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            const message = {
-                command: "schedule",
-                batches: nativePayload
-            };
-            window.webkit.messageHandlers.notificationHandler.postMessage(message);
+        // 2. Schedule New Timers
+        // Tell Native to schedule background alerts (1m, 3m, 10m)
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            window.webkit.messageHandlers.notificationHandler.postMessage("schedule");
         }
 
-        // E. Live Activity Logic (Existing)
+        // Schedule JS Foreground Haptics (In case app stays open)
+        // 1 Minute (Code 10)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+        }, 60000));
+        
+        // 3 Minutes (Code 30)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
+        }, 180000));
+
+        // 10 Minutes (Code 100)
+        foregroundHapticTimeouts.push(setTimeout(() => {
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
+        }, 600000));
+
+        // ---------------------------------------------------------
+        // E. TRIGGER LIVE ACTIVITY (LOCK SCREEN WIDGET)
+        // ---------------------------------------------------------
         try {
-           const sets = selectedExercise.sets;
-           if (sets && sets.length > 0) {
-               const lastSet = sets[sets.length - 1];
-               if (window.webkit && window.webkit.messageHandlers.liveActivityHandler) {
-                   let displayWeight = lastSet.weight;
-                   let unitLabel = "lbs";
-                   if (typeof UNIT_mode !== 'undefined') {
-                       displayWeight = UNIT_mode.toDisplay(lastSet.weight);
-                       unitLabel = UNIT_mode.getLabel();
-                   }
-                   const payload = {
-                       exercise: selectedExercise.exercise,
-                       weight: `${displayWeight} ${unitLabel}`,
-                       reps: String(lastSet.reps),
-                       startTime: now
-                   };
-                   window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
-               }
-           }
-        } catch (err) { console.error("Live Activity Error", err); }
+            const sets = selectedExercise.sets;
+            if (sets && sets.length > 0) {
+                const lastSet = sets[sets.length - 1]; 
+
+                if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
+                    
+                    let displayWeight = lastSet.weight;
+                    let unitLabel = "lbs";
+                    
+                    if (typeof UNIT_mode !== 'undefined') {
+                        displayWeight = UNIT_mode.toDisplay(lastSet.weight);
+                        unitLabel = UNIT_mode.getLabel();
+                    }
+                    
+                    const weightString = `${displayWeight} ${unitLabel}`;
+
+                    const payload = {
+                        exercise: selectedExercise.exercise,
+                        weight: weightString,
+                        reps: String(lastSet.reps),
+                        startTime: now
+                    };
+
+                    window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
+                    console.log("🚀 Sent Live Activity Payload", payload);
+                }
+            }
+        } catch (err) {
+            console.error("Live Activity Trigger Failed:", err);
+        }
     }
 }
 
-// 3. MASTER TICK (Updates UI)
+// 2. THE MASTER TICK (Runs every second, updates EVERYTHING)
 function masterClockTick() {
     const now = Date.now();
+    
+    // --- TASK 1: UPDATE GLOBAL HEADER ---
     const globalEl = document.getElementById('globalHeaderTimer');
     const globalText = document.getElementById('globalHeaderTimerText');
-    
-    // Check Global
     const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+    
     if (globalEl && globalText) {
         if (!rawGlobal) {
             globalEl.classList.add('hidden');
@@ -3295,6 +3335,8 @@ function masterClockTick() {
             try {
                 const data = JSON.parse(rawGlobal);
                 const diff = now - parseInt(data.time);
+                
+                // EXPIRATION LOGIC (30 Mins)
                 if (diff > TIMER_LIMIT_MS) { 
                     globalEl.classList.add('hidden');
                     localStorage.removeItem(KEY_GLOBAL_TIMER);
@@ -3302,11 +3344,14 @@ function masterClockTick() {
                     globalText.textContent = formatTimer(diff);
                     globalEl.classList.remove('hidden');
                 }
-            } catch (e) { localStorage.removeItem(KEY_GLOBAL_TIMER); }
+            } catch (e) { 
+                console.error("Timer parse error", e);
+                localStorage.removeItem(KEY_GLOBAL_TIMER);
+            }
         }
     }
-    
-    // Check Local (Exercise Specific)
+
+    // --- TASK 2: UPDATE LOCAL EXERCISE TIMER ---
     if (typeof SCREENS !== 'undefined' && currentScreen === SCREENS.SETS && selectedExercise) {
         const localEl = document.getElementById('restTimer');
         const localText = document.getElementById('restTimerText');
@@ -3338,19 +3383,48 @@ function formatTimer(ms) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-// Helper: Seconds -> MM:SS (For Settings UI)
-function formatSecondsToMMSS(totalSeconds) {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// 4. INIT
+// 3. INIT (Start the loop & Restore Haptics)
 function initMasterClock() {
     if (masterTimerInterval) clearInterval(masterTimerInterval);
     masterClockTick(); 
     masterTimerInterval = setInterval(masterClockTick, 1000);
+
+    // --- REHYDRATE FOREGROUND HAPTICS ---
+    // If user refreshes, we restore the specific haptic timeouts
+    // so they don't miss the buzz if the app is open.
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+    if (rawGlobal) {
+        try {
+            const data = JSON.parse(rawGlobal);
+            const elapsed = Date.now() - parseInt(data.time);
+            
+            // Clear lists first
+            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+            foregroundHapticTimeouts = [];
+
+            // If < 1 min, schedule 1m buzz
+            if (elapsed < 60000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                }, 60000 - elapsed));
+            }
+            // If < 3 mins, schedule 3m buzz
+            if (elapsed < 180000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
+                }, 180000 - elapsed));
+            }
+            // If < 10 mins, schedule 10m buzz
+            if (elapsed < 600000) {
+                foregroundHapticTimeouts.push(setTimeout(() => {
+                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
+                }, 600000 - elapsed));
+            }
+        } catch(e) { console.error("Rehydrate error", e); }
+    }
 }
+
+// Start the engine
 initMasterClock();
 
 // Update the Screen & Button Text based on State
@@ -4499,6 +4573,49 @@ if (unitToggle) {
     };
 }
 
+// 2. HOME: Settings Button (Safety Reinforcement)
+// Sometimes this button gets lost if the auth-state loads too fast or slow.
+// [app.js] Update settingsBtn logic to REVEAL the end button
+const finalSettingsBtn = document.getElementById('settingsBtn');
+
+if (finalSettingsBtn) {
+    finalSettingsBtn.onclick = () => {
+        // 1. Navigate to Settings Screen
+        navigateTo(SCREENS.SETTINGS, 'forward');
+
+        // 2. CHECK: Are we in Tutorial Mode?
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+            
+            // --- A. INSTANT SWAP (Synchronous) ---
+            // This forces the buttons to hide immediately when clicked
+            finalSettingsBtn.classList.add('hidden');
+
+            const editBtn = document.getElementById('editToggleBtn');
+            if (editBtn) editBtn.classList.add('hidden');
+
+            const endBtn = document.getElementById('endTutorialBtn');
+            if (endBtn) {
+                endBtn.classList.remove('hidden');
+                endBtn.classList.add('flash-active');
+            }
+
+            // --- B. PLAY TUTORIAL TIPS ---
+            setTimeout(() => {
+                if (typeof showTutorialTip === 'function') {
+                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                }
+                
+                setTimeout(() => {
+                     if (typeof showTutorialTip === 'function') {
+                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                     }
+                }, 3000); 
+            }, 500);
+        }
+    };
+}
+
+
 // ==========================================
 // ACCOUNT DELETION LOGIC (SAFE LOAD V2)
 // ==========================================
@@ -4653,193 +4770,3 @@ window.addEventListener('resize', () => {
         stableWindowHeight = window.innerHeight;
     }
 });
-// =====================================================
-// TIMER SETTINGS UI ENGINE
-// =====================================================
-
-const timerSettingsModal = document.getElementById('timerSettingsModal');
-const timerSettingsList = document.getElementById('timerSettingsList');
-const openTimerSettingsBtn = document.getElementById('openTimerSettingsBtn');
-const closeTimerSettingsBtn = document.getElementById('closeTimerSettingsBtn');
-
-// 1. OPEN
-if (openTimerSettingsBtn) {
-    openTimerSettingsBtn.onclick = () => {
-        loadTimerConfig(); // Refresh data
-        renderTimerSettings();
-        timerSettingsModal.classList.remove('hidden');
-    };
-}
-
-// 2. CLOSE
-if (closeTimerSettingsBtn) {
-    closeTimerSettingsBtn.onclick = () => {
-        timerSettingsModal.classList.add('hidden');
-    };
-}
-
-// 3. RENDER THE LIST
-function renderTimerSettings() {
-    if (!timerSettingsList) return;
-    timerSettingsList.innerHTML = '';
-    
-    activeTimerConfig.forEach((timer, index) => {
-        const row = document.createElement('div');
-        row.className = `timer-row ${timer.enabled ? '' : 'disabled'}`;
-        
-        // A. Toggle Switch
-        const switchContainer = document.createElement('div');
-        switchContainer.innerHTML = `
-            <label class="switch">
-                <input type="checkbox" ${timer.enabled ? 'checked' : ''}>
-                <span class="slider"></span>
-            </label>
-        `;
-        const checkbox = switchContainer.querySelector('input');
-        checkbox.onchange = (e) => {
-            // Update State
-            activeTimerConfig[index].enabled = e.target.checked;
-            // Update UI (Dimming)
-            if(e.target.checked) row.classList.remove('disabled');
-            else row.classList.add('disabled');
-            // Save immediately
-            saveTimerConfig();
-            sendHapticScoreToNative(-2); // Toggle haptic
-        };
-        
-        // B. Time Display (Clickable)
-        const timeBtn = document.createElement('div');
-        timeBtn.className = 'timer-time-display';
-        timeBtn.textContent = formatSecondsToMMSS(timer.seconds);
-        
-        timeBtn.onclick = async () => {
-            if (!activeTimerConfig[index].enabled) return; // Prevent edit if disabled
-            
-            // USE YOUR EXISTING CUSTOM INPUT MODAL
-            // We ask user to enter MM:SS or just Seconds
-            const currentVal = formatSecondsToMMSS(timer.seconds);
-            const rawInput = await showInputModal("Set Duration", currentVal, "e.g. 1:30 or 90");
-            
-            if (rawInput) {
-                const parsedSeconds = parseTimeInput(rawInput);
-                if (parsedSeconds > 0) {
-                    activeTimerConfig[index].seconds = parsedSeconds;
-                    saveTimerConfig();
-                    renderTimerSettings(); // Re-render to show new time
-                } else {
-                    alert("Invalid time format. Try '1:30' or '90'.");
-                }
-            }
-        };
-
-        // C. Label (Static)
-        const label = document.createElement('div');
-        label.style.fontWeight = '600';
-        label.style.fontSize = '0.9rem';
-        label.style.color = 'var(--color-text-muted)';
-        label.textContent = timer.label || `Timer ${index + 1}`;
-        
-        row.appendChild(switchContainer);
-        row.appendChild(timeBtn);
-        row.appendChild(label);
-        
-        timerSettingsList.appendChild(row);
-    });
-}
-
-// 4. HELPER: SAVE TO DISK
-function saveTimerConfig() {
-    localStorage.setItem(KEY_TIMER_CONFIG, JSON.stringify(activeTimerConfig));
-}
-
-// 5. HELPER: PARSE USER INPUT ("1:30" -> 90)
-function parseTimeInput(str) {
-    // Remove non-numeric/colon chars
-    const clean = str.replace(/[^0-9:]/g, '');
-    
-    if (clean.includes(':')) {
-        // Format MM:SS
-        const parts = clean.split(':');
-        const m = parseInt(parts[0]) || 0;
-        const s = parseInt(parts[1]) || 0;
-        return (m * 60) + s;
-    } else {
-        // Just seconds (e.g. "90")
-        return parseInt(clean) || 0;
-    }
-}
-
-// ==========================================
-// FIXED SETTINGS NAVIGATION (Paste at Bottom of app.js)
-// ==========================================
-
-// 1. Initialize History Tracker (Safe Declaration)
-// We use 'var' here to prevent "Identifier already declared" crashes if you pasted it twice.
-var lastScreenBeforeSettings = lastScreenBeforeSettings || 'clientsDiv';
-
-// 2. The Settings Toggle Button
-const settingsToggleRef = document.getElementById('settingsBtn');
-
-if (settingsToggleRef) {
-    settingsToggleRef.onclick = () => {
-        // A. If Settings is ALREADY open -> Close it (Go Back)
-        if (currentScreen === 'settingsDiv') {
-            // Rotate the icon back
-            settingsToggleRef.classList.remove('rotate-active');
-            
-            // Go back to wherever we came from
-            // Safety check: if history is empty, default to home
-            const target = lastScreenBeforeSettings || 'clientsDiv';
-            navigateTo(target, 'back');
-        } 
-        // B. If Settings is CLOSED -> Open it
-        else {
-            // Save current location BEFORE navigating
-            lastScreenBeforeSettings = currentScreen;
-            
-            // Rotate the icon
-            settingsToggleRef.classList.add('rotate-active');
-            
-            // Navigate to Settings
-            navigateTo('settingsDiv', 'forward');
-
-            // --- TUTORIAL LOGIC ---
-            if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-                settingsToggleRef.classList.add('hidden'); 
-                const editBtn = document.getElementById('editToggleBtn');
-                if (editBtn) editBtn.classList.add('hidden');
-                
-                const endBtn = document.getElementById('endTutorialBtn');
-                if (endBtn) {
-                    endBtn.classList.remove('hidden');
-                    endBtn.classList.add('flash-active');
-                }
-                
-                // Show tips
-                setTimeout(() => {
-                    if (typeof showTutorialTip === 'function') {
-                        showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-                    }
-                    setTimeout(() => {
-                         if (typeof showTutorialTip === 'function') {
-                            showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                         }
-                    }, 3000); 
-                }, 500);
-            }
-        }
-    };
-}
-
-// 3. The Back Button inside Settings
-const settingsBackRef = document.getElementById('backToClientsFromSettingsBtn');
-if (settingsBackRef) {
-    settingsBackRef.onclick = () => {
-        // Reset the gear icon rotation
-        if (settingsToggleRef) settingsToggleRef.classList.remove('rotate-active');
-        
-        // Go back to history
-        const target = lastScreenBeforeSettings || 'clientsDiv';
-        navigateTo(target, 'back');
-    };
-}
