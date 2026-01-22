@@ -3505,16 +3505,19 @@ function startRestTimer(reset = false) {
                         sendHapticScoreToNative(hapticScore);
                     }
 
-                    // C. Trigger Flashlight (ROBUST CHECK)
-                    if (typeof sendFlashlightToNative === 'function') {
-                        // Use the helper if it exists
-                        sendFlashlightToNative(flashCount);
-                    } else if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
-                        // Direct fallback if helper is missing (Prevents Crash)
-                        console.log("🔦 Sending " + flashCount + " flashes via direct bridge");
-                        window.webkit.messageHandlers.flashlightHandler.postMessage(flashCount);
+                    // C. Trigger Flashlight (UPDATED WITH SETTING CHECK)
+                    // 1. Check if the setting allows it (Default to true if null)
+                    const isFlashEnabled = localStorage.getItem('trunk_setting_flashlight') !== 'false';
+            
+                    if (isFlashEnabled) {
+                        if (typeof sendFlashlightToNative === 'function') {
+                            sendFlashlightToNative(flashCount);
+                        } else if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
+                            console.log("🔦 Sending " + flashCount + " flashes");
+                            window.webkit.messageHandlers.flashlightHandler.postMessage(flashCount);
+                        }
                     } else {
-                        console.log("⚠️ Flashlight bridge not found");
+                        console.log("🔦 Flashlight skipped by user setting.");
                     }
                     
                     // -------------------------------------
@@ -4033,6 +4036,13 @@ function initSettings() {
     const savedAnims = localStorage.getItem('trunk_setting_anims');
     const savedHaptics = localStorage.getItem('trunk_setting_haptics');
     const settingHapticToggle = document.getElementById('settingHapticToggle');
+    const savedFlashlight = localStorage.getItem('trunk_setting_flashlight');
+    const settingFlashlightToggle = document.getElementById('settingFlashlightToggle');
+    
+    if (settingFlashlightToggle) {
+    // Default is TRUE (checked) unless explicitly saved as 'false'
+    settingFlashlightToggle.checked = (savedFlashlight !== 'false');
+    }
 
     // Logic: If the value is "false", we DISABLE features. 
     // Defaults: We assume enabled unless specifically set to "false".
@@ -4099,6 +4109,19 @@ if (settingHapticToggle) {
             sendHapticScoreToNative(-2); 
         } else {
             localStorage.setItem('trunk_setting_haptics', 'false');
+        }
+    });
+}
+
+if (settingFlashlightToggle) {
+    settingFlashlightToggle.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            localStorage.setItem('trunk_setting_flashlight', 'true');
+            // Give feedback
+            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-2);
+        } else {
+            localStorage.setItem('trunk_setting_flashlight', 'false');
         }
     });
 }
