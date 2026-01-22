@@ -3076,10 +3076,10 @@ initOrganicSpiral();
 // }
 
 // Run on load
-window.addEventListener('load', () => {
+//window.addEventListener('load', () => {
     // Slight delay so it doesn't pop up instantly over the login
-    setTimeout(initInstallPrompt, 2000);
-});
+//    setTimeout(initInstallPrompt, 2000);
+//});
 
 // =====================================================
 // NEW CALCULATOR MODAL LOGIC
@@ -4053,10 +4053,11 @@ function initSettings() {
         if(settingAnimToggle) settingAnimToggle.checked = true;
     }
     // --- HAPTICS ---
-    // Default is TRUE. Only uncheck if explicitly saved as 'false'.
     if (settingHapticToggle) {
         settingHapticToggle.checked = (savedHaptics !== 'false');
-        // --- FLASHLIGHT ---
+    } // Close Haptics block
+
+    // --- FLASHLIGHT (Independent) ---
     const savedFlash = localStorage.getItem('trunk_setting_flash');
     if (settingFlashToggle) {
         // Default to FALSE (Off) if never set, or load saved value
@@ -4123,6 +4124,8 @@ if (settingHapticToggle) {
             localStorage.setItem('trunk_setting_haptics', 'false');
         }
     });
+}
+
 }
 
 // 3. Run Initialization immediately
