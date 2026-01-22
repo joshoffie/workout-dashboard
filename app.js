@@ -4125,8 +4125,6 @@ if (settingHapticToggle) {
     });
 }
 
-}
-
 // 3. Run Initialization immediately
 initSettings();
 
