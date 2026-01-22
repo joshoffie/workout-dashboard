@@ -3425,9 +3425,9 @@ let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
 
 // 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
-    // DEBUG LOG 1: Did the function even start?
+    // DEBUG LOG: Did the function even start?
     console.log("🔎 JS DEBUG: startRestTimer called. Reset is: " + reset);
-
+    
     if (!selectedExercise) {
         console.log("❌ JS DEBUG: No selectedExercise, cancelling.");
         return;
@@ -3436,7 +3436,7 @@ function startRestTimer(reset = false) {
     if (reset) {
         console.log("🔎 JS DEBUG: Inside Reset Block. Attempting to contact Native...");
         
-        // ... (Your existing local storage code) ...
+        // A. Local & Global Storage
         const now = Date.now();
         const localKey = `restTimer_${selectedExercise.exercise}`;
         localStorage.setItem(localKey, now);
@@ -3444,13 +3444,14 @@ function startRestTimer(reset = false) {
         const globalData = { time: now, label: selectedExercise.exercise };
         localStorage.setItem(KEY_GLOBAL_TIMER, JSON.stringify(globalData));
         
+        // B. Update Clock Immediately
         masterClockTick();
 
         // ---------------------------------------------------------
-        // D. TRIGGER HAPTICS & NOTIFICATIONS (Fixed Bridge)
+        // D. TRIGGER HAPTICS, NOTIFICATIONS & FLASHLIGHT
         // ---------------------------------------------------------
         
-        // 1. Prepare Data
+        // 1. Prepare Notification Data
         const timerBatches = activeTimerConfig
             .filter(t => t.isActive)
             .map(t => ({
@@ -3459,23 +3460,20 @@ function startRestTimer(reset = false) {
                 body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
             }));
 
-        // 2. Send to Native (THE FIX)
+        // 2. Send Notifications to Native
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
-            
-            // Swift expects this EXACT structure:
             const payload = {
-                command: "schedule", // <--- Matches line 121 in ViewController
-                batches: timerBatches // <--- Matches line 122 in ViewController
+                command: "schedule",
+                batches: timerBatches
             };
-            
             console.log("🚀 JS Sending Payload:", payload);
             window.webkit.messageHandlers.notificationHandler.postMessage(payload);
-            
         } else {
-            console.log("❌ Native bridge not found");
+            console.log("❌ Native notification bridge not found");
         }
 
-        // 3. Schedule JS Foreground Haptics
+        // 3. Schedule Foreground Haptics & Flashlight
+        // Clear previous timers so they don't stack
         foregroundHapticTimeouts.forEach(id => clearTimeout(id));
         foregroundHapticTimeouts = [];
         
@@ -3483,8 +3481,44 @@ function startRestTimer(reset = false) {
             if (t.isActive) {
                 const ms = t.seconds * 1000;
                 foregroundHapticTimeouts.push(setTimeout(() => {
-                    // Send haptic score (10 = Warning Bump)
-                    if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                    
+                    // --- NEW FLASHLIGHT & HAPTIC LOGIC ---
+                    
+                    // A. Calculate Intensity based on duration
+                    // Default: 1 flash / Low haptic
+                    let flashCount = 1;
+                    let hapticScore = 10;
+                    
+                    // 3 Minutes or more: 3 flashes / Heavy haptics
+                    if (t.seconds >= 180) {
+                        flashCount = 3;
+                        hapticScore = 30;
+                    }
+                    // 10 Minutes or more: 5 flashes / Long haptics
+                    if (t.seconds >= 600) {
+                        flashCount = 5;
+                        hapticScore = 100;
+                    }
+
+                    // B. Trigger Haptic
+                    if(typeof sendHapticScoreToNative === 'function') {
+                        sendHapticScoreToNative(hapticScore);
+                    }
+
+                    // C. Trigger Flashlight (ROBUST CHECK)
+                    if (typeof sendFlashlightToNative === 'function') {
+                        // Use the helper if it exists
+                        sendFlashlightToNative(flashCount);
+                    } else if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
+                        // Direct fallback if helper is missing (Prevents Crash)
+                        console.log("🔦 Sending " + flashCount + " flashes via direct bridge");
+                        window.webkit.messageHandlers.flashlightHandler.postMessage(flashCount);
+                    } else {
+                        console.log("⚠️ Flashlight bridge not found");
+                    }
+                    
+                    // -------------------------------------
+
                 }, ms));
             }
         });
@@ -3495,8 +3529,7 @@ function startRestTimer(reset = false) {
         try {
             const sets = selectedExercise.sets;
             if (sets && sets.length > 0) {
-                const lastSet = sets[sets.length - 1]; 
-
+                const lastSet = sets[sets.length - 1];
                 if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
                     
                     let displayWeight = lastSet.weight;
@@ -3507,17 +3540,13 @@ function startRestTimer(reset = false) {
                         unitLabel = UNIT_mode.getLabel();
                     }
                     
-                    const weightString = `${displayWeight} ${unitLabel}`;
-
                     const payload = {
                         exercise: selectedExercise.exercise,
-                        weight: weightString,
+                        weight: `${displayWeight} ${unitLabel}`,
                         reps: String(lastSet.reps),
                         startTime: now
                     };
-
                     window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
-                    console.log("🚀 Sent Live Activity Payload", payload);
                 }
             }
         } catch (err) {
@@ -3613,18 +3642,21 @@ function initMasterClock() {
             if (elapsed < 60000) {
                 foregroundHapticTimeouts.push(setTimeout(() => {
                      if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                    sendFlashlightToNative(1); // <--- ADD THIS
                 }, 60000 - elapsed));
             }
             // If < 3 mins, schedule 3m buzz
             if (elapsed < 180000) {
                 foregroundHapticTimeouts.push(setTimeout(() => {
                      if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
+                    sendFlashlightToNative(3); // <--- ADD THIS
                 }, 180000 - elapsed));
             }
             // If < 10 mins, schedule 10m buzz
             if (elapsed < 600000) {
                 foregroundHapticTimeouts.push(setTimeout(() => {
                      if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
+                    sendFlashlightToNative(5); // <--- ADD THIS
                 }, 600000 - elapsed));
             }
         } catch(e) { console.error("Rehydrate error", e); }
@@ -5121,3 +5153,16 @@ const TimerPicker = {
 document.addEventListener('DOMContentLoaded', () => {
     TimerPicker.init();
 });
+
+// ==========================================
+// FLASHLIGHT BRIDGE
+// ==========================================
+function sendFlashlightToNative(count) {
+    // 0. Safety Check: Does the bridge exist?
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.flashlightHandler) {
+        console.log("🔦 Sending Flashlight Request: " + count);
+        window.webkit.messageHandlers.flashlightHandler.postMessage(count);
+    } else {
+        console.log("⚠️ Flashlight handler not found (Are you in the browser?)");
+    }
+}
