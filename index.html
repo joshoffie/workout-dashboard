@@ -414,6 +414,58 @@
       <div id="timerSettingsList" class="timer-settings-list">
         </div>
 
+      <div id="timerPickerModal" class="overlay hidden" style="z-index: 10010;">
+  <div class="calculator-modal" style="max-width: 340px;"> <div class="calc-header">
+       <div class="picker-tabs">
+          <button class="picker-tab active" id="tabWheelBtn">Wheel</button>
+          <button class="picker-tab" id="tabKeypadBtn">Keypad</button>
+       </div>
+       <button id="closeTimerPickerBtn" class="btn-icon" style="font-size: 1.5rem; margin-left:auto;">&times;</button>
+    </div>
+
+    <div id="timerWheelView">
+        <div class="time-picker-wheel-container">
+            <div class="picker-highlight-bar"></div>
+            
+            <div style="position:relative;">
+                <div class="picker-column" id="pickerMinCol">
+                    </div>
+                <span class="picker-label">min</span>
+            </div>
+
+            <div style="position:relative;">
+                 <div class="picker-column" id="pickerSecCol">
+                    </div>
+                <span class="picker-label">sec</span>
+            </div>
+        </div>
+        <div style="text-align:center; color:#555; margin-top:15px; font-size:0.9rem;">
+            Scroll to select time
+        </div>
+    </div>
+
+    <div id="timerKeypadView" class="hidden">
+        <div id="timerKeypadDisplay" class="timer-keypad-display">00:00</div>
+        
+        <div class="numpad-grid">
+          <button class="num-btn timer-num" data-val="1">1</button>
+          <button class="num-btn timer-num" data-val="2">2</button>
+          <button class="num-btn timer-num" data-val="3">3</button>
+          <button class="num-btn timer-num" data-val="4">4</button>
+          <button class="num-btn timer-num" data-val="5">5</button>
+          <button class="num-btn timer-num" data-val="6">6</button>
+          <button class="num-btn timer-num" data-val="7">7</button>
+          <button class="num-btn timer-num" data-val="8">8</button>
+          <button class="num-btn timer-num" data-val="9">9</button>
+          <button class="num-btn" style="visibility:hidden">.</button> <button class="num-btn timer-num" data-val="0">0</button>
+          <button class="num-btn btn-backspace" id="timerBackspace">⌫</button>
+        </div>
+    </div>
+
+    <button id="saveTimerPickerBtn" class="btn btn-primary calc-action-btn" style="margin-top:20px;">Set Timer</button>
+  </div>
+</div>
+
       <div class="modal-actions-row" style="margin-top: 1.5rem;">
         <button id="closeTimerSettingsBtn" class="btn btn-primary" style="width:100%">Done</button>
       </div>
