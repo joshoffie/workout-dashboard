@@ -409,10 +409,40 @@
   </div>
   <div id="timerSettingsModal" class="overlay hidden" style="z-index: 10001;">
     <div class="input-modal-card">
-      <h3 class="input-modal-title">Custom Timers</h3>
-      
-      <div id="timerSettingsList" class="timer-settings-list">
+  <h3 class="input-modal-title">Edit Timer</h3>
+
+  <div class="timer-mode-toggle">
+    <button id="modeWheelBtn" class="mode-btn active">Wheel</button>
+    <button id="modeKeypadBtn" class="mode-btn">Keypad</button>
+  </div>
+
+  <div id="timerWheelView" class="timer-picker-container">
+    <div class="picker-highlight"></div> <div class="picker-col-wrapper">
+      <div class="picker-label">Min</div>
+      <div class="picker-col" id="pickerMin">
         </div>
+    </div>
+
+    <div class="picker-separator">:</div>
+
+    <div class="picker-col-wrapper">
+      <div class="picker-label">Sec</div>
+      <div class="picker-col" id="pickerSec">
+        </div>
+    </div>
+  </div>
+
+  <div id="timerKeypadView" class="hidden">
+     <div class="custom-input-wrapper">
+        <input type="text" id="timerManualInput" class="custom-input-field" placeholder="MM:SS" inputmode="numeric">
+     </div>
+  </div>
+
+  <div class="modal-actions-row">
+    <button id="cancelTimerBtn" class="btn btn-secondary">Cancel</button>
+    <button id="saveTimerBtn" class="btn btn-primary">Save</button>
+  </div>
+</div>
 
       <div class="modal-actions-row" style="margin-top: 1.5rem;">
         <button id="closeTimerSettingsBtn" class="btn btn-primary" style="width:100%">Done</button>
