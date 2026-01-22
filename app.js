@@ -4063,7 +4063,6 @@ function initSettings() {
         // Default to FALSE (Off) if never set, or load saved value
         settingFlashToggle.checked = (savedFlash === 'true');
     }
-}
 
     // 2. Listener
 if (settingFlashToggle) {
