@@ -310,7 +310,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- OFFLINE PERSISTENCE ENABLED ---
+// 1. ENABLE PERSISTENCE FIRST
 db.enablePersistence()
   .catch((err) => {
     if (err.code == 'failed-precondition') {
@@ -318,8 +318,12 @@ db.enablePersistence()
     } else if (err.code == 'unimplemented') {
       console.log("❌ Offline mode not supported in this browser.");
     }
+  })
+  .finally(() => {
+    // 2. ONLY AFTER DB IS READY, LISTEN FOR USER
+    // This prevents the app from trying to load data before the offline cache is active.
+    initAuthListener();
   });
-// -----------------------------------
 
 let clientsData = {};
 let selectedClient = null;
@@ -627,52 +631,54 @@ const deleteModalMessage = document.getElementById('deleteModalMessage');
 const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-      // alert("DEBUG: User detected: " + user.email); // Uncomment if you need to prove it works
-    // 1. LOGGED IN STATE
-      sendHapticScoreToNative(-4); // <--- ADD THIS LINE (Success Pulse)
-    if (typeof modal !== 'undefined') modal.classList.add("hidden");
-    
-    // --- FIX: Force UI Elements to Appear for Real Users ---
-    const settingsBtn = document.getElementById('settingsBtn'); 
-    const editToggleBtn = document.getElementById('editToggleBtn');
-    
-    if (settingsBtn) settingsBtn.classList.remove("hidden");
-    if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-    
-    if (userLabel) userLabel.textContent = `Logged in as ${user.displayName}`;
-    
-    // 2. FORCE RESET UI
-    hideAllDetails(); 
-
-    // 3. LOAD & RENDER DATA
-    await loadUserJson();
-    renderClients();
-
-  } else {
-    // 4. LOGGED OUT STATE
-    // Only hide UI if we are NOT in tutorial mode
-      // alert("DEBUG: No user found."); // Uncomment if you suspect it's failing silently
-    if (!isTutorialMode) {
-        if (typeof modal !== 'undefined') modal.classList.remove("hidden");
+function initAuthListener() {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+          // LOGGED IN
+          if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
+          if (typeof modal !== 'undefined') modal.classList.add("hidden");
         
-        const settingsBtn = document.getElementById('settingsBtn');
-        if (settingsBtn) settingsBtn.classList.add("hidden");
+          const settingsBtn = document.getElementById('settingsBtn'); 
+          const editToggleBtn = document.getElementById('editToggleBtn');
         
-        const editToggleBtn = document.getElementById('editToggleBtn');
-        if (editToggleBtn) editToggleBtn.classList.add("hidden");
-    }
-    
-    if (userLabel) userLabel.textContent = "";
-    clientsData = {};
-    selectedClient = null;
-    
-    // Clear UI completely
-    renderClients();
-    hideAllDetails();
-  }
-});
+          if (settingsBtn) settingsBtn.classList.remove("hidden");
+          if (editToggleBtn) editToggleBtn.classList.remove("hidden");
+        
+          if (userLabel) userLabel.textContent = `Logged in as ${user.displayName}`;
+        
+          hideAllDetails(); 
+
+          // 3. LOAD & RENDER DATA
+          // If offline & first run, this might be empty, but it won't crash.
+          await loadUserJson();
+          
+          // SAFETY CHECK: If no data loaded (fresh offline install), show a hint
+          const list = document.getElementById("clientList");
+          if ((!clientsData || Object.keys(clientsData).length === 0) && !navigator.onLine) {
+             alert("⚠️ Offline Mode: No local data found.\n\nPlease connect to the internet once to download your workouts.");
+          }
+
+          renderClients();
+
+      } else {
+        // LOGGED OUT
+        if (!isTutorialMode) {
+            if (typeof modal !== 'undefined') modal.classList.remove("hidden");
+            const settingsBtn = document.getElementById('settingsBtn');
+            if (settingsBtn) settingsBtn.classList.add("hidden");
+            
+            const editToggleBtn = document.getElementById('editToggleBtn');
+            if (editToggleBtn) editToggleBtn.classList.add("hidden");
+        }
+        
+        if (userLabel) userLabel.textContent = "";
+        clientsData = {};
+        selectedClient = null;
+        renderClients();
+        hideAllDetails();
+      }
+    });
+}
 
 // [app.js] Add this AFTER auth.onAuthStateChanged closes
 auth.getRedirectResult().then((result) => {
