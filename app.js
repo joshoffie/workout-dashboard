@@ -3457,7 +3457,7 @@ function startRestTimer(reset = false) {
             .filter(t => t.isActive)
             .map(t => ({
                 seconds: parseFloat(t.seconds),
-                title: "Rest Complete",
+                title: "Rest Timer",
                 body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
             }));
 
