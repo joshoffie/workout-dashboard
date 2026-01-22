@@ -3477,16 +3477,21 @@ function startRestTimer(reset = false) {
             console.log("❌ Native bridge not found");
         }
 
-        // 3. Schedule JS Foreground Haptics
+        // 3. Schedule JS Foreground Haptics & FLASHES
         foregroundHapticTimeouts.forEach(id => clearTimeout(id));
         foregroundHapticTimeouts = [];
         
-        activeTimerConfig.forEach(t => {
+        activeTimerConfig.forEach((t, index) => { // Added 'index' here
             if (t.isActive) {
                 const ms = t.seconds * 1000;
+                
                 foregroundHapticTimeouts.push(setTimeout(() => {
-                    // Send haptic score (10 = Warning Bump)
+                    // A. Haptic
                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                    
+                    // B. Flashlight (Index 0 = 1 flash, Index 1 = 2 flashes, etc.)
+                    triggerNativeFlash(index + 1);
+                    
                 }, ms));
             }
         });
@@ -3606,6 +3611,28 @@ function initMasterClock() {
         try {
             const data = JSON.parse(rawGlobal);
             const elapsed = Date.now() - parseInt(data.time);
+
+            // Clear lists first
+            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+            foregroundHapticTimeouts = [];
+
+            // We iterate through the config to match specific timers to specific flash counts
+            activeTimerConfig.forEach((t, index) => {
+                if (t.isActive) {
+                    const ms = t.seconds * 1000;
+                    // If this timer hasn't passed yet
+                    if (elapsed < ms) {
+                        foregroundHapticTimeouts.push(setTimeout(() => {
+                            // Haptic
+                            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
+                            
+                            // Flashlight (1x, 2x, or 3x)
+                            triggerNativeFlash(index + 1);
+                            
+                        }, ms - elapsed));
+                    }
+                }
+            });
             
             // Clear lists first
             foregroundHapticTimeouts.forEach(id => clearTimeout(id));
@@ -3995,6 +4022,7 @@ function exitEditMode() {
 
 const settingColorToggle = document.getElementById('settingColorToggle');
 const settingAnimToggle = document.getElementById('settingAnimToggle');
+const settingFlashToggle = document.getElementById('settingFlashToggle');
 
 // 1. Initialize Settings (Run on App Load)
 function initSettings() {
@@ -4028,8 +4056,32 @@ function initSettings() {
     // Default is TRUE. Only uncheck if explicitly saved as 'false'.
     if (settingHapticToggle) {
         settingHapticToggle.checked = (savedHaptics !== 'false');
+        // --- FLASHLIGHT ---
+    const savedFlash = localStorage.getItem('trunk_setting_flash');
+    if (settingFlashToggle) {
+        // Default to FALSE (Off) if never set, or load saved value
+        settingFlashToggle.checked = (savedFlash === 'true');
     }
 }
+
+    // 2. Listener
+if (settingFlashToggle) {
+    settingFlashToggle.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        localStorage.setItem('trunk_setting_flash', isEnabled ? 'true' : 'false');
+        
+        // Satisfaction Click
+        if (isEnabled && typeof sendHapticScoreToNative === 'function') {
+            sendHapticScoreToNative(-2); 
+            // Optional: Test flash once to show it works
+            if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
+                window.webkit.messageHandlers.flashlightHandler.postMessage(1);
+            }
+        }
+    });
+}
+
+    
 
 // 2. Event Listeners for Toggles
 if (settingColorToggle) {
@@ -4076,6 +4128,7 @@ if (settingHapticToggle) {
 // 3. Run Initialization immediately
 initSettings();
 
+    
 // =====================================================
 // CALENDAR ENGINE
 // =====================================================
@@ -4651,6 +4704,15 @@ function generateSmartRecap() {
 }
 
 // Helper: Calculate simple stats
+function triggerNativeFlash(count) {
+    // 1. Check Setting
+    if (localStorage.getItem('trunk_setting_flash') !== 'true') return;
+
+    // 2. Check Bridge
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.flashlightHandler) {
+        window.webkit.messageHandlers.flashlightHandler.postMessage(count);
+    }
+}
 function getSessionStats(setList) {
     let vol = 0;
     let maxW = 0;
