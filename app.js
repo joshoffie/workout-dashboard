@@ -3283,189 +3283,6 @@ function parseTimeInput(str) {
     }
 }
 
-// =====================================================
-// ROBUST TIMER PICKER ENGINE (Safety Wrapped)
-// =====================================================
-
-let currentTimerIndex = null;
-let timerInputString = ""; 
-let activeTimerTab = 'wheel';
-
-// 1. SAFE ELEMENT LOOKUP (Prevents White Screen Crash)
-const ui = {
-    modal: document.getElementById('timerPickerModal'),
-    wheelBtn: document.getElementById('tabWheelBtn'),
-    keypadBtn: document.getElementById('tabKeypadBtn'),
-    wheelView: document.getElementById('timerWheelView'),
-    keypadView: document.getElementById('timerKeypadView'),
-    minCol: document.getElementById('pickerMinCol'),
-    secCol: document.getElementById('pickerSecCol'),
-    display: document.getElementById('timerKeypadDisplay'),
-    backspace: document.getElementById('timerBackspace'),
-    saveBtn: document.getElementById('saveTimerPickerBtn'),
-    closeBtn: document.getElementById('closeTimerPickerBtn')
-};
-
-// 2. INIT WHEELS
-function initTimerWheels() {
-    if (!ui.minCol || !ui.secCol) return; // Safety
-    if (ui.minCol.children.length > 0) return; // Already built
-
-    // Build Minutes (0-90)
-    for(let i=0; i<=90; i++) {
-        const div = document.createElement('div');
-        div.className = 'picker-item';
-        div.textContent = i;
-        div.dataset.val = i;
-        ui.minCol.appendChild(div);
-    }
-    // Build Seconds (0-59)
-    for(let i=0; i<=59; i++) {
-        const div = document.createElement('div');
-        div.className = 'picker-item';
-        div.textContent = i.toString().padStart(2, '0');
-        div.dataset.val = i;
-        ui.secCol.appendChild(div);
-    }
-
-    // Scroll Listeners
-    const handleScroll = (col) => {
-        const itemH = 44;
-        const index = Math.round(col.scrollTop / itemH);
-        Array.from(col.children).forEach((child, idx) => {
-            if(idx === index) child.classList.add('selected');
-            else child.classList.remove('selected');
-        });
-        // Optional: Haptic trigger here
-    };
-
-    ui.minCol.addEventListener('scroll', () => handleScroll(ui.minCol));
-    ui.secCol.addEventListener('scroll', () => handleScroll(ui.secCol));
-}
-
-// 3. OPEN PICKER
-function openTimerPicker(index) {
-    if (!ui.modal) {
-        console.error("❌ CRITICAL: Timer Modal HTML missing in index.html");
-        alert("Update App: Timer Modal missing.");
-        return;
-    }
-
-    currentTimerIndex = index;
-    const currentSecs = activeTimerConfig[index].seconds;
-    
-    initTimerWheels();
-    switchTimerTab('wheel');
-
-    // Setup Wheel Position
-    const m = Math.floor(currentSecs / 60);
-    const s = currentSecs % 60;
-    
-    ui.modal.classList.remove('hidden');
-    
-    // Wait for render, then scroll
-    setTimeout(() => {
-        const itemH = 44;
-        if(ui.minCol) ui.minCol.scrollTop = m * itemH;
-        if(ui.secCol) ui.secCol.scrollTop = s * itemH;
-    }, 10);
-
-    // Setup Keypad String
-    if (m > 0 || s > 0) {
-        let str = m.toString() + s.toString().padStart(2, '0');
-        timerInputString = parseInt(str).toString(); 
-    } else {
-        timerInputString = "";
-    }
-    updateTimerKeypadDisplay();
-}
-
-// 4. TAB SWITCHING
-function switchTimerTab(mode) {
-    activeTimerTab = mode;
-    if (!ui.wheelBtn || !ui.keypadBtn) return;
-
-    if(mode === 'wheel') {
-        ui.wheelBtn.classList.add('active');
-        ui.keypadBtn.classList.remove('active');
-        if(ui.wheelView) ui.wheelView.classList.remove('hidden');
-        if(ui.keypadView) ui.keypadView.classList.add('hidden');
-    } else {
-        ui.wheelBtn.classList.remove('active');
-        ui.keypadBtn.classList.add('active');
-        if(ui.wheelView) ui.wheelView.classList.add('hidden');
-        if(ui.keypadView) ui.keypadView.classList.remove('hidden');
-    }
-}
-
-// 5. EVENT LISTENERS (Wrapped in checks)
-if(ui.wheelBtn) ui.wheelBtn.onclick = () => switchTimerTab('wheel');
-if(ui.keypadBtn) ui.keypadBtn.onclick = () => switchTimerTab('keypad');
-
-if (ui.backspace) {
-    ui.backspace.onclick = () => {
-        timerInputString = timerInputString.slice(0, -1);
-        updateTimerKeypadDisplay();
-    };
-}
-
-// Keypad Numbers
-document.querySelectorAll('.timer-num').forEach(btn => {
-    btn.onclick = () => {
-        if(timerInputString.length >= 4) return;
-        timerInputString += btn.dataset.val;
-        updateTimerKeypadDisplay();
-    };
-});
-
-// Update Display Helper
-function updateTimerKeypadDisplay() {
-    if (!ui.display) return;
-    let raw = timerInputString.padStart(4, '0');
-    let secPart = raw.slice(-2);
-    let minPart = raw.slice(0, -2);
-    ui.display.textContent = `${parseInt(minPart)}:${secPart}`;
-}
-
-// SAVE BUTTON
-if (ui.saveBtn) {
-    ui.saveBtn.onclick = () => {
-        let finalSeconds = 0;
-
-        if (activeTimerTab === 'wheel' && ui.minCol && ui.secCol) {
-            const itemH = 44;
-            const m = Math.round(ui.minCol.scrollTop / itemH);
-            const s = Math.round(ui.secCol.scrollTop / itemH);
-            finalSeconds = (m * 60) + s;
-        } else {
-            let raw = timerInputString.padStart(4, '0');
-            let m = parseInt(raw.slice(0, -2));
-            let s = parseInt(raw.slice(-2));
-            finalSeconds = (m * 60) + s;
-        }
-
-        if (finalSeconds <= 0) finalSeconds = 60; 
-
-        if (currentTimerIndex !== null) {
-            activeTimerConfig[currentTimerIndex].seconds = finalSeconds;
-            activeTimerConfig[currentTimerIndex].label = 
-                `${Math.floor(finalSeconds/60)}:${(finalSeconds%60).toString().padStart(2,'0')}`;
-            
-            saveTimerConfig();
-            renderTimerSettings();
-        }
-        
-        if(ui.modal) ui.modal.classList.add('hidden');
-    };
-}
-
-// CLOSE BUTTON
-if (ui.closeBtn) {
-    ui.closeBtn.onclick = () => {
-        if(ui.modal) ui.modal.classList.add('hidden');
-    };
-}
-
 // 4. RENDER SETTINGS
 function renderTimerSettings() {
     if (!timerSettingsList) return;
@@ -3513,18 +3330,17 @@ function renderTimerSettings() {
         timeBtn.textContent = `${m}:${s.toString().padStart(2, '0')}`;
         
         timeBtn.onclick = async () => {
-            openTimerPicker(index);
             // 1. Show current value (e.g. "1:30")
-            //const currentM = Math.floor(timer.seconds / 60);
-            //const currentS = timer.seconds % 60;
-            //const displayVal = `${currentM}:${currentS.toString().padStart(2, '0')}`;
+            const currentM = Math.floor(timer.seconds / 60);
+            const currentS = timer.seconds % 60;
+            const displayVal = `${currentM}:${currentS.toString().padStart(2, '0')}`;
             
             // 2. Ask for "text" input (so you can type ":")
-            //const val = await showInputModal(
-           //     `Set Timer ${index + 1}`, 
-            //    displayVal, 
-            //    "e.g. 1:30 or 90", 
-             //   "text" // <--- CHANGED FROM "NUMBER" TO "TEXT"
+            const val = await showInputModal(
+                `Set Timer ${index + 1}`, 
+                displayVal, 
+                "e.g. 1:30 or 90", 
+                "text" // <--- CHANGED FROM "NUMBER" TO "TEXT"
             );
             
             if (val) {
