@@ -3282,12 +3282,11 @@ function parseTimeInput(str) {
         return parseInt(clean) || 0;
     }
 }
-
-// 4. RENDER SETTINGS
+// REPLACE your existing renderTimerSettings function with this:
 function renderTimerSettings() {
     if (!timerSettingsList) return;
     timerSettingsList.innerHTML = '';
-
+    
     activeTimerConfig.forEach((timer, index) => {
         const row = document.createElement('div');
         row.className = 'timer-row';
@@ -3318,43 +3317,42 @@ function renderTimerSettings() {
         switchContainer.appendChild(input);
         switchContainer.appendChild(slider);
 
-        // B. Time Button
+        // B. Time Button (THIS IS THE UPDATED PART)
         const timeBtn = document.createElement('button');
         timeBtn.className = 'btn btn-secondary';
         timeBtn.style.marginRight = '12px';
         timeBtn.style.minWidth = '80px';
         
-        // Format display
+        // Format display (e.g., 1:30)
         const m = Math.floor(timer.seconds / 60);
         const s = timer.seconds % 60;
-        timeBtn.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        const timeStr = `${m}:${s.toString().padStart(2, '0')}`;
+        timeBtn.textContent = timeStr;
         
-        timeBtn.onclick = async () => {
-            // 1. Show current value (e.g. "1:30")
+        // --- NEW INTEGRATION START ---
+        timeBtn.onclick = () => {
+            // 1. Pass current time string to the Picker
             const currentM = Math.floor(timer.seconds / 60);
             const currentS = timer.seconds % 60;
-            const displayVal = `${currentM}:${currentS.toString().padStart(2, '0')}`;
-            
-            // 2. Ask for "text" input (so you can type ":")
-            const val = await showInputModal(
-                `Set Timer ${index + 1}`, 
-                displayVal, 
-                "e.g. 1:30 or 90", 
-                "text" // <--- CHANGED FROM "NUMBER" TO "TEXT"
-            );
-            
-            if (val) {
-                // 3. Use the helper to calculate seconds
-                const newSecs = parseTimeInput(val);
-                
+            const currentStr = `${currentM}:${currentS.toString().padStart(2, '0')}`;
+
+            // 2. Open the Wheel/Keypad Picker
+            TimerPicker.open(currentStr, (newVal) => {
+                // 3. Handle the 'Save' callback
+                // Reuse your existing helper to convert "MM:SS" -> seconds
+                const newSecs = parseTimeInput(newVal); 
+
                 if (newSecs > 0) {
                     activeTimerConfig[index].seconds = newSecs;
+                    // Update the label property too
                     activeTimerConfig[index].label = `${Math.floor(newSecs/60)}:${(newSecs%60).toString().padStart(2,'0')}`;
+                    
                     saveTimerConfig();
-                    renderTimerSettings();
+                    renderTimerSettings(); // Re-render to show changes
                 }
-            }
+            });
         };
+        // --- NEW INTEGRATION END ---
 
         // C. Label
         const label = document.createElement('div');
@@ -3362,7 +3360,7 @@ function renderTimerSettings() {
         label.style.fontSize = '0.9rem';
         label.style.color = 'var(--color-text-muted)';
         label.textContent = timer.label || `Timer ${index + 1}`;
-        
+
         // Assemble
         const leftGroup = document.createElement('div');
         leftGroup.style.display = 'flex';
@@ -4936,4 +4934,217 @@ window.addEventListener('resize', () => {
     if (overlay && overlay.classList.contains('hidden')) {
         stableWindowHeight = window.innerHeight;
     }
+});
+
+// ==========================================
+// ROBUST TIMER PICKER MODULE
+// ==========================================
+
+const TimerPicker = {
+    state: {
+        minutes: 0,
+        seconds: 0,
+        isWheelMode: true,
+        targetCallback: null // Function to call on Save
+    },
+    
+    // Config
+    itemHeight: 40, // Must match CSS .picker-item height
+
+    init() {
+        console.log('[TimerPicker] Initializing...');
+        try {
+            this.cacheDOM();
+            this.bindEvents();
+            this.populateWheels();
+        } catch (e) {
+            console.error('[TimerPicker] CRITICAL INIT ERROR:', e);
+        }
+    },
+
+    cacheDOM() {
+        this.dom = {
+            modal: document.getElementById('timerSettingsModal'),
+            wheelView: document.getElementById('timerWheelView'),
+            keypadView: document.getElementById('timerKeypadView'),
+            minCol: document.getElementById('pickerMin'),
+            secCol: document.getElementById('pickerSec'),
+            manualInput: document.getElementById('timerManualInput'),
+            btnWheel: document.getElementById('modeWheelBtn'),
+            btnKeypad: document.getElementById('modeKeypadBtn'),
+            btnSave: document.getElementById('saveTimerBtn'),
+            btnCancel: document.getElementById('cancelTimerBtn')
+        };
+    },
+
+    bindEvents() {
+        if (!this.dom.btnSave) return; // Safety check
+
+        // Toggle Modes
+        this.dom.btnWheel.addEventListener('click', () => this.switchMode(true));
+        this.dom.btnKeypad.addEventListener('click', () => this.switchMode(false));
+
+        // Scroll Listeners (using debounce for performance)
+        this.dom.minCol.addEventListener('scroll', () => this.handleScroll('min'));
+        this.dom.secCol.addEventListener('scroll', () => this.handleScroll('sec'));
+
+        // Manual Input Listener
+        this.dom.manualInput.addEventListener('input', (e) => {
+            // Basic masking for MM:SS
+            let val = e.target.value.replace(/[^0-9]/g, '');
+            if (val.length > 4) val = val.substring(0, 4);
+            
+            // Auto-format for display (optional)
+            // Storing raw state
+            if (val.length >= 2) {
+                this.state.seconds = parseInt(val.slice(-2));
+                this.state.minutes = parseInt(val.slice(0, -2)) || 0;
+            } else {
+                this.state.seconds = parseInt(val) || 0;
+                this.state.minutes = 0;
+            }
+        });
+
+        // Save Action
+        this.dom.btnSave.addEventListener('click', () => {
+            console.log('[TimerPicker] Saving:', this.getFormattedTime());
+            if (this.state.targetCallback) {
+                // Ensure format matches exactly what Swift expects (MM:SS string)
+                this.state.targetCallback(this.getFormattedTime()); 
+            }
+            this.close();
+        });
+
+        // Cancel Action
+        this.dom.btnCancel.addEventListener('click', () => this.close());
+    },
+
+    populateWheels() {
+        // Clear existing
+        this.dom.minCol.innerHTML = '';
+        this.dom.secCol.innerHTML = '';
+
+        // Padding spacers allow top/bottom items to reach center
+        const spacer = `<div style="height: ${this.itemHeight * 2}px; flex-shrink:0;"></div>`;
+        
+        // 1. Minutes (0-99)
+        let minHTML = spacer;
+        for (let i = 0; i <= 99; i++) {
+            minHTML += `<div class="picker-item" data-val="${i}">${i.toString().padStart(2, '0')}</div>`;
+        }
+        minHTML += spacer;
+        this.dom.minCol.innerHTML = minHTML;
+
+        // 2. Seconds (0-59)
+        let secHTML = spacer;
+        for (let i = 0; i <= 59; i++) {
+            secHTML += `<div class="picker-item" data-val="${i}">${i.toString().padStart(2, '0')}</div>`;
+        }
+        secHTML += spacer;
+        this.dom.secCol.innerHTML = secHTML;
+    },
+
+    // Open logic
+    open(currentValueString, onSave) {
+        console.log('[TimerPicker] Opening with value:', currentValueString);
+        
+        this.state.targetCallback = onSave;
+        
+        // Parse "MM:SS" or "SS"
+        let m = 0, s = 0;
+        if (currentValueString.includes(':')) {
+            const parts = currentValueString.split(':');
+            m = parseInt(parts[0]) || 0;
+            s = parseInt(parts[1]) || 0;
+        } else {
+            // Assume total seconds or just seconds
+            const total = parseInt(currentValueString) || 0;
+            if (total > 59) {
+                m = Math.floor(total / 60);
+                s = total % 60;
+            } else {
+                s = total;
+            }
+        }
+
+        this.state.minutes = m;
+        this.state.seconds = s;
+
+        // Reset UI
+        this.dom.modal.classList.remove('hidden');
+        this.switchMode(true); // Default to Wheel
+        
+        // Wait for render to scroll
+        setTimeout(() => {
+            this.scrollToValue(this.dom.minCol, m);
+            this.scrollToValue(this.dom.secCol, s);
+            this.updateManualInputDisplay(); // Sync input field too
+        }, 50);
+    },
+
+    close() {
+        this.dom.modal.classList.add('hidden');
+    },
+
+    // Core Logic
+    switchMode(toWheel) {
+        this.state.isWheelMode = toWheel;
+        
+        if (toWheel) {
+            this.dom.btnWheel.classList.add('active');
+            this.dom.btnKeypad.classList.remove('active');
+            this.dom.wheelView.classList.remove('hidden');
+            this.dom.keypadView.classList.add('hidden');
+            
+            // Sync Wheel positions to current state
+            this.scrollToValue(this.dom.minCol, this.state.minutes);
+            this.scrollToValue(this.dom.secCol, this.state.seconds);
+        } else {
+            this.dom.btnWheel.classList.remove('active');
+            this.dom.btnKeypad.classList.add('active');
+            this.dom.wheelView.classList.add('hidden');
+            this.dom.keypadView.classList.remove('hidden');
+            
+            this.updateManualInputDisplay();
+            this.dom.manualInput.focus();
+        }
+    },
+
+    handleScroll(type) {
+        // Debounce visually highlighting the center item
+        const col = type === 'min' ? this.dom.minCol : this.dom.secCol;
+        
+        // Calculate index based on scroll position
+        const index = Math.round(col.scrollTop / this.itemHeight);
+        
+        if (type === 'min') this.state.minutes = index;
+        if (type === 'sec') this.state.seconds = index;
+
+        // Visual feedback (optional: add 'active' class to centered item)
+        // You can querySelectorAll('.picker-item') and toggle classes here
+    },
+
+    scrollToValue(colElement, value) {
+        // Validation constraint
+        if (colElement === this.dom.secCol && value > 59) value = 59;
+        
+        colElement.scrollTop = value * this.itemHeight;
+    },
+
+    updateManualInputDisplay() {
+        const mm = this.state.minutes.toString().padStart(2, '0');
+        const ss = this.state.seconds.toString().padStart(2, '0');
+        this.dom.manualInput.value = `${mm}:${ss}`;
+    },
+
+    getFormattedTime() {
+        const mm = this.state.minutes.toString().padStart(2, '0');
+        const ss = this.state.seconds.toString().padStart(2, '0');
+        return `${mm}:${ss}`;
+    }
+};
+
+// Initialize after DOM load
+document.addEventListener('DOMContentLoaded', () => {
+    TimerPicker.init();
 });
