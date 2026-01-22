@@ -2287,3 +2287,107 @@ body.no-animations #logo-k {
   color: var(--color-text-muted);
   pointer-events: none; /* Prevent editing if disabled */
 }
+
+/* --- TIMER PICKER MODAL --- */
+.picker-tabs {
+  display: flex;
+  background: #2c2c2e;
+  border-radius: 9px;
+  padding: 2px;
+  margin-bottom: 20px;
+}
+
+.picker-tab {
+  flex: 1;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: #8e8e93;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 7px;
+  transition: all 0.2s;
+}
+
+.picker-tab.active {
+  background: #636366;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Scroll Wheel Styles */
+.time-picker-wheel-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  height: 220px;
+  position: relative;
+  mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+}
+
+/* The Highlight Bar (Selection Indicator) */
+.picker-highlight-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  margin-top: -22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  pointer-events: none; /* Let clicks pass through */
+  z-index: 0;
+}
+
+.picker-column {
+  width: 80px;
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none; /* Firefox */
+  z-index: 1;
+  padding-top: 88px;    /* Half height - half item height */
+  padding-bottom: 88px;
+}
+
+.picker-column::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.picker-item {
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  font-size: 22px;
+  color: #fff;
+  scroll-snap-align: center;
+  opacity: 0.4;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.picker-item.selected {
+  opacity: 1;
+  font-weight: 600;
+  transform: scale(1.1);
+}
+
+.picker-label {
+  position: absolute;
+  top: 50%;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+  margin-left: 45px;
+  pointer-events: none;
+}
+
+/* Keypad Display override */
+.timer-keypad-display {
+  font-size: 3rem; 
+  font-weight: 700; 
+  text-align: center; 
+  margin: 20px 0; 
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
