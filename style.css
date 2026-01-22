@@ -2391,3 +2391,108 @@ body.no-animations #logo-k {
   font-variant-numeric: tabular-nums;
   letter-spacing: 2px;
 }
+
+/* TIMER PICKER STYLES */
+.timer-mode-toggle {
+  display: flex;
+  background: var(--color-bg);
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 8px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.timer-picker-container {
+  position: relative;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--color-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+}
+
+.picker-highlight {
+  position: absolute;
+  height: 40px; /* Item Height */
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.picker-col-wrapper {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  text-align: center;
+}
+
+.picker-label {
+  position: absolute;
+  top: 5px;
+  left: 0; 
+  right: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  z-index: 20;
+}
+
+.picker-col {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none; /* Firefox */
+}
+.picker-col::-webkit-scrollbar { display: none; }
+
+.picker-item {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  scroll-snap-align: center;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+/* Items in the center (approximate via hover or JS active class) */
+.picker-item.active-snap {
+  opacity: 1;
+  color: var(--color-primary);
+  font-size: 1.7rem;
+}
+
+.picker-separator {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding-bottom: 4px; /* Optical adjustment */
+}
