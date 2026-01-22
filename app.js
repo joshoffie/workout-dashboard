@@ -3284,25 +3284,32 @@ function parseTimeInput(str) {
 }
 
 // =====================================================
-// ROBUST TIMER PICKER ENGINE (Wheel + Keypad)
+// ROBUST TIMER PICKER ENGINE (Safety Wrapped)
 // =====================================================
 
 let currentTimerIndex = null;
-let timerInputString = ""; // Stores "130" for 1:30
-let activeTimerTab = 'wheel'; // 'wheel' or 'keypad'
+let timerInputString = ""; 
+let activeTimerTab = 'wheel';
 
-const timerPickerModal = document.getElementById('timerPickerModal');
-const tabWheelBtn = document.getElementById('tabWheelBtn');
-const tabKeypadBtn = document.getElementById('tabKeypadBtn');
-const timerWheelView = document.getElementById('timerWheelView');
-const timerKeypadView = document.getElementById('timerKeypadView');
-const pickerMinCol = document.getElementById('pickerMinCol');
-const pickerSecCol = document.getElementById('pickerSecCol');
-const timerKeypadDisplay = document.getElementById('timerKeypadDisplay');
+// 1. SAFE ELEMENT LOOKUP (Prevents White Screen Crash)
+const ui = {
+    modal: document.getElementById('timerPickerModal'),
+    wheelBtn: document.getElementById('tabWheelBtn'),
+    keypadBtn: document.getElementById('tabKeypadBtn'),
+    wheelView: document.getElementById('timerWheelView'),
+    keypadView: document.getElementById('timerKeypadView'),
+    minCol: document.getElementById('pickerMinCol'),
+    secCol: document.getElementById('pickerSecCol'),
+    display: document.getElementById('timerKeypadDisplay'),
+    backspace: document.getElementById('timerBackspace'),
+    saveBtn: document.getElementById('saveTimerPickerBtn'),
+    closeBtn: document.getElementById('closeTimerPickerBtn')
+};
 
-// 1. INIT WHEELS (Run once)
+// 2. INIT WHEELS
 function initTimerWheels() {
-    if(pickerMinCol.children.length > 0) return; // Already built
+    if (!ui.minCol || !ui.secCol) return; // Safety
+    if (ui.minCol.children.length > 0) return; // Already built
 
     // Build Minutes (0-90)
     for(let i=0; i<=90; i++) {
@@ -3310,7 +3317,7 @@ function initTimerWheels() {
         div.className = 'picker-item';
         div.textContent = i;
         div.dataset.val = i;
-        pickerMinCol.appendChild(div);
+        ui.minCol.appendChild(div);
     }
     // Build Seconds (0-59)
     for(let i=0; i<=59; i++) {
@@ -3318,147 +3325,146 @@ function initTimerWheels() {
         div.className = 'picker-item';
         div.textContent = i.toString().padStart(2, '0');
         div.dataset.val = i;
-        pickerSecCol.appendChild(div);
+        ui.secCol.appendChild(div);
     }
 
-    // Scroll Listeners for "Snapping" Highlight
+    // Scroll Listeners
     const handleScroll = (col) => {
         const itemH = 44;
-        const scrollPos = col.scrollTop;
-        const index = Math.round(scrollPos / itemH);
-        
+        const index = Math.round(col.scrollTop / itemH);
         Array.from(col.children).forEach((child, idx) => {
             if(idx === index) child.classList.add('selected');
             else child.classList.remove('selected');
         });
-        
-        // Haptic on selection change (Debounced slightly naturally by scroll)
-        // if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-3);
+        // Optional: Haptic trigger here
     };
 
-    pickerMinCol.addEventListener('scroll', () => handleScroll(pickerMinCol));
-    pickerSecCol.addEventListener('scroll', () => handleScroll(pickerSecCol));
+    ui.minCol.addEventListener('scroll', () => handleScroll(ui.minCol));
+    ui.secCol.addEventListener('scroll', () => handleScroll(ui.secCol));
 }
 
-// 2. OPEN PICKER
+// 3. OPEN PICKER
 function openTimerPicker(index) {
+    if (!ui.modal) {
+        console.error("❌ CRITICAL: Timer Modal HTML missing in index.html");
+        alert("Update App: Timer Modal missing.");
+        return;
+    }
+
     currentTimerIndex = index;
     const currentSecs = activeTimerConfig[index].seconds;
     
     initTimerWheels();
-    
-    // Switch to Wheel Tab by default
     switchTimerTab('wheel');
 
-    // A. SETUP WHEEL POSITIONS
+    // Setup Wheel Position
     const m = Math.floor(currentSecs / 60);
     const s = currentSecs % 60;
     
-    // Wait for modal to render before scrolling
-    timerPickerModal.classList.remove('hidden');
+    ui.modal.classList.remove('hidden');
     
+    // Wait for render, then scroll
     setTimeout(() => {
         const itemH = 44;
-        pickerMinCol.scrollTop = m * itemH;
-        pickerSecCol.scrollTop = s * itemH;
+        if(ui.minCol) ui.minCol.scrollTop = m * itemH;
+        if(ui.secCol) ui.secCol.scrollTop = s * itemH;
     }, 10);
 
-    // B. SETUP KEYPAD
-    // Convert 90 -> "130" string for keypad logic
+    // Setup Keypad String
     if (m > 0 || s > 0) {
-        timerInputString = m.toString() + s.toString().padStart(2, '0');
-        // Remove leading zeros for string logic (e.g. "0130" -> "130")
-        timerInputString = parseInt(timerInputString).toString(); 
+        let str = m.toString() + s.toString().padStart(2, '0');
+        timerInputString = parseInt(str).toString(); 
     } else {
         timerInputString = "";
     }
     updateTimerKeypadDisplay();
 }
 
-// 3. TAB SWITCHING
+// 4. TAB SWITCHING
 function switchTimerTab(mode) {
     activeTimerTab = mode;
+    if (!ui.wheelBtn || !ui.keypadBtn) return;
+
     if(mode === 'wheel') {
-        tabWheelBtn.classList.add('active');
-        tabKeypadBtn.classList.remove('active');
-        timerWheelView.classList.remove('hidden');
-        timerKeypadView.classList.add('hidden');
+        ui.wheelBtn.classList.add('active');
+        ui.keypadBtn.classList.remove('active');
+        if(ui.wheelView) ui.wheelView.classList.remove('hidden');
+        if(ui.keypadView) ui.keypadView.classList.add('hidden');
     } else {
-        tabWheelBtn.classList.remove('active');
-        tabKeypadBtn.classList.add('active');
-        timerWheelView.classList.add('hidden');
-        timerKeypadView.classList.remove('hidden');
-        
-        // Sync Keypad to Wheel values if switching
-        // (Optional: currently we maintain separate states to avoid confusion)
+        ui.wheelBtn.classList.remove('active');
+        ui.keypadBtn.classList.add('active');
+        if(ui.wheelView) ui.wheelView.classList.add('hidden');
+        if(ui.keypadView) ui.keypadView.classList.remove('hidden');
     }
 }
 
-if(tabWheelBtn) tabWheelBtn.onclick = () => switchTimerTab('wheel');
-if(tabKeypadBtn) tabKeypadBtn.onclick = () => switchTimerTab('keypad');
+// 5. EVENT LISTENERS (Wrapped in checks)
+if(ui.wheelBtn) ui.wheelBtn.onclick = () => switchTimerTab('wheel');
+if(ui.keypadBtn) ui.keypadBtn.onclick = () => switchTimerTab('keypad');
 
-// 4. KEYPAD LOGIC (Shift Left Style: 1 -> 00:01, 3 -> 00:13)
-function updateTimerKeypadDisplay() {
-    // Pad string to at least 3 chars: "1" -> "001", "130" -> "130"
-    let raw = timerInputString.padStart(4, '0'); // "0130"
-    // Slice: MM : SS
-    let secPart = raw.slice(-2);
-    let minPart = raw.slice(0, -2);
-    
-    // Display
-    timerKeypadDisplay.textContent = `${parseInt(minPart)}:${secPart}`;
+if (ui.backspace) {
+    ui.backspace.onclick = () => {
+        timerInputString = timerInputString.slice(0, -1);
+        updateTimerKeypadDisplay();
+    };
 }
 
+// Keypad Numbers
 document.querySelectorAll('.timer-num').forEach(btn => {
     btn.onclick = () => {
-        if(timerInputString.length >= 4) return; // Max 99:99
+        if(timerInputString.length >= 4) return;
         timerInputString += btn.dataset.val;
         updateTimerKeypadDisplay();
     };
 });
 
-document.getElementById('timerBackspace').onclick = () => {
-    timerInputString = timerInputString.slice(0, -1);
-    updateTimerKeypadDisplay();
-};
+// Update Display Helper
+function updateTimerKeypadDisplay() {
+    if (!ui.display) return;
+    let raw = timerInputString.padStart(4, '0');
+    let secPart = raw.slice(-2);
+    let minPart = raw.slice(0, -2);
+    ui.display.textContent = `${parseInt(minPart)}:${secPart}`;
+}
 
-// 5. SAVE & CLOSE
-document.getElementById('saveTimerPickerBtn').onclick = () => {
-    let finalSeconds = 0;
+// SAVE BUTTON
+if (ui.saveBtn) {
+    ui.saveBtn.onclick = () => {
+        let finalSeconds = 0;
 
-    if (activeTimerTab === 'wheel') {
-        // Calculate from scroll position
-        const itemH = 44;
-        const m = Math.round(pickerMinCol.scrollTop / itemH);
-        const s = Math.round(pickerSecCol.scrollTop / itemH);
-        finalSeconds = (m * 60) + s;
-    } else {
-        // Calculate from string "130" -> 1m 30s
-        let raw = timerInputString.padStart(4, '0');
-        let m = parseInt(raw.slice(0, -2));
-        let s = parseInt(raw.slice(-2));
-        finalSeconds = (m * 60) + s;
-    }
+        if (activeTimerTab === 'wheel' && ui.minCol && ui.secCol) {
+            const itemH = 44;
+            const m = Math.round(ui.minCol.scrollTop / itemH);
+            const s = Math.round(ui.secCol.scrollTop / itemH);
+            finalSeconds = (m * 60) + s;
+        } else {
+            let raw = timerInputString.padStart(4, '0');
+            let m = parseInt(raw.slice(0, -2));
+            let s = parseInt(raw.slice(-2));
+            finalSeconds = (m * 60) + s;
+        }
 
-    // Validation
-    if (finalSeconds <= 0) finalSeconds = 60; // Default fallback
+        if (finalSeconds <= 0) finalSeconds = 60; 
 
-    // UPDATE CONFIG
-    if (currentTimerIndex !== null) {
-        activeTimerConfig[currentTimerIndex].seconds = finalSeconds;
-        activeTimerConfig[currentTimerIndex].label = 
-            `${Math.floor(finalSeconds/60)}:${(finalSeconds%60).toString().padStart(2,'0')}`;
+        if (currentTimerIndex !== null) {
+            activeTimerConfig[currentTimerIndex].seconds = finalSeconds;
+            activeTimerConfig[currentTimerIndex].label = 
+                `${Math.floor(finalSeconds/60)}:${(finalSeconds%60).toString().padStart(2,'0')}`;
+            
+            saveTimerConfig();
+            renderTimerSettings();
+        }
         
-        saveTimerConfig();
-        renderTimerSettings();
-    }
-    
-    timerPickerModal.classList.add('hidden');
-};
+        if(ui.modal) ui.modal.classList.add('hidden');
+    };
+}
 
-document.getElementById('closeTimerPickerBtn').onclick = () => {
-    timerPickerModal.classList.add('hidden');
-};
+// CLOSE BUTTON
+if (ui.closeBtn) {
+    ui.closeBtn.onclick = () => {
+        if(ui.modal) ui.modal.classList.add('hidden');
+    };
+}
 
 // 4. RENDER SETTINGS
 function renderTimerSettings() {
