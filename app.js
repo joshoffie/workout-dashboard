@@ -310,6 +310,17 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// --- OFFLINE PERSISTENCE ENABLED ---
+db.enablePersistence()
+  .catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.log("❌ Offline mode failed: Multiple tabs open.");
+    } else if (err.code == 'unimplemented') {
+      console.log("❌ Offline mode not supported in this browser.");
+    }
+  });
+// -----------------------------------
+
 let clientsData = {};
 let selectedClient = null;
 let selectedSession = null;
@@ -5189,3 +5200,45 @@ function sendFlashlightToNative(count) {
         console.log("⚠️ Flashlight handler not found (Are you in the browser?)");
     }
 }
+
+// ==========================================
+// OFFLINE MODE MANAGER
+// ==========================================
+
+function updateOnlineStatus() {
+  const isOnline = navigator.onLine;
+  const userLabel = document.getElementById("userLabel");
+  const loginBtn = document.getElementById("modalLoginBtn");
+  const appleBtn = document.getElementById("modalAppleBtn");
+  const deleteBtn = document.getElementById("btnDeleteAccount");
+  const logoutBtn = document.getElementById("settingsLogoutBtn");
+
+  if (isOnline) {
+      document.body.classList.remove('offline-mode');
+      if(userLabel && auth.currentUser) userLabel.textContent = `Logged in as ${auth.currentUser.displayName}`;
+      
+      // Re-enable Auth Buttons
+      if(loginBtn) loginBtn.disabled = false;
+      if(appleBtn) appleBtn.disabled = false;
+      if(deleteBtn) deleteBtn.style.opacity = "1";
+      if(logoutBtn) logoutBtn.style.opacity = "1";
+      
+  } else {
+      document.body.classList.add('offline-mode');
+      if(userLabel) userLabel.textContent = "Offline Mode (Changes saved locally)";
+      
+      // Disable Auth Buttons (Auth cannot work offline)
+      if(loginBtn) loginBtn.disabled = true;
+      if(appleBtn) appleBtn.disabled = true;
+      
+      // Visually gray out destructive account actions
+      if(deleteBtn) deleteBtn.style.opacity = "0.5";
+      if(logoutBtn) logoutBtn.style.opacity = "0.5";
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// Run on load
+window.addEventListener('load', updateOnlineStatus);
