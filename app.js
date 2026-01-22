@@ -3452,7 +3452,7 @@ function startRestTimer(reset = false) {
         // D. TRIGGER HAPTICS & NOTIFICATIONS (Fixed Bridge)
         // ---------------------------------------------------------
         
-        // 1. Prepare Data for Native (Wrapped in Dictionary)
+        // 1. Prepare Data
         const timerBatches = activeTimerConfig
             .filter(t => t.isActive)
             .map(t => ({
@@ -3461,18 +3461,18 @@ function startRestTimer(reset = false) {
                 body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
             }));
 
-        // 2. Send to Native (MATCHING SWIFT STRUCTURE)
+        // 2. Send to Native (THE FIX)
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
             
-            // THE FIX: Swift expects { command: "schedule", batches: [...] }
+            // Swift expects this EXACT structure:
             const payload = {
-                command: "schedule",
-                batches: timerBatches
+                command: "schedule", // <--- Matches line 121 in ViewController
+                batches: timerBatches // <--- Matches line 122 in ViewController
             };
             
-            console.log("🚀 Sending Payload to Native:", payload);
+            console.log("🚀 JS Sending Payload:", payload);
             window.webkit.messageHandlers.notificationHandler.postMessage(payload);
-        
+            
         } else {
             console.log("❌ Native bridge not found");
         }
