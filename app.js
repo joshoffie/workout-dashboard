@@ -4953,19 +4953,16 @@ const TimerPicker = {
     init() {
         // Cache DOM Elements
         this.dom = {
-            // Views
             listView: document.getElementById('timerListView'),
             editorView: document.getElementById('timerEditorView'),
             modalTitle: document.getElementById('timerModalTitle'),
             
-            // Editor Parts
             wheelView: document.getElementById('timerWheelView'),
             keypadView: document.getElementById('timerKeypadView'),
             minCol: document.getElementById('pickerMin'),
             secCol: document.getElementById('pickerSec'),
             manualInput: document.getElementById('timerManualInput'),
             
-            // Buttons
             btnWheel: document.getElementById('modeWheelBtn'),
             btnKeypad: document.getElementById('modeKeypadBtn'),
             btnSave: document.getElementById('saveEditorBtn'),
@@ -4978,17 +4975,24 @@ const TimerPicker = {
             return;
         }
 
+        // --- FIX: REMOVE CSS PADDING TO PREVENT DOUBLE SPACING ---
+        // We use JS spacers instead of CSS padding for better scroll snapping.
+        if (this.dom.minCol) this.dom.minCol.style.padding = '0';
+        if (this.dom.secCol) this.dom.secCol.style.padding = '0';
+
         this.populateWheels();
         this.bindEvents();
     },
 
     populateWheels() {
+        // Spacer allows the first item (Index 0) to sit exactly in the middle (90px)
+        // Container (180px) / 2 = 90px. Item (40px) / 2 = 20px. 90 - 20 = 70px spacer.
         const spacer = `<div style="height: 70px; flex-shrink: 0;"></div>`;
         
         // Minutes (0-60)
         let minHTML = spacer;
         for (let i = 0; i <= 60; i++) {
-            minHTML += `<div class="picker-item" style="height:40px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center;">${i.toString().padStart(2,'0')}</div>`;
+            minHTML += `<div class="picker-item" style="height:40px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:1.5rem; font-weight:600;">${i.toString().padStart(2,'0')}</div>`;
         }
         minHTML += spacer;
         this.dom.minCol.innerHTML = minHTML;
@@ -4996,7 +5000,7 @@ const TimerPicker = {
         // Seconds (0-59)
         let secHTML = spacer;
         for (let i = 0; i <= 59; i++) {
-            secHTML += `<div class="picker-item" style="height:40px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center;">${i.toString().padStart(2,'0')}</div>`;
+            secHTML += `<div class="picker-item" style="height:40px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:1.5rem; font-weight:600;">${i.toString().padStart(2,'0')}</div>`;
         }
         secHTML += spacer;
         this.dom.secCol.innerHTML = secHTML;
@@ -5007,61 +5011,60 @@ const TimerPicker = {
         this.dom.btnWheel.onclick = () => this.switchMode(true);
         this.dom.btnKeypad.onclick = () => this.switchMode(false);
 
-        // Cancel Button -> Go back to List
+        // Cancel Button
         this.dom.btnCancel.onclick = () => {
             this.closeEditor();
         };
 
-        // Save Button -> Run callback & Go back to List
+        // Save Button
         this.dom.btnSave.onclick = () => {
             const timeStr = `${this.state.minutes}:${this.state.seconds.toString().padStart(2,'0')}`;
             if (this.state.saveCallback) this.state.saveCallback(timeStr);
             this.closeEditor();
         };
 
-        // Scroll Listeners
+        // Scroll Listeners (Debounced)
         let scrollTimeout;
         const onScroll = (type) => {
             clearTimeout(scrollTimeout);
+            // Wait 50ms for scroll to settle slightly before updating state
             scrollTimeout = setTimeout(() => this.handleScroll(type), 50);
         };
         this.dom.minCol.onscroll = () => onScroll('min');
         this.dom.secCol.onscroll = () => onScroll('sec');
 
-        // Manual Input
+        // Manual Input Sync
         this.dom.manualInput.oninput = (e) => {
             let val = e.target.value.replace(/[^0-9]/g, '');
             if (val.length > 4) val = val.substring(0, 4);
             
             if (val.length >= 3) {
-                this.state.minutes = parseInt(val.slice(0, val.length - 2)) || 0;
-                this.state.seconds = parseInt(val.slice(-2));
+                this.state.minutes = parseInt(val.slice(0, val.length - 2), 10) || 0;
+                this.state.seconds = parseInt(val.slice(-2), 10);
             } else {
                 this.state.minutes = 0;
-                this.state.seconds = parseInt(val) || 0;
+                this.state.seconds = parseInt(val, 10) || 0;
             }
         };
     },
 
-    // --- VIEW SWITCHING LOGIC ---
-
     open(initialTimeStr, onSave) {
         this.state.saveCallback = onSave;
         
-        // Parse time (e.g. "1:30")
         const parts = initialTimeStr.split(':');
-        const m = parseInt(parts[0]) || 0;
-        const s = parseInt(parts[1]) || 0;
+        const m = parseInt(parts[0], 10) || 0;
+        const s = parseInt(parts[1], 10) || 0;
         this.state.minutes = m;
         this.state.seconds = s;
 
-        // UI: Hide List, Show Editor
+        // UI Updates
         this.dom.listView.classList.add('hidden');
         this.dom.editorView.classList.remove('hidden');
-        this.dom.modalTitle.textContent = "Edit Time"; // Change title
+        this.dom.modalTitle.textContent = "Edit Time"; 
 
-        // Reset to Wheel Mode & Scroll to position
         this.switchMode(true);
+        
+        // Wait for display change to apply scrollTop
         setTimeout(() => {
             this.dom.minCol.scrollTop = m * 40;
             this.dom.secCol.scrollTop = s * 40;
@@ -5070,10 +5073,9 @@ const TimerPicker = {
     },
 
     closeEditor() {
-        // UI: Hide Editor, Show List
         this.dom.editorView.classList.add('hidden');
         this.dom.listView.classList.remove('hidden');
-        this.dom.modalTitle.textContent = "Custom Timers"; // Reset Title
+        this.dom.modalTitle.textContent = "Custom Timers";
     },
 
     switchMode(isWheel) {
@@ -5086,6 +5088,7 @@ const TimerPicker = {
             
             this.dom.wheelView.classList.remove('hidden');
             this.dom.keypadView.classList.add('hidden');
+            
             // Sync wheel to current state
             this.dom.minCol.scrollTop = this.state.minutes * 40;
             this.dom.secCol.scrollTop = this.state.seconds * 40;
@@ -5098,7 +5101,6 @@ const TimerPicker = {
             this.dom.wheelView.classList.add('hidden');
             this.dom.keypadView.classList.remove('hidden');
             
-            // Sync input to current state
             const mm = this.state.minutes;
             const ss = this.state.seconds.toString().padStart(2, '0');
             this.dom.manualInput.value = `${mm}:${ss}`;
@@ -5108,100 +5110,14 @@ const TimerPicker = {
 
     handleScroll(type) {
         const col = type === 'min' ? this.dom.minCol : this.dom.secCol;
+        // With padding removed, scrollTop 0 = Index 0 (Thanks to the 70px spacer)
         const index = Math.round(col.scrollTop / 40);
+        
         if (type === 'min') this.state.minutes = index;
         else this.state.seconds = index;
     }
 };
 
-// Initialize after DOM load
 document.addEventListener('DOMContentLoaded', () => {
     TimerPicker.init();
 });
-
-// ==========================================
-// UPDATED RENDER FUNCTION (Connects List -> Picker)
-// ==========================================
-
-function renderTimerSettings() {
-    const listContainer = document.getElementById('timerSettingsList');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-    
-    activeTimerConfig.forEach((timer, index) => {
-        const row = document.createElement('div');
-        row.className = 'timer-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        row.style.marginBottom = '12px';
-        row.style.padding = '10px';
-        row.style.background = 'var(--color-bg)';
-        row.style.borderRadius = '8px';
-
-        // 1. Toggle Switch
-        const switchContainer = document.createElement('label');
-        switchContainer.className = 'switch';
-        switchContainer.style.marginRight = '12px';
-        
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = timer.isActive;
-        input.onchange = (e) => {
-            activeTimerConfig[index].isActive = e.target.checked;
-            saveTimerConfig();
-            if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-2);
-        };
-        
-        const slider = document.createElement('span');
-        slider.className = 'slider round';
-        switchContainer.appendChild(input);
-        switchContainer.appendChild(slider);
-
-        // 2. Time Display Button (Triggers the Picker)
-        const timeBtn = document.createElement('button');
-        timeBtn.className = 'btn btn-secondary';
-        timeBtn.style.marginRight = '12px';
-        timeBtn.style.minWidth = '80px';
-        
-        const m = Math.floor(timer.seconds / 60);
-        const s = timer.seconds % 60;
-        const displayTime = `${m}:${s.toString().padStart(2, '0')}`;
-        timeBtn.textContent = displayTime;
-        
-        // CLICK EVENT: Open the new Picker
-        timeBtn.onclick = () => {
-            TimerPicker.open(displayTime, (newTimeStr) => {
-                // Parse "1:30" -> 90 seconds
-                const parts = newTimeStr.split(':');
-                const newSecs = (parseInt(parts[0]) * 60) + parseInt(parts[1]);
-
-                if (newSecs > 0) {
-                    activeTimerConfig[index].seconds = newSecs;
-                    activeTimerConfig[index].label = newTimeStr;
-                    saveTimerConfig();
-                    renderTimerSettings(); // Refresh list to show new time
-                }
-            });
-        };
-
-        // 3. Label
-        const label = document.createElement('div');
-        label.style.fontWeight = '600';
-        label.style.fontSize = '0.9rem';
-        label.style.color = 'var(--color-text-muted)';
-        label.textContent = timer.label || `Timer ${index + 1}`;
-
-        // Assemble Row
-        const leftGroup = document.createElement('div');
-        leftGroup.style.display = 'flex';
-        leftGroup.style.alignItems = 'center';
-        leftGroup.appendChild(switchContainer);
-        leftGroup.appendChild(timeBtn);
-
-        row.appendChild(leftGroup);
-        row.appendChild(label);
-        
-        listContainer.appendChild(row);
-    });
-}
