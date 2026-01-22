@@ -407,47 +407,56 @@
       </div>
     </div>
   </div>
-  <div id="timerSettingsModal" class="overlay hidden" style="z-index: 10001;">
-    <div class="input-modal-card">
-  <h3 class="input-modal-title">Edit Timer</h3>
+ <div id="timerSettingsModal" class="overlay hidden" style="z-index: 10001;">
+  <div class="input-modal-card">
+    <h3 class="input-modal-title" id="timerModalTitle">Custom Timers</h3>
 
-  <div class="timer-mode-toggle">
-    <button id="modeWheelBtn" class="mode-btn active">Wheel</button>
-    <button id="modeKeypadBtn" class="mode-btn">Keypad</button>
-  </div>
-
-  <div id="timerWheelView" class="timer-picker-container">
-    <div class="picker-highlight"></div> <div class="picker-col-wrapper">
-      <div class="picker-label">Min</div>
-      <div class="picker-col" id="pickerMin">
+    <div id="timerListView">
+        <div id="timerSettingsList" class="timer-settings-list">
+            </div>
+        
+        <div class="modal-actions-row" style="margin-top: 1.5rem;">
+            <button id="closeTimerSettingsBtn" class="btn btn-primary" style="width:100%">Done</button>
         </div>
     </div>
 
-    <div class="picker-separator">:</div>
+    <div id="timerEditorView" class="hidden">
+        
+        <div class="timer-mode-toggle" style="display: flex; margin-bottom: 1rem; background: var(--color-bg); padding: 4px; border-radius: 8px;">
+            <button id="modeWheelBtn" class="mode-btn active" style="flex:1; padding:8px; border:none; background:var(--color-card); border-radius:6px; cursor:pointer;">Wheel</button>
+            <button id="modeKeypadBtn" class="mode-btn" style="flex:1; padding:8px; border:none; background:transparent; cursor:pointer;">Keypad</button>
+        </div>
 
-    <div class="picker-col-wrapper">
-      <div class="picker-label">Sec</div>
-      <div class="picker-col" id="pickerSec">
+        <div id="timerWheelView" class="timer-picker-container" style="display: flex; height: 180px; position: relative; overflow: hidden; background: var(--color-bg); border-radius: 12px; margin-bottom: 1rem;">
+            <div class="picker-highlight" style="position: absolute; top: 50%; left:0; right:0; height: 40px; margin-top: -20px; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); pointer-events:none;"></div>
+            
+            <div class="picker-col-wrapper" style="flex: 1; height: 100%; position: relative;">
+                <div style="position: absolute; top: 5px; width: 100%; text-align: center; font-size: 0.7rem; color: var(--color-text-muted);">MIN</div>
+                <div id="pickerMin" class="picker-col" style="height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; padding-top: 70px; padding-bottom: 70px;"></div>
+            </div>
+
+            <div style="display: flex; align-items: center; font-weight: bold; font-size: 1.5rem; padding-bottom: 5px;">:</div>
+
+            <div class="picker-col-wrapper" style="flex: 1; height: 100%; position: relative;">
+                <div style="position: absolute; top: 5px; width: 100%; text-align: center; font-size: 0.7rem; color: var(--color-text-muted);">SEC</div>
+                <div id="pickerSec" class="picker-col" style="height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; padding-top: 70px; padding-bottom: 70px;"></div>
+            </div>
+        </div>
+
+        <div id="timerKeypadView" class="hidden" style="margin-bottom: 1rem;">
+             <div class="custom-input-wrapper">
+                <input type="text" id="timerManualInput" class="custom-input-field" placeholder="MM:SS" inputmode="decimal" style="text-align: center; font-size: 1.5rem;">
+             </div>
+        </div>
+
+        <div class="modal-actions-row">
+            <button id="cancelEditorBtn" class="btn btn-secondary">Cancel</button>
+            <button id="saveEditorBtn" class="btn btn-primary">Set Time</button>
         </div>
     </div>
-  </div>
 
-  <div id="timerKeypadView" class="hidden">
-     <div class="custom-input-wrapper">
-        <input type="text" id="timerManualInput" class="custom-input-field" placeholder="MM:SS" inputmode="numeric">
-     </div>
-  </div>
-
-  <div class="modal-actions-row">
-    <button id="cancelTimerBtn" class="btn btn-secondary">Cancel</button>
-    <button id="saveTimerBtn" class="btn btn-primary">Save</button>
   </div>
 </div>
-
-      <div class="modal-actions-row" style="margin-top: 1.5rem;">
-        <button id="closeTimerSettingsBtn" class="btn btn-primary" style="width:100%">Done</button>
-      </div>
-    </div>
   </div>
   <script src="app.js"></script>
 </body>
