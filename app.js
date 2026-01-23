@@ -3520,14 +3520,14 @@ function startRestTimer(reset = false) {
         });
 
         // ---------------------------------------------------------
-        // E. TRIGGER LIVE ACTIVITY (UPDATED FOR DYNAMIC ISLAND)
+        // E. TRIGGER LIVE ACTIVITY (ACCURATE TIMER FIX)
         // ---------------------------------------------------------
         try {
             const sets = selectedExercise.sets;
             if (sets && sets.length > 0) {
                 const lastSet = sets[sets.length - 1];
                 
-                // 1. Find the active timer duration (in seconds)
+                // 1. Get the current active timer duration
                 const activeTimer = activeTimerConfig.find(t => t.isActive);
                 const durationSeconds = activeTimer ? activeTimer.seconds : 0;
 
@@ -3541,17 +3541,18 @@ function startRestTimer(reset = false) {
                         unitLabel = UNIT_mode.getLabel();
                     }
                     
-                    // 2. Calculate exact Target End Time (milliseconds)
                     const now = Date.now();
-                    const endTime = now + (durationSeconds * 1000);
+                    const endTime = now + (durationSeconds * 1000); // Calculate End Time
                     
                     const payload = {
                         exercise: selectedExercise.exercise,
                         weight: `${displayWeight} ${unitLabel}`,
                         reps: String(lastSet.reps),
                         startTime: now,
-                        endTime: endTime // <--- NEW CRITICAL FIELD
+                        endTime: endTime // <--- Sending this to Swift
                     };
+                    
+                    console.log("🚀 Starting Live Activity: ", payload);
                     window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
                 }
             }
