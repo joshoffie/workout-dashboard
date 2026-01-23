@@ -3520,13 +3520,18 @@ function startRestTimer(reset = false) {
         });
 
         // ---------------------------------------------------------
-        // E. TRIGGER LIVE ACTIVITY (LOCK SCREEN WIDGET)
+        // E. TRIGGER LIVE ACTIVITY (UPDATED FOR DYNAMIC ISLAND)
         // ---------------------------------------------------------
         try {
             const sets = selectedExercise.sets;
             if (sets && sets.length > 0) {
                 const lastSet = sets[sets.length - 1];
-                if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
+                
+                // 1. Find the active timer duration (in seconds)
+                const activeTimer = activeTimerConfig.find(t => t.isActive);
+                const durationSeconds = activeTimer ? activeTimer.seconds : 0;
+
+                if (durationSeconds > 0 && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
                     
                     let displayWeight = lastSet.weight;
                     let unitLabel = "lbs";
@@ -3536,11 +3541,16 @@ function startRestTimer(reset = false) {
                         unitLabel = UNIT_mode.getLabel();
                     }
                     
+                    // 2. Calculate exact Target End Time (milliseconds)
+                    const now = Date.now();
+                    const endTime = now + (durationSeconds * 1000);
+                    
                     const payload = {
                         exercise: selectedExercise.exercise,
                         weight: `${displayWeight} ${unitLabel}`,
                         reps: String(lastSet.reps),
-                        startTime: now
+                        startTime: now,
+                        endTime: endTime // <--- NEW CRITICAL FIELD
                     };
                     window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
                 }
