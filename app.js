@@ -1,24 +1,3 @@
-// [DEBUG TOOL] - DELETE THIS SECTION LATER
-function debugLog(msg) {
-    console.log(msg); // Keep standard logging
-    
-    // Create box if missing
-    let box = document.getElementById('debug-box');
-    if (!box) {
-        box = document.createElement('div');
-        box.id = 'debug-box';
-        box.style.cssText = "position:fixed; top:0; left:0; width:100%; height:200px; background:rgba(0,0,0,0.8); color:#0f0; z-index:99999; font-size:12px; pointer-events:none; overflow-y:scroll; padding:10px; font-family:monospace; border-bottom: 2px solid #0f0;";
-        document.body.appendChild(box);
-    }
-    
-    // Append message
-    const line = document.createElement('div');
-    line.textContent = `> ${msg}`;
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight; // Auto-scroll
-}
-
-
 // =====================================================
 // DATA OPTIMIZATION & COMPRESSION HELPERS
 // =====================================================
@@ -330,17 +309,17 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 1. ENABLE PERSISTENCE WITH DEBUGGING
-debugLog("Attempting to enable offline DB...");
-
+// 1. ENABLE PERSISTENCE (Clean Production Version)
 db.enablePersistence({ synchronizeTabs: true })
-  .then(() => {
-    debugLog("✅ Offline DB Enabled Successfully!");
-    initAuthListener();
-  })
   .catch((err) => {
-    debugLog("❌ DB Error: " + err.code);
-    // Even if it fails, we try to listen for auth
+    if (err.code == 'failed-precondition') {
+      console.log("❌ Offline mode failed: Multiple tabs open.");
+    } else if (err.code == 'unimplemented') {
+      console.log("❌ Offline mode not supported in this browser.");
+    }
+  })
+  .finally(() => {
+    // 2. CRITICAL: Always start the app ONLY after the DB is ready
     initAuthListener();
   });
 
@@ -653,7 +632,6 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          debugLog(`Auth User: ${user.email} (${user.uid})`);
           // LOGGED IN
           if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
           if (typeof modal !== 'undefined') modal.classList.add("hidden");
@@ -668,20 +646,11 @@ function initAuthListener() {
         
           hideAllDetails(); 
 
-          // 3. LOAD & RENDER DATA
-            debugLog("Starting Data Load...");
+          // 3. LOAD DATA
           await loadUserJson();
-          
-          // SAFETY CHECK: If no data loaded (fresh offline install), show a hint
-          const list = document.getElementById("clientList");
-          if ((!clientsData || Object.keys(clientsData).length === 0) && !navigator.onLine) {
-             alert("⚠️ Offline Mode: No local data found.\n\nPlease connect to the internet once to download your workouts.");
-          }
-
           renderClients();
 
       } else {
-          debugLog("User logged out (or null)");
         // LOGGED OUT
         if (!isTutorialMode) {
             if (typeof modal !== 'undefined') modal.classList.remove("hidden");
@@ -782,30 +751,21 @@ function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
-  if (!auth.currentUser) {
-      debugLog("Skipping load: No current user");
-      return;
-  }
+  if (!auth.currentUser) return;
   
   const uid = auth.currentUser.uid;
   clientsData = {}; // Clear memory
 
   try {
-      debugLog(`Querying: users/${uid}/clients`);
-      
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       
-      // FORCE CACHE CHECK: We log metadata to see where data comes from
+      // We rely on the default behavior: if offline, this pulls from cache automatically.
       const newSnap = await newCollectionRef.get();
 
-      debugLog(`Snap Size: ${newSnap.size}`);
-      debugLog(`Source: ${newSnap.metadata.fromCache ? 'CACHE (Offline)' : 'SERVER (Online)'}`);
-
       if (!newSnap.empty) {
-          debugLog("Found documents!");
+          console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
           newSnap.forEach(doc => {
-              // debugLog("Doc: " + doc.id); // Uncomment if needed
               let clientObj = doc.data();
               if (typeof expandClientData === "function") {
                   clientObj = expandClientData(clientObj);
@@ -813,16 +773,14 @@ async function loadUserJson() {
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-          debugLog(`Processed ${Object.keys(clientsData).length} clients.`);
       } 
       else { 
-          debugLog("New system empty. Checking legacy...");
           // 2. CHECK LEGACY SYSTEM
+          console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
           const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
-              debugLog("Legacy data found!");
               clientsData = oldDocSnap.data();
               Object.keys(clientsData).forEach(key => {
                   if (typeof expandClientData === "function") {
@@ -831,13 +789,14 @@ async function loadUserJson() {
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
           } else {
-              debugLog("No data found anywhere.");
+              console.log("No data found.");
           }
       }
       renderClients();
   } catch (err) {
-      debugLog("❌ Load Error: " + err.message);
       console.error("Error loading user data:", err);
+      // Optional: Alert the user if it's a real error and not just "offline"
+      if (navigator.onLine) alert("Error loading data. Check console.");
   }
 }
 
