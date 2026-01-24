@@ -3472,7 +3472,6 @@ function saveTimerConfig() {
 }
 
 // 6. OPEN BUTTON
-// 6. OPEN BUTTON
 if (openTimerSettingsBtn) {
     openTimerSettingsBtn.onclick = () => {
         loadTimerConfig();
@@ -3483,13 +3482,11 @@ if (openTimerSettingsBtn) {
             
             // --- TUTORIAL LOGIC ---
             if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-                // Clear the previous "Tap here" tip
                 clearTutorialTips();
-                // Mark stage so we know where we are
                 document.body.dataset.tutorialStage = 'timer-settings-open';
                 
-                // Show explanation inside modal
-                setTimeout(() => {
+                // FIX: Assign this to tutorialTimer so it can be cancelled!
+                tutorialTimer = setTimeout(() => {
                     if (!isTutorialMode) return;
                     showTutorialTip('timerSettingsList', 'Toggle auto-timers or tap the time to edit.', 20);
                     
@@ -4913,24 +4910,21 @@ if (openCalendarBtn) {
 // FINAL INTERACTION PATCH (The "Missing Links")
 // ==========================================
 
-// 1. SETTINGS: Lbs/Kg Toggle Listener (CRITICAL - Was missing)
+// [app.js] FIX: Connect the Toggle to the Timer Step
 const unitToggle = document.getElementById('settingUnitToggle');
 if (unitToggle) {
     unitToggle.onchange = () => {
-        // Trigger the toggle logic
-        if (typeof UNIT_mode !== 'undefined') {
-            UNIT_mode.toggle();
-        }
+        // 1. Perform the toggle
+        if (typeof UNIT_mode !== 'undefined') UNIT_mode.toggle();
         
-        // TUTORIAL HOOK: If we are in the settings step, this interaction counts
+        // 2. TUTORIAL: Advance to Timer Settings
         if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-            // Optional: You could advance the tutorial here if you wanted, 
-            // but the current flow waits for the "End Tutorial" button.
-            // We just ensure the tooltip doesn't block visibility.
-             clearTutorialTips();
-             setTimeout(() => {
-                 showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-             }, 500);
+            clearTutorialTips();
+            // STOP the auto-timer from syncTutorialUI so we don't get double bubbles
+            if (tutorialTimer) clearTimeout(tutorialTimer);
+            
+            // Point to Timer Settings immediately
+            showTutorialTip('openTimerSettingsBtn', 'Now, tap here to customize timers.', 30);
         }
     };
 }
