@@ -1489,14 +1489,7 @@ function selectClient(name) {
   selectedClient = name;
   selectedSession = null; selectedExercise = null;
   renderSessions(); navigateTo(SCREENS.SESSIONS, 'forward');
-  
-  // --- TUTORIAL: Step 2 ---
- // if (isTutorialMode) {
-    //document.body.dataset.tutorialStage = 'sessions';
-    //setTimeout(() => showTutorialTip('sessionList', 'Tap "Chest Day" to view your workout.', 40), 400);
-  }
 }
-
 const sessionList = document.getElementById("sessionList");
 function getSortedSessions(sessionsArray) {
   // REMOVED FORCED DATE SORTING TO ALLOW MANUAL ORDERING
@@ -1591,12 +1584,6 @@ function selectSession(sessionObject) {
   selectedSession = sessionObject;
   selectedExercise = null;
   renderExercises(); navigateTo(SCREENS.EXERCISES, 'forward');
-
-  // --- TUTORIAL: Step 3 ---
-  //if (isTutorialMode) {
-    //document.body.dataset.tutorialStage = 'exercises';
-    //setTimeout(() => showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40), 400);
-  }
 }
 
 const exerciseList = document.getElementById("exerciseList");
@@ -1684,25 +1671,6 @@ function selectExercise(idx) {
   selectedExercise = selectedSession.exercises[idx];
   renderSets(); navigateTo(SCREENS.SETS, 'forward');
   document.getElementById("graphContainer").classList.add("hidden");
-
-  // --- TUTORIAL: Step 4 (The Hub) ---
- // if (isTutorialMode) {
- //   document.body.dataset.tutorialStage = 'sets-view';
- //   if (tutorialTimer) clearTimeout(tutorialTimer);
-    
-    // Sequence: Recap -> Banner -> Add Set
-  //  tutorialTimer = setTimeout(() => {
-    //   showTutorialTip('smartRecapBox', '1. This summary analyzes your progress!', 20);
-       
-     //  tutorialTimer = setTimeout(() => {
-     //     showTutorialTip('comparisonBanner', '2. This banner compares today vs. your last session.', 10);
-          
-        //  tutorialTimer = setTimeout(() => {
-          //   showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
- //         },// 4000); 
-//       },// 4000);
-//    },// 500);
-//  }
 }
 // ------------------ SPIRAL WIDGET LOGIC ------------------
 const spiralState = {
@@ -3966,11 +3934,9 @@ calcActionBtn.onclick = () => {
     finishAddSet();
 };
 
-// [app.js] REPLACE finishAddSet
 function finishAddSet() {
     const reps = parseInt(calcState.repsVal);
     const displayWeight = parseFloat(calcState.weightVal);
-
     if (isNaN(reps) || isNaN(displayWeight)) return;
 
     // CONVERT TO LBS FOR STORAGE
@@ -3979,19 +3945,15 @@ function finishAddSet() {
 
     const notes = ""; 
     const timestamp = new Date().toISOString();
-    
-    // --- NEW: CAPTURE PLATES ---
-    // We only save plates that have a count > 0
+    // --- CAPTURE PLATES ---
     let savedPlates = null;
     if (calcState.plates && Object.keys(calcState.plates).length > 0) {
         savedPlates = {};
         for (const [plateWeight, count] of Object.entries(calcState.plates)) {
             if (count > 0) savedPlates[plateWeight] = count;
         }
-        // If empty after filtering, keep null
         if (Object.keys(savedPlates).length === 0) savedPlates = null;
     }
-    // ---------------------------
 
     selectedExercise.sets.push({ 
         reps: reps, 
@@ -3999,53 +3961,23 @@ function finishAddSet() {
         volume: volumeLBS, 
         notes, 
         timestamp,
-        plates: savedPlates // <--- Add to object
+        plates: savedPlates
     });
-
     saveUserJson();
-    // --- NEW: CALCULATE "GREEN SCORE" FOR HAPTICS ---
+    
+    // --- HAPTICS ---
     try {
-        // We reuse your existing logic that calculates improvements
-        // getExerciseColorData compares the current session vs previous session
         const colorData = getExerciseColorData(selectedExercise);
-        
-        // colorData returns { red, green, yellow, total }
-        // We send the 'green' count to Swift
         if (colorData && typeof colorData.green === 'number') {
             sendHapticScoreToNative(colorData.green);
         }
     } catch (err) {
         console.error("Haptic calc failed", err);
     }
-    // ------------------------------------------------
+    
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
-    
-    // --- TUTORIAL LOGIC ---
-    if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-        // 1. Clear previous tips
-        clearTutorialTips();
-        if (tutorialTimer) clearTimeout(tutorialTimer);
-        
-        // 2. Set stage to generic 'post-log' first
-        document.body.dataset.tutorialStage = 'post-log';
-
-        // Sequence: Rest Timer -> Spiral -> Slider
-        setTimeout(() => {
-            showTutorialTip('restTimer', 'A rest timer starts automatically.', 30);
-            
-            tutorialTimer = setTimeout(() => {
-                showTutorialTip('spiralCanvas', 'This spiral tracks your history.', 20);
-                
-                tutorialTimer = setTimeout(() => {
-                    // CRITICAL: Set the specific stage that handleSliderMove looks for
-                    document.body.dataset.tutorialStage = 'waiting-for-slider';
-                    showTutorialTip('spiralSlider', 'Drag the slider backwards to see previous days data.', 10);
-                }, 3500);
-            }, 3500); 
-        }, 500);
-    }
 }
 
 // =====================================================
