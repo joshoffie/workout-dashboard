@@ -712,18 +712,26 @@ if (settingsBtn) {
                 endBtn.classList.add('flash-active');
             }
 
-            // Tutorial Tips
-            setTimeout(() => {
-                if(typeof showTutorialTip === 'function') {
-                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+            // --- THE FIXED SEQUENCE ---
+        setTimeout(() => {
+            if(typeof showTutorialTip === 'function') {
+                // 1. Show Unit Toggle
+                showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                
+                setTimeout(() => {
+                    // 2. Show Timer Settings (THIS WAS MISSING)
+                    showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+                    
                     setTimeout(() => {
-                         showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                    }, 3000); 
-                }
-            }, 500);
-        }
-    };
-}
+                        // 3. Show End Button
+                        showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }, 3000); // Wait 3s before showing End
+                    
+                }, 3000); // Wait 3s before showing Timer
+            }
+        }, 500);
+    }
+};
 
 // 4. Update the "Back" Arrow inside Settings to use the same logic
 const backFromSettingsBtn = document.getElementById('backToClientsFromSettingsBtn');
