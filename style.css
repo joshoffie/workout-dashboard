@@ -216,40 +216,43 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  /* 1. Ensure the forward speed matches the backward speed (0.3s) */
   transition: transform 0.3s ease;
 }
 
-/* Find this section around line 282 in style.css */
-
-/* 1. Animation: Rotate on Hover (Mouse) AND Active (Touch press) */
-#settingsBtn:hover,
-#settingsBtn:active {
-  /* CHANGED: 45deg -> 90deg to match the reverse spin intensity */
-  transform: rotate(90deg);
-}
-
-/* 2. Background Box: ONLY show this if the user has a mouse */
+/* 2. HOVER (Mouse Only): Rotates 90deg */
+/* Putting this in a media query prevents the "Sticky Hover" bug on phones */
 @media (hover: hover) {
   #settingsBtn:hover {
+    transform: rotate(90deg);
     background: rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-sm);
   }
 }
 
-/* On touch, just do the click animation (optional, but feels better) */
+/* 3. ACTIVE (Touch/Click): Rotates 90deg */
+/* This ensures the press animation works on all devices */
 #settingsBtn:active {
-  transform: scale(0.9) rotate(90deg); /* CHANGED: Added rotate(90deg) here too to persist the angle while shrinking */
-  background: transparent; 
+  transform: rotate(90deg);
+  background: transparent;
 }
 
+/* 4. REVERSE SPIN (Animation) */
 @keyframes gear-reverse-spin {
   from { transform: rotate(90deg); }
   to { transform: rotate(0deg); }
 }
 
 .gear-roll-back {
-  /* CHANGED: 0.4s -> 0.3s (matches transition) and ease-out -> ease */
+  /* 0.3s duration matches the transition above */
   animation: gear-reverse-spin 0.3s ease forwards;
+  
+  /* CRITICAL FIX: Disable transition during animation to stop the "spasm" */
+  transition: none !important;
+  
+  /* Lock interaction during spin to prevent glitches */
+  pointer-events: none;
 }
 /* Ensure settings items (like Logout) justify space properly */
 #settingsDiv .item-list li {
