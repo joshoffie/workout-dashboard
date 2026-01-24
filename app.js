@@ -627,23 +627,21 @@ function syncTutorialUI(screenId) {
             }, 3000);
         }
 
-    // 7. SETTINGS SCREEN (NEW FLOW)
+        // 7. SETTINGS SCREEN (NEW FLOW)
         else if (screenId === SCREENS.SETTINGS) {
-             
-             // FIX: We check if we are NOT done yet. 
-             // If stage is NOT 'timer-settings-done', we assume we are starting the settings flow.
-             if (stage !== 'timer-settings-done') {
-
+             // A. If we just arrived or are starting settings
+             if (stage === 'home-returned' || stage === 'settings-start' || !stage) {
                  document.body.dataset.tutorialStage = 'settings-start';
                  showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                  
                  tutorialTimer = setTimeout(() => {
                      if (!isTutorialMode) return;
+                     // Point to Timer Settings
                      showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
                  }, 3000);
              }
-             // B. If we DID finish the timer settings logic
-             else {
+             // B. If we finished the Timer Settings logic
+             else if (stage === 'timer-settings-done') {
                  showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
              }
         }
@@ -713,6 +711,16 @@ if (settingsBtn) {
                 endBtn.classList.remove('hidden');
                 endBtn.classList.add('flash-active');
             }
+
+            // Tutorial Tips
+            setTimeout(() => {
+                if(typeof showTutorialTip === 'function') {
+                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                    setTimeout(() => {
+                         showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                    }, 3000); 
+                }
+            }, 500);
         }
     };
 }
