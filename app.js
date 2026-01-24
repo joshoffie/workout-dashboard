@@ -3416,11 +3416,82 @@ const TIMER_LIMIT_MS = 1800000; // 30 Minutes
 let masterTimerInterval = null;
 let foregroundHapticTimeouts = []; // Stores IDs for 1m, 3m, 10m haptics
 
+// [app.js] HELPER: Resyncs haptics based on elapsed time
+// Prevents "Ghost Haptics" by ignoring alerts that passed while app was backgrounded.
+function resyncForegroundHaptics() {
+    // 1. Clear any existing timeouts (Stop duplicates)
+    foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+    foregroundHapticTimeouts = [];
+
+    // 2. Get Start Time
+    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
+    if (!rawGlobal) return;
+
+    let startTime = 0;
+    try {
+        const data = JSON.parse(rawGlobal);
+        startTime = parseInt(data.time);
+    } catch (e) { return; }
+
+    const now = Date.now();
+    const elapsed = now - startTime;
+
+    // 3. Re-schedule ONLY future alerts
+    activeTimerConfig.forEach(t => {
+        if (t.isActive) {
+            const targetMs = t.seconds * 1000;
+            const remaining = targetMs - elapsed;
+
+            // CRITICAL CHECK: Only schedule if time is in the future (> 0)
+            if (remaining > 0) {
+                const id = setTimeout(() => {
+                    // --- FLASHLIGHT & HAPTIC LOGIC ---
+                    let flashCount = 1;
+                    let hapticScore = 10;
+
+                    // 3 Minutes or more
+                    if (t.seconds >= 180) { flashCount = 3; hapticScore = 30; }
+                    // 10 Minutes or more
+                    if (t.seconds >= 600) { flashCount = 5; hapticScore = 100; }
+
+                    // Trigger Haptic
+                    if(typeof sendHapticScoreToNative === 'function') {
+                        sendHapticScoreToNative(hapticScore);
+                    }
+
+                    // Trigger Flashlight (If enabled)
+                    const isFlashEnabled = localStorage.getItem('trunk_setting_flashlight') !== 'false';
+                    if (isFlashEnabled) {
+                        if (typeof sendFlashlightToNative === 'function') {
+                            sendFlashlightToNative(flashCount);
+                        } else if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
+                            window.webkit.messageHandlers.flashlightHandler.postMessage(flashCount);
+                        }
+                    }
+                }, remaining);
+
+                foregroundHapticTimeouts.push(id);
+            }
+        }
+    });
+}
+
+// [app.js] VISIBILITY LISTENER: Handles Background/Foreground transitions
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        // App went background: Kill all pending JS timers so they don't "stack up"
+        foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+        foregroundHapticTimeouts = [];
+    } else {
+        // App came foreground: Recalculate what is left
+        resyncForegroundHaptics();
+    }
+});
+
 // 1. TRIGGER (Only called when user actively saves a new set)
 function startRestTimer(reset = false) {
     // DEBUG LOG: Did the function even start?
     console.log("🔎 JS DEBUG: startRestTimer called. Reset is: " + reset);
-    
     if (!selectedExercise) {
         console.log("❌ JS DEBUG: No selectedExercise, cancelling.");
         return;
@@ -3428,7 +3499,6 @@ function startRestTimer(reset = false) {
 
     if (reset) {
         console.log("🔎 JS DEBUG: Inside Reset Block. Attempting to contact Native...");
-        
         // A. Local & Global Storage
         const now = Date.now();
         const localKey = `restTimer_${selectedExercise.exercise}`;
@@ -3439,12 +3509,12 @@ function startRestTimer(reset = false) {
         
         // B. Update Clock Immediately
         masterClockTick();
-
+        
         // ---------------------------------------------------------
         // D. TRIGGER HAPTICS, NOTIFICATIONS & FLASHLIGHT
         // ---------------------------------------------------------
         
-        // 1. Prepare Notification Data
+        // 1. Prepare Notification Data (For Background/Lock Screen)
         const timerBatches = activeTimerConfig
             .filter(t => t.isActive)
             .map(t => ({
@@ -3452,7 +3522,7 @@ function startRestTimer(reset = false) {
                 title: "Rest Timer",
                 body: `${Math.floor(t.seconds/60)}m ${t.seconds%60}s Rest`
             }));
-
+            
         // 2. Send Notifications to Native
         if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
             const payload = {
@@ -3466,72 +3536,17 @@ function startRestTimer(reset = false) {
         }
 
         // 3. Schedule Foreground Haptics & Flashlight
-        // Clear previous timers so they don't stack
-        foregroundHapticTimeouts.forEach(id => clearTimeout(id));
-        foregroundHapticTimeouts = [];
-        
-        activeTimerConfig.forEach(t => {
-            if (t.isActive) {
-                const ms = t.seconds * 1000;
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                    
-                    // --- NEW FLASHLIGHT & HAPTIC LOGIC ---
-                    
-                    // A. Calculate Intensity based on duration
-                    // Default: 1 flash / Low haptic
-                    let flashCount = 1;
-                    let hapticScore = 10;
-                    
-                    // 3 Minutes or more: 3 flashes / Heavy haptics
-                    if (t.seconds >= 180) {
-                        flashCount = 3;
-                        hapticScore = 30;
-                    }
-                    // 10 Minutes or more: 5 flashes / Long haptics
-                    if (t.seconds >= 600) {
-                        flashCount = 5;
-                        hapticScore = 100;
-                    }
-
-                    // B. Trigger Haptic
-                    if(typeof sendHapticScoreToNative === 'function') {
-                        sendHapticScoreToNative(hapticScore);
-                    }
-
-                    // C. Trigger Flashlight (UPDATED WITH SETTING CHECK)
-                    // 1. Check if the setting allows it (Default to true if null)
-                    const isFlashEnabled = localStorage.getItem('trunk_setting_flashlight') !== 'false';
-            
-                    if (isFlashEnabled) {
-                        if (typeof sendFlashlightToNative === 'function') {
-                            sendFlashlightToNative(flashCount);
-                        } else if (window.webkit && window.webkit.messageHandlers.flashlightHandler) {
-                            console.log("🔦 Sending " + flashCount + " flashes");
-                            window.webkit.messageHandlers.flashlightHandler.postMessage(flashCount);
-                        }
-                    } else {
-                        console.log("🔦 Flashlight skipped by user setting.");
-                    }
-                    
-                    // -------------------------------------
-
-                }, ms));
-            }
-        });
+        // REPLACED: Manual loop is gone. We use the shared helper now.
+        resyncForegroundHaptics();
 
         // ---------------------------------------------------------
-        // E. TRIGGER LIVE ACTIVITY (ACCURATE TIMER FIX)
+        // E. TRIGGER LIVE ACTIVITY (LOCK SCREEN WIDGET)
         // ---------------------------------------------------------
         try {
             const sets = selectedExercise.sets;
             if (sets && sets.length > 0) {
                 const lastSet = sets[sets.length - 1];
-                
-                // 1. Get the current active timer duration
-                const activeTimer = activeTimerConfig.find(t => t.isActive);
-                const durationSeconds = activeTimer ? activeTimer.seconds : 0;
-
-                if (durationSeconds > 0 && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
+                if (lastSet && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.liveActivityHandler) {
                     
                     let displayWeight = lastSet.weight;
                     let unitLabel = "lbs";
@@ -3541,18 +3556,12 @@ function startRestTimer(reset = false) {
                         unitLabel = UNIT_mode.getLabel();
                     }
                     
-                    const now = Date.now();
-                    const endTime = now + (durationSeconds * 1000); // Calculate End Time
-                    
                     const payload = {
                         exercise: selectedExercise.exercise,
                         weight: `${displayWeight} ${unitLabel}`,
                         reps: String(lastSet.reps),
-                        startTime: now,
-                        endTime: endTime // <--- Sending this to Swift
+                        startTime: now
                     };
-                    
-                    console.log("🚀 Starting Live Activity: ", payload);
                     window.webkit.messageHandlers.liveActivityHandler.postMessage(payload);
                 }
             }
@@ -3629,45 +3638,15 @@ function formatTimer(ms) {
 // 3. INIT (Start the loop & Restore Haptics)
 function initMasterClock() {
     if (masterTimerInterval) clearInterval(masterTimerInterval);
+    
+    // Tick immediately, then loop
     masterClockTick(); 
     masterTimerInterval = setInterval(masterClockTick, 1000);
 
     // --- REHYDRATE FOREGROUND HAPTICS ---
-    // If user refreshes, we restore the specific haptic timeouts
-    // so they don't miss the buzz if the app is open.
-    const rawGlobal = localStorage.getItem(KEY_GLOBAL_TIMER);
-    if (rawGlobal) {
-        try {
-            const data = JSON.parse(rawGlobal);
-            const elapsed = Date.now() - parseInt(data.time);
-            
-            // Clear lists first
-            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
-            foregroundHapticTimeouts = [];
-
-            // If < 1 min, schedule 1m buzz
-            if (elapsed < 60000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(10);
-                    sendFlashlightToNative(1); // <--- ADD THIS
-                }, 60000 - elapsed));
-            }
-            // If < 3 mins, schedule 3m buzz
-            if (elapsed < 180000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(30);
-                    sendFlashlightToNative(3); // <--- ADD THIS
-                }, 180000 - elapsed));
-            }
-            // If < 10 mins, schedule 10m buzz
-            if (elapsed < 600000) {
-                foregroundHapticTimeouts.push(setTimeout(() => {
-                     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(100);
-                    sendFlashlightToNative(5); // <--- ADD THIS
-                }, 600000 - elapsed));
-            }
-        } catch(e) { console.error("Rehydrate error", e); }
-    }
+    // If user refreshes or cold-starts the app, calculate future alerts.
+    // Alerts that passed while the app was closed are ignored by this function.
+    resyncForegroundHaptics();
 }
 
 // Start the engine
