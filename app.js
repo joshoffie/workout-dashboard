@@ -607,7 +607,7 @@ function syncTutorialUI(screenId) {
                  showTutorialTip('smartRecapBox', '1. This summary analyzes your progress!', 20);
                  
                  tutorialTimer = setTimeout(() => {
-                    showTutorialTip('comparisonBanner', '2. This banner compares today vs. last time.', 10);
+                    showTutorialTip('comparisonBanner', '2. This banner compares recent lift vs. previous lift.', 10);
                     tutorialTimer = setTimeout(() => {
                         showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
                     }, 4000); 
