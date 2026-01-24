@@ -217,41 +217,39 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   align-items: center;
   justify-content: center;
   
-  /* 1. Ensure the forward speed matches the backward speed (0.3s) */
+  /* 1. Smoothly rotate TO 90deg when pressed (0.3s) */
   transition: transform 0.3s ease;
+  
+  /* Mobile optimization: prevents native gray tap box */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 2. HOVER (Mouse Only): Rotates 90deg */
-/* Putting this in a media query prevents the "Sticky Hover" bug on phones */
-@media (hover: hover) {
-  #settingsBtn:hover {
-    transform: rotate(90deg);
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-sm);
-  }
-}
+/* 2. REMOVED ALL :HOVER STYLES TO PREVENT STICKY GLITCHES */
 
-/* 3. ACTIVE (Touch/Click): Rotates 90deg */
-/* This ensures the press animation works on all devices */
+/* 3. ACTIVE (Finger Down): Rotates to 90deg */
 #settingsBtn:active {
   transform: rotate(90deg);
-  background: transparent;
+  /* Optional: subtle background feedback on press */
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
 }
 
-/* 4. REVERSE SPIN (Animation) */
+/* 4. REVERSE SPIN (Triggered by JS) */
 @keyframes gear-reverse-spin {
   from { transform: rotate(90deg); }
   to { transform: rotate(0deg); }
 }
 
 .gear-roll-back {
-  /* 0.3s duration matches the transition above */
+  /* 1. Run the animation */
   animation: gear-reverse-spin 0.3s ease forwards;
   
-  /* CRITICAL FIX: Disable transition during animation to stop the "spasm" */
+  /* 2. CRITICAL FIX: Kill the transition immediately. 
+     This stops the "spasm" where the browser tries to transition 
+     and animate the same property at the same time. */
   transition: none !important;
   
-  /* Lock interaction during spin to prevent glitches */
+  /* 3. Disable clicks while spinning to prevent restarting glitches */
   pointer-events: none;
 }
 /* Ensure settings items (like Logout) justify space properly */
