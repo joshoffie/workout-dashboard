@@ -3945,6 +3945,7 @@ function finishAddSet() {
 
     const notes = ""; 
     const timestamp = new Date().toISOString();
+    
     // --- CAPTURE PLATES ---
     let savedPlates = null;
     if (calcState.plates && Object.keys(calcState.plates).length > 0) {
@@ -3978,6 +3979,32 @@ function finishAddSet() {
     renderSets();
     closeAddSetModal();
     startRestTimer(true);
+
+    // --- TUTORIAL LOGIC (RESTORED) ---
+    // This is the missing link that triggers the "Graph Bubble" sequence
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+        // 1. Clear previous tips
+        clearTutorialTips();
+        if (tutorialTimer) clearTimeout(tutorialTimer);
+        
+        // 2. Set stage to generic 'post-log' first
+        document.body.dataset.tutorialStage = 'post-log';
+        
+        // Sequence: Rest Timer -> Spiral -> Slider
+        setTimeout(() => {
+            showTutorialTip('restTimer', 'A rest timer starts automatically.', 30);
+            
+            tutorialTimer = setTimeout(() => {
+                showTutorialTip('spiralCanvas', 'This spiral tracks your history.', 20);
+                
+                tutorialTimer = setTimeout(() => {
+                    // CRITICAL: Set the specific stage that handleSliderMove looks for!
+                    document.body.dataset.tutorialStage = 'waiting-for-slider';
+                    showTutorialTip('spiralSlider', 'Drag the slider backwards to see previous days data.', 10);
+                }, 3500);
+            }, 3500); 
+        }, 500);
+    }
 }
 
 // =====================================================
