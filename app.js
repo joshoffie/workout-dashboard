@@ -225,9 +225,13 @@ if (endTutorialBtn) {
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
-    // --- FAILSAFE: STOP IF TUTORIAL IS OVER ---
+// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
   if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
-  // ------------------------------------------
+
+  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
+  const loginModal = document.getElementById('loginModal');
+  if (loginModal && !loginModal.classList.contains('hidden')) return;
+  // ---------------------------------------------------------------
   clearTutorialTips();
   const target = document.getElementById(targetId);
   if (!target) return;
@@ -529,8 +533,8 @@ function checkTutorialNavigation(targetScreenId) {
 }
 
 // [app.js] SMART TUTORIAL SYNC
-// Call this whenever the screen changes to ensure the correct tip is shown.
 function syncTutorialUI(screenId) {
+    // FAILSAFE 1: Immediate Exit
     if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
     
     // Clear any existing timers/tips to prevent conflicts
@@ -539,15 +543,17 @@ function syncTutorialUI(screenId) {
 
     // Small delay to allow the screen transition to finish
     tutorialTimer = setTimeout(() => {
-        
+        // FAILSAFE 2: Check again before executing (Stops Ghost Bubbles)
+        if (!isTutorialMode) return;
+
         const stage = document.body.dataset.tutorialStage;
 
         // 1. CLIENTS SCREEN (Home)
         if (screenId === SCREENS.CLIENTS) {
             if (stage === 'calendar-done') {
+                 // Direct them to Settings
                  showTutorialTip('settingsBtn', 'Finally, tap Settings.', 45, 'right');
             } else {
-                 // Only reset if we are truly at the start
                  document.body.dataset.tutorialStage = 'start';
                  showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
             }
@@ -555,16 +561,13 @@ function syncTutorialUI(screenId) {
 
         // 2. SESSIONS SCREEN
         else if (screenId === SCREENS.SESSIONS) {
-            // SCENARIO: Coming back from Exercises -> Show Calendar
             if (stage === 'exercises-returned') {
                 showTutorialTip('openCalendarBtn', 'Now, check the Calendar.', 40);
             } 
-            // SCENARIO: Coming back from Calendar -> Show Home
             else if (stage === 'calendar-visited') {
                 document.body.dataset.tutorialStage = 'calendar-done';
                 showTutorialTip('backToClientsBtn', 'Go back to Home.', 30, 'left');
             }
-            // DEFAULT: Forward flow
             else {
                 document.body.dataset.tutorialStage = 'sessions';
                 showTutorialTip('sessionList', 'Tap "Chest Day" to view your workout.', 40);
@@ -573,12 +576,10 @@ function syncTutorialUI(screenId) {
 
         // 3. EXERCISES SCREEN
         else if (screenId === SCREENS.EXERCISES) {
-            // SCENARIO: Coming back from Sets -> Show Back to Sessions
             if (stage === 'sets-returned') {
                 document.body.dataset.tutorialStage = 'exercises-returned';
                 showTutorialTip('backToSessionsBtn', 'Go back to Sessions.', 30, 'left');
             } 
-            // DEFAULT: Forward flow
             else {
                 document.body.dataset.tutorialStage = 'exercises';
                 showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40);
@@ -587,28 +588,25 @@ function syncTutorialUI(screenId) {
 
         // 4. SETS SCREEN
         else if (screenId === SCREENS.SETS) {
-             // SCENARIO: Coming back from Graph -> Show Back to Exercises
              if (stage === 'graph-touched') {
-                 // Mark that we are leaving the sets screen
                  document.body.dataset.tutorialStage = 'sets-returned';
                  showTutorialTip('backToExercisesBtn', 'Go back to Exercises.', 30, 'left');
              } 
-             // SCENARIO: Just finished slider -> Waiting for Graph
              else if (stage === 'slider-done') {
                  showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
              }
-             // SCENARIO: Waiting for slider
              else if (stage === 'waiting-for-slider') {
                  showTutorialTip('spiralSlider', 'Drag the slider backwards.', 10);
              }
-             // DEFAULT: Trigger the "Add Set" flow
              else {
                  document.body.dataset.tutorialStage = 'sets-view';
                  showTutorialTip('smartRecapBox', '1. This summary analyzes your progress!', 20);
                  
                  tutorialTimer = setTimeout(() => {
-                    showTutorialTip('comparisonBanner', '2. This banner compares recent lift vs. previous lift.', 10);
+                    if (!isTutorialMode) return; // Nested Failsafe
+                    showTutorialTip('comparisonBanner', '2. This banner compares today vs. last time.', 10);
                     tutorialTimer = setTimeout(() => {
+                        if (!isTutorialMode) return; // Nested Failsafe
                         showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
                     }, 4000); 
                  }, 4000);
@@ -624,16 +622,28 @@ function syncTutorialUI(screenId) {
         else if (screenId === SCREENS.CALENDAR) {
             showTutorialTip('calendarGrid', 'This tracks your consistency.', -20);
             tutorialTimer = setTimeout(() => {
+                 if (!isTutorialMode) return;
                  showTutorialTip('backToSessionsFromCalBtn', 'Tap back to return.', 30, 'left');
             }, 3000);
         }
 
-        // 7. SETTINGS SCREEN
+        // 7. SETTINGS SCREEN (NEW FLOW)
         else if (screenId === SCREENS.SETTINGS) {
-             showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-             tutorialTimer = setTimeout(() => {
+             // A. If we just arrived or are starting settings
+             if (stage === 'home-returned' || stage === 'settings-start' || !stage) {
+                 document.body.dataset.tutorialStage = 'settings-start';
+                 showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                 
+                 tutorialTimer = setTimeout(() => {
+                     if (!isTutorialMode) return;
+                     // Point to Timer Settings
+                     showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+                 }, 3000);
+             }
+             // B. If we finished the Timer Settings logic
+             else if (stage === 'timer-settings-done') {
                  showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-             }, 3000);
+             }
         }
 
     }, 500); 
@@ -3462,13 +3472,34 @@ function saveTimerConfig() {
 }
 
 // 6. OPEN BUTTON
+// 6. OPEN BUTTON
 if (openTimerSettingsBtn) {
     openTimerSettingsBtn.onclick = () => {
         loadTimerConfig();
         renderTimerSettings();
         if (timerSettingsModal) {
             timerSettingsModal.classList.remove('hidden');
-            timerSettingsModal.style.zIndex = "10002"; 
+            timerSettingsModal.style.zIndex = "10002";
+            
+            // --- TUTORIAL LOGIC ---
+            if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+                // Clear the previous "Tap here" tip
+                clearTutorialTips();
+                // Mark stage so we know where we are
+                document.body.dataset.tutorialStage = 'timer-settings-open';
+                
+                // Show explanation inside modal
+                setTimeout(() => {
+                    if (!isTutorialMode) return;
+                    showTutorialTip('timerSettingsList', 'Toggle auto-timers or tap the time to edit.', 20);
+                    
+                    // Then point to the Done button
+                    tutorialTimer = setTimeout(() => {
+                        if (!isTutorialMode) return;
+                        showTutorialTip('closeTimerSettingsBtn', 'Tap Done to return.', 30, 'bottom');
+                    }, 3500);
+                }, 500);
+            }
         }
     };
 }
@@ -3487,6 +3518,13 @@ const closeTimerSettingsBtn = document.getElementById('closeTimerSettingsBtn');
 if (closeTimerSettingsBtn) {
     closeTimerSettingsBtn.onclick = () => {
         timerSettingsModal.classList.add('hidden');
+        
+        // --- TUTORIAL LOGIC ---
+        if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+             document.body.dataset.tutorialStage = 'timer-settings-done';
+             // Force a re-sync to trigger the final bubble on the Settings screen
+             syncTutorialUI(SCREENS.SETTINGS);
+        }
     };
 }
 
