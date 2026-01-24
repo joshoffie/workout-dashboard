@@ -712,9 +712,10 @@ if (settingsBtn) {
         // 2. Go to Settings
         navigateTo(SCREENS.SETTINGS, 'forward');
 
-        // 3. Tutorial Logic (Keep existing functionality)
+        // 3. Tutorial Logic (Hardcoded Sequence)
         if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-            settingsBtn.classList.add('hidden'); 
+            // Hide the gear icon so they can't click it again
+            settingsBtn.classList.add('hidden');
             
             const editBtn = document.getElementById('editToggleBtn');
             if(editBtn) editBtn.classList.add('hidden');
@@ -725,15 +726,40 @@ if (settingsBtn) {
                 endBtn.classList.add('flash-active');
             }
 
-            // Tutorial Tips
+            // --- THE UPDATED SEQUENCE ---
             setTimeout(() => {
                 if(typeof showTutorialTip === 'function') {
+                    // STEP 1: Unit Toggle
                     showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                    
+                    // Wait 3 seconds...
                     setTimeout(() => {
-                         showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                    }, 3000); 
+                       if (!isTutorialMode) return;
+                       
+                       // STEP 2: Color Toggle (NEW)
+                       showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
+
+                       // Wait 3 seconds...
+                       setTimeout(() => {
+                           if (!isTutorialMode) return;
+
+                           // STEP 3: Timer Settings (NEW)
+                           showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+
+                           // Wait 3 seconds...
+                           setTimeout(() => {
+                               if (!isTutorialMode) return;
+                               
+                               // STEP 4: End Tutorial
+                               showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                               
+                           }, 3000); // End of Step 3 wait
+
+                       }, 3000); // End of Step 2 wait
+
+                    }, 3000); // End of Step 1 wait
                 }
-            }, 500);
+            }, 500); // Initial delay
         }
     };
 }
