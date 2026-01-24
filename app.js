@@ -711,16 +711,6 @@ if (settingsBtn) {
                 endBtn.classList.remove('hidden');
                 endBtn.classList.add('flash-active');
             }
-
-            // Tutorial Tips
-            setTimeout(() => {
-                if(typeof showTutorialTip === 'function') {
-                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
-                    setTimeout(() => {
-                         showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                    }, 3000); 
-                }
-            }, 500);
         }
     };
 }
