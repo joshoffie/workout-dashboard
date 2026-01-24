@@ -219,10 +219,13 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   transition: transform 0.3s ease;
 }
 
+/* Find this section around line 282 in style.css */
+
 /* 1. Animation: Rotate on Hover (Mouse) AND Active (Touch press) */
 #settingsBtn:hover,
 #settingsBtn:active {
-  transform: rotate(45deg);
+  /* CHANGED: 45deg -> 90deg to match the reverse spin intensity */
+  transform: rotate(90deg);
 }
 
 /* 2. Background Box: ONLY show this if the user has a mouse */
@@ -235,8 +238,8 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 
 /* On touch, just do the click animation (optional, but feels better) */
 #settingsBtn:active {
-  transform: scale(0.9);
-  background: transparent; /* Ensures no box sticks */
+  transform: scale(0.9) rotate(90deg); /* CHANGED: Added rotate(90deg) here too to persist the angle while shrinking */
+  background: transparent; 
 }
 
 @keyframes gear-reverse-spin {
@@ -245,7 +248,8 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 
 .gear-roll-back {
-  animation: gear-reverse-spin 0.4s ease-out forwards;
+  /* CHANGED: 0.4s -> 0.3s (matches transition) and ease-out -> ease */
+  animation: gear-reverse-spin 0.3s ease forwards;
 }
 /* Ensure settings items (like Logout) justify space properly */
 #settingsDiv .item-list li {
