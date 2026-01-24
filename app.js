@@ -531,7 +531,7 @@ function checkTutorialNavigation(targetScreenId) {
 // [app.js] SMART TUTORIAL SYNC
 // Call this whenever the screen changes to ensure the correct tip is shown.
 function syncTutorialUI(screenId) {
-    if (!isTutorialMode) return;
+    if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
     
     // Clear any existing timers/tips to prevent conflicts
     if (tutorialTimer) clearTimeout(tutorialTimer);
@@ -540,13 +540,14 @@ function syncTutorialUI(screenId) {
     // Small delay to allow the screen transition to finish
     tutorialTimer = setTimeout(() => {
         
+        const stage = document.body.dataset.tutorialStage;
+
         // 1. CLIENTS SCREEN (Home)
         if (screenId === SCREENS.CLIENTS) {
-            // If we've already been to the calendar, we are near the end
-            if (document.body.dataset.tutorialStage === 'calendar-done') {
+            if (stage === 'calendar-done') {
                  showTutorialTip('settingsBtn', 'Finally, tap Settings.', 45, 'right');
             } else {
-                 // Otherwise, we are at the start
+                 // Only reset if we are truly at the start
                  document.body.dataset.tutorialStage = 'start';
                  showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
             }
@@ -554,11 +555,17 @@ function syncTutorialUI(screenId) {
 
         // 2. SESSIONS SCREEN
         else if (screenId === SCREENS.SESSIONS) {
-            // If we came back from exercises, show Calendar tip
-            if (document.body.dataset.tutorialStage === 'exercises-returned') {
+            // SCENARIO: Coming back from Exercises -> Show Calendar
+            if (stage === 'exercises-returned') {
                 showTutorialTip('openCalendarBtn', 'Now, check the Calendar.', 40);
-            } else {
-                // Default forward flow
+            } 
+            // SCENARIO: Coming back from Calendar -> Show Home
+            else if (stage === 'calendar-visited') {
+                document.body.dataset.tutorialStage = 'calendar-done';
+                showTutorialTip('backToClientsBtn', 'Go back to Home.', 30, 'left');
+            }
+            // DEFAULT: Forward flow
+            else {
                 document.body.dataset.tutorialStage = 'sessions';
                 showTutorialTip('sessionList', 'Tap "Chest Day" to view your workout.', 40);
             }
@@ -566,27 +573,41 @@ function syncTutorialUI(screenId) {
 
         // 3. EXERCISES SCREEN
         else if (screenId === SCREENS.EXERCISES) {
-            document.body.dataset.tutorialStage = 'exercises';
-            showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40);
+            // SCENARIO: Coming back from Sets -> Show Back to Sessions
+            if (stage === 'sets-returned') {
+                document.body.dataset.tutorialStage = 'exercises-returned';
+                showTutorialTip('backToSessionsBtn', 'Go back to Sessions.', 30, 'left');
+            } 
+            // DEFAULT: Forward flow
+            else {
+                document.body.dataset.tutorialStage = 'exercises';
+                showTutorialTip('exerciseList', 'Tap "Bench Press" to see the data.', 40);
+            }
         }
 
         // 4. SETS SCREEN
         else if (screenId === SCREENS.SETS) {
-             // If we already touched the graph, tell them to go back
-             if (document.body.dataset.tutorialStage === 'graph-touched') {
+             // SCENARIO: Coming back from Graph -> Show Back to Exercises
+             if (stage === 'graph-touched') {
+                 // Mark that we are leaving the sets screen
+                 document.body.dataset.tutorialStage = 'sets-returned';
                  showTutorialTip('backToExercisesBtn', 'Go back to Exercises.', 30, 'left');
              } 
-             // If we just finished adding a set (slider waiting)
-             else if (document.body.dataset.tutorialStage === 'waiting-for-slider') {
+             // SCENARIO: Just finished slider -> Waiting for Graph
+             else if (stage === 'slider-done') {
+                 showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+             }
+             // SCENARIO: Waiting for slider
+             else if (stage === 'waiting-for-slider') {
                  showTutorialTip('spiralSlider', 'Drag the slider backwards.', 10);
              }
-             // Default: Trigger the "Add Set" flow
+             // DEFAULT: Trigger the "Add Set" flow
              else {
                  document.body.dataset.tutorialStage = 'sets-view';
                  showTutorialTip('smartRecapBox', '1. This summary analyzes your progress!', 20);
-                 // Chain the rest...
+                 
                  tutorialTimer = setTimeout(() => {
-                    showTutorialTip('comparisonBanner', '2. This banner compares most recent lift vs. previous lift.', 10);
+                    showTutorialTip('comparisonBanner', '2. This banner compares today vs. last time.', 10);
                     tutorialTimer = setTimeout(() => {
                         showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
                     }, 4000); 
@@ -615,7 +636,7 @@ function syncTutorialUI(screenId) {
              }, 3000);
         }
 
-    }, 500); // 500ms delay for smooth transition
+    }, 500); 
 }
 
 // [app.js] ROBUST SETTINGS & MEMORY SYSTEM
