@@ -217,38 +217,25 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
   align-items: center;
   justify-content: center;
   
-  /* 1. Smoothly rotate TO 90deg when pressed (0.3s) */
-  transition: transform 0.3s ease;
-  
-  /* Mobile optimization: prevents native gray tap box */
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 2. REMOVED ALL :HOVER STYLES TO PREVENT STICKY GLITCHES */
-
-#settingsBtn {
-  color: var(--color-text);
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  /* 1. Standard Rotation Speed */
+  /* 1. Base transition for the "Spin Forward" (0.3s matches the reverse animation) */
   transition: transform 0.3s ease;
 
-  /* 2. KILL THE GREY BOX & HIGHLIGHTS */
+  /* 2. ELIMINATE THE GREY BOX */
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
-  background: transparent;
+  background: transparent !important; /* Forces it to stay clear */
 }
 
-/* 3. ACTIVE STATE (Finger Down) 
-   Forces rotation immediately. Removing hover ensures it doesn't "stick". */
+/* 3. ACTIVE STATE (Finger Down) */
 #settingsBtn:active {
+  /* Rotate 90deg to match the reverse spin distance */
   transform: rotate(90deg);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
-  transition: transform 0.3s ease; /* Ensure smooth start even on quick taps */
+  
+  /* CRITICAL: Ensure background stays transparent (No Grey Box) */
+  background: transparent !important;
+  
+  /* Keep the transition active so it animates to this position */
+  transition: transform 0.3s ease;
 }
 
 /* 4. REVERSE SPIN ANIMATION */
@@ -258,15 +245,13 @@ body { background-color: var(--color-bg); color: var(--color-text); min-height: 
 }
 
 .gear-roll-back {
-  /* Animation duration (0.3s) fits safely inside your existing 0.4s JS timeout */
+  /* 1. Animation Time: 0.3s (Matches the transition above) */
   animation: gear-reverse-spin 0.3s ease forwards;
   
-  /* 5. STOP THE SPASM 
-     This forces the browser to ignore the 'transition' rule while animating,
-     preventing them from fighting each other. */
+  /* 2. SPASM FIX: Kill the transition so it doesn't fight the animation */
   transition: none !important;
   
-  /* Lock interaction during spin */
+  /* 3. Lock interaction during spin */
   pointer-events: none;
 }
 /* Ensure settings items (like Logout) justify space properly */
