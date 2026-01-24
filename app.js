@@ -627,18 +627,31 @@ function syncTutorialUI(screenId) {
             }, 3000);
         }
 
-        // 7. SETTINGS SCREEN (NEW FLOW)
+        // 7. SETTINGS SCREEN (Modified Flow)
         else if (screenId === SCREENS.SETTINGS) {
              // A. If we just arrived or are starting settings
              if (stage === 'home-returned' || stage === 'settings-start' || !stage) {
                  document.body.dataset.tutorialStage = 'settings-start';
+                 
+                 // STEP 1: Unit Toggle
                  showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                  
                  tutorialTimer = setTimeout(() => {
                      if (!isTutorialMode) return;
-                     // Point to Timer Settings
-                     showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
-                 }, 3000);
+                     
+                     // --- NEW STEP: Color Toggle ---
+                     showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
+                     
+                     // Chain the next step inside another timeout
+                     tutorialTimer = setTimeout(() => { 
+                        if (!isTutorialMode) return;
+
+                        // STEP 3: Timer Settings
+                        showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+                        
+                     }, 3000); // Wait 3 seconds before showing Timer tip
+
+                 }, 3000); // Wait 3 seconds before showing Color tip
              }
              // B. If we finished the Timer Settings logic
              else if (stage === 'timer-settings-done') {
