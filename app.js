@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Dynamic "Smart Fill" V4)
+// SOCIAL SHARE ENGINE (Smart Expansion V5)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5408,7 +5408,7 @@ async function generateAndShareCard(dateKey, groups) {
     }
 
     // ------------------------------------------
-    // 1. DATA PROCESSING & SCORING
+    // 1. DATA PROCESSING
     // ------------------------------------------
     let grandVol = 0;
     let grandSets = 0;
@@ -5417,7 +5417,6 @@ async function generateAndShareCard(dateKey, groups) {
     
     let summaries = [];
 
-    // Analyze every exercise
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
@@ -5431,108 +5430,128 @@ async function generateAndShareCard(dateKey, groups) {
             const v = parseFloat(s.volume) || 0;
             const r = parseInt(s.reps) || 0;
             
-            // Global
             grandVol += v;
             grandSets++;
+            
             if (w > bestLiftWeight) {
                 bestLiftWeight = w;
                 bestLiftName = name;
             }
 
-            // Local
             if (w > todayMax) todayMax = w;
             todayVol += v;
             totalReps += r;
         });
 
-        // B. Historical Comparison
+        // B. History Context
         const history = getExerciseHistoryForShare(name);
-        const past = history.filter(h => h.timestamp < new Date(sets[0].timestamp).setHours(0,0,0,0));
+        // Add "Today" to history for the trend view if not already there 
+        // (Our helper pulls from saved data, so we manually construct 'today' for the view)
+        const todayEntry = {
+            timestamp: new Date().getTime(),
+            weight: todayMax,
+            volume: todayVol,
+            wpr: totalReps > 0 ? todayVol / totalReps : 0,
+            reps: totalReps,
+            isToday: true
+        };
         
-        const prevMax = getMetricMax(past, 'weight'); 
-        const prevVolMax = getMetricMax(past, 'volume');
-        
-        // C. Calculate "Green Score" & Highlight Text
+        // Combine for the "Last 4" view
+        const fullHistory = [...history.filter(h => !isSameDay(new Date(h.timestamp), new Date())), todayEntry];
+        const last4 = getLast4Sessions(fullHistory);
+
+        // C. Comparisons for "Highlight" (vs Previous)
+        // We look at the entry *before* today for PR logic
+        const pastOnly = history.filter(h => h.timestamp < new Date(sets[0].timestamp).setHours(0,0,0,0));
+        const prevMax = getMetricMax(pastOnly, 'weight'); 
+        const prevVolMax = getMetricMax(pastOnly, 'volume');
+        const recentVolAvg = getRecentAvg(pastOnly, 'volume');
+        const pastWPR = getRecentAvg(pastOnly, 'wpr');
+
+        // D. Generate Story
         let highlight = "";
-        let score = 0; // Higher = Higher on list
+        let score = 0;
+        let accent = '#888'; 
         const unit = UNIT_mode.getLabel();
 
-        // 1. All-Time Weight PR (The Holy Grail)
+        // 1. All-Time Weight PR
         if (todayMax > prevMax && prevMax > 0) {
-            highlight = `Used ${UNIT_mode.toDisplay(todayMax)} ${unit} for the first time!`;
+            highlight = `NEW 1RM RECORD! 🏆`;
             score = 100;
+            accent = '#34c759'; // Green
         }
         // 2. Volume PR
         else if (todayVol > prevVolMax && prevVolMax > 0) {
             const diff = ((todayVol - prevVolMax) / prevVolMax * 100).toFixed(0);
-            highlight = `Volume Personal Record! (+${diff}%)`;
-            score = 80;
+            highlight = `Volume Record! (+${diff}%) 📈`;
+            score = 90;
+            accent = '#34c759';
         }
-        // 3. Efficiency (Weight Per Rep) Increase
+        // 3. Efficiency (WPR) PR
+        else if (todayEntry.wpr > pastWPR * 1.05 && pastWPR > 0) {
+            const diff = ((todayEntry.wpr - pastWPR) / pastWPR * 100).toFixed(0);
+            highlight = `Avg Weight/Rep Up ${diff}% 🔥`;
+            score = 80;
+            accent = '#34c759';
+        }
+        // 4. Heavy Work
+        else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
+            highlight = `Heavy Session (${UNIT_mode.toDisplay(todayMax)} ${unit})`;
+            score = 60;
+            accent = '#ffffff';
+        }
+        // 5. High Volume
+        else if (todayVol > recentVolAvg * 1.2 && recentVolAvg > 0) {
+            highlight = `High Volume (${Math.round(UNIT_mode.toDisplay(todayVol))} ${unit})`;
+            score = 50;
+            accent = '#007aff'; // Blue
+        }
+        // Default
         else {
-            const todayWPR = totalReps > 0 ? todayVol / totalReps : 0;
-            const pastWPR = getRecentAvg(past, 'wpr'); // We need a helper for this
-            
-            if (todayWPR > pastWPR * 1.05 && pastWPR > 0) {
-                const diff = ((todayWPR - pastWPR) / pastWPR * 100).toFixed(0);
-                highlight = `Avg weight/rep up ${diff}%`;
-                score = 60;
-            } else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
-                highlight = `Heavy Session (${UNIT_mode.toDisplay(todayMax)} ${unit} top set)`;
-                score = 40;
-            } else {
-                highlight = `${sets.length} Sets Completed`;
-                score = 10;
-            }
+            highlight = `${sets.length} Sets Completed`;
+            score = 10;
+            accent = '#888';
         }
 
-        summaries.push({ name, highlight, score });
+        summaries.push({ name, highlight, score, accent, last4 });
     });
 
-    // Sort: Best performances first
+    // Sort by Score (Best lifts top)
     summaries.sort((a, b) => b.score - a.score);
 
     // ------------------------------------------
-    // 2. LAYOUT CALCULATIONS
+    // 2. CANVAS LAYOUT LOGIC
     // ------------------------------------------
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
     const W = 1080;
-    const H = 1920;
+    
+    // --- SMART EXPANSION ---
+    // If 4 or fewer exercises, we have room for the "Deep Data" view
+    const isExpandedMode = summaries.length <= 4;
+    
+    // Calculate Height
+    const topZoneH = 380; 
+    const footerH = 150;
+    // Row height depends on mode
+    const rowH = isExpandedMode ? 320 : 180; 
+    
+    const listH = summaries.length * rowH;
+    const H = Math.max(1920, topZoneH + listH + footerH); // Grow if list is long
+
     canvas.width = W;
     canvas.height = H;
 
-    // Define Zones
-    const topZoneH = 300;  // Header + Global Stats
-    const footerH = 150;   // Bottom Logo
-    const listZoneH = H - topZoneH - footerH; // Remaining space for list
-
-    // Dynamic Row Height
-    // If few items, max height is capped so they don't look huge.
-    // If many items, they shrink to fit.
-    const itemCount = summaries.length;
-    let rowH = listZoneH / itemCount;
-    const maxRowH = 280; 
-    if (rowH > maxRowH) rowH = maxRowH;
-
-    // Center the list vertically if it doesn't fill the space
-    const listStartY = topZoneH + (listZoneH - (rowH * itemCount)) / 2;
-
-    // ------------------------------------------
-    // 3. DRAWING
-    // ------------------------------------------
-    
-    // Background (Deep Dark)
+    // --- BACKGROUND ---
     const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, '#0a0a0a');
+    grd.addColorStop(0, '#0d0d0d');
     grd.addColorStop(1, '#000000');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
 
-    // --- A. HEADER (Logo & Date) ---
-    ctx.fillStyle = '#34c759'; // Trunk Green
-    ctx.font = 'bold 60px "Fredoka", sans-serif';
+    // --- HEADER ---
+    ctx.fillStyle = '#34c759';
+    ctx.font = 'bold 70px "Fredoka", sans-serif'; 
     ctx.textAlign = 'left';
     ctx.fillText('Trunk', 60, 100);
 
@@ -5543,110 +5562,153 @@ async function generateAndShareCard(dateKey, groups) {
     ctx.fillStyle = '#666';
     ctx.font = '500 40px "Inter", sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(dateStr, W - 60, 100);
+    ctx.fillText(dateStr, W - 60, 95);
 
-    // --- B. GLOBAL STATS (Under Header) ---
-    const statsY = 180;
-    // 3 Columns centered
-    drawStatCol(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
-    drawStatCol(ctx, "SETS", grandSets, W*0.5, statsY);
-    // Truncate Best Lift Name if too long
-    let bestNameShort = bestLiftName;
-    if (bestNameShort.length > 12) bestNameShort = bestNameShort.substring(0, 10) + "..";
-    drawStatCol(ctx, "BEST LIFT", `${bestNameShort} (${Math.round(UNIT_mode.toDisplay(bestLiftWeight))})`, W*0.8, statsY);
+    // --- GLOBAL STATS ROW ---
+    const statsY = 220;
+    drawHeroStat(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
+    drawHeroStat(ctx, "SETS", grandSets, W*0.5, statsY);
+    
+    // Truncate Best Lift
+    let bestNameDisplay = bestLiftName;
+    if (bestNameDisplay.length > 10) bestNameDisplay = bestNameDisplay.substring(0, 9) + "..";
+    
+    drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
+        `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`);
 
     // Divider
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(60, 260);
-    ctx.lineTo(W-60, 260);
-    ctx.stroke();
+    ctx.fillStyle = '#222';
+    ctx.fillRect(60, 340, W-120, 2);
 
-    // --- C. DYNAMIC LIST ---
+    // --- LIST RENDERER ---
+    let currentY = 420;
+
     summaries.forEach((item, i) => {
-        const yPos = listStartY + (i * rowH);
-        const centerY = yPos + (rowH / 2);
+        const centerY = currentY + (rowH / 2);
+        
+        // 1. Exercise Name
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff';
+        // Dynamic Font Sizing for Name
+        let nameSize = 55;
+        if (item.name.length > 15) nameSize = 45;
+        if (item.name.length > 25) nameSize = 35;
+        
+        ctx.font = `bold ${nameSize}px "Fredoka", sans-serif`; 
+        
+        // Position name higher if in Expanded Mode to make room for data
+        const nameY = isExpandedMode ? currentY + 60 : centerY + 15;
+        ctx.fillText(item.name, 60, nameY);
 
-        // 1. Divider Line (between items)
-        if (i > 0) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(100, yPos, W-200, 2);
+        // 2. Highlight Tag
+        ctx.textAlign = 'right';
+        ctx.fillStyle = item.accent;
+        ctx.font = '600 35px "Inter", sans-serif';
+        
+        const tagY = isExpandedMode ? currentY + 60 : centerY + 15;
+        ctx.fillText(item.highlight, W - 60, tagY);
+
+        // 3. EXPANDED DATA (The "Deep Think" Feature)
+        if (isExpandedMode) {
+            drawTrendRow(ctx, item.last4, 60, currentY + 100, W - 120);
         }
 
-        // 2. Exercise Name (Scales with row height)
-        // Max font size 60, min 30
-        const nameSize = Math.min(60, Math.max(30, rowH * 0.25));
-        ctx.font = `bold ${nameSize}px "Inter", sans-serif`;
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'left';
-        
-        // "Smart Fit" Name
-        fitText(ctx, item.name, 60, centerY - (nameSize * 0.2), W - 120);
+        // Divider
+        if (i < summaries.length - 1) {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(60, currentY + rowH, W-120, 2);
+        }
 
-        // 3. The "Green Data" Highlight
-        const hlSize = nameSize * 0.7; // Smaller than name
-        ctx.font = `500 ${hlSize}px "Inter", sans-serif`;
-        
-        // Color logic: High score = Green, Low score = Grey
-        ctx.fillStyle = item.score >= 60 ? '#34c759' : '#888';
-        
-        ctx.fillText(item.highlight, 60, centerY + (nameSize * 0.9));
+        currentY += rowH + 20; // Add padding
     });
 
-    // --- D. FOOTER LOGO ---
-    const logoY = H - 60;
-    ctx.fillStyle = '#222'; // Subtle
-    ctx.font = 'bold 50px "Fredoka", sans-serif';
+    // --- FOOTER LOGO ---
+    const footerY = H - 60;
+    ctx.fillStyle = '#222';
+    ctx.font = 'bold 50px "Fredoka", sans-serif'; 
     ctx.textAlign = 'center';
-    ctx.fillText('Trunk', W/2, logoY);
+    ctx.fillText('Trunk', W/2, footerY);
 
     // 4. EXPORT
     canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], "trunk-workout.png", { type: "image/png" });
+        const file = new File([blob], "trunk-summary.png", { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file] });
         } else {
             const link = document.createElement('a');
-            link.download = 'trunk-workout.png';
+            link.download = 'trunk-summary.png';
             link.href = canvas.toDataURL();
             link.click();
         }
     });
 }
 
-// --- HELPERS ---
+// --- CANVAS HELPERS ---
 
-function drawStatCol(ctx, label, value, x, y) {
+function drawHeroStat(ctx, label, val1, x, y, val2) {
     ctx.textAlign = 'center';
+    
+    // Label
     ctx.fillStyle = '#666';
     ctx.font = 'bold 24px "Inter", sans-serif';
     ctx.fillText(label, x, y);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 45px "Fredoka", sans-serif';
-    ctx.fillText(value, x, y + 50);
-}
 
-// Automatically shrinks text to fit width
-function fitText(ctx, text, x, y, maxWidth) {
-    let width = ctx.measureText(text).width;
-    const initialFont = ctx.font; // e.g. "bold 60px Inter"
-    const fontSizeVal = parseFloat(initialFont.split(' ')[1]);
-    
-    if (width > maxWidth) {
-        const ratio = maxWidth / width;
-        const newSize = Math.floor(fontSizeVal * ratio);
-        ctx.font = initialFont.replace(`${fontSizeVal}px`, `${newSize}px`);
+    // Main Value
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 60px "Fredoka", sans-serif';
+    ctx.fillText(val1, x, y + 60);
+
+    // Sub Value (Optional)
+    if (val2) {
+        ctx.fillStyle = '#34c759';
+        ctx.font = 'bold 30px "Fredoka", sans-serif';
+        ctx.fillText(val2, x, y + 100);
     }
-    ctx.fillText(text, x, y);
-    ctx.font = initialFont; // Reset
 }
 
-// Data Mining Helpers
+function drawTrendRow(ctx, sessions, x, y, width) {
+    // 4 Columns
+    const colW = width / 4;
+    
+    sessions.forEach((sess, i) => {
+        const cx = x + (i * colW) + (colW / 2);
+        
+        // Date
+        ctx.fillStyle = '#555';
+        ctx.font = '500 24px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(sess.dateStr, cx, y);
+
+        // Avg Weight
+        const wStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
+        ctx.fillStyle = '#ccc';
+        ctx.font = 'bold 32px "Fredoka", sans-serif';
+        ctx.fillText(wStr, cx, y + 40);
+        
+        // Label for W/R
+        ctx.fillStyle = '#444';
+        ctx.font = '400 18px "Inter", sans-serif';
+        ctx.fillText("avg load", cx, y + 65);
+
+        // Volume
+        const vStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
+        ctx.fillStyle = '#888';
+        ctx.font = 'bold 24px "Fredoka", sans-serif';
+        ctx.fillText(vStr, cx, y + 100);
+        
+        // Label for Vol
+        ctx.fillStyle = '#444';
+        ctx.font = '400 18px "Inter", sans-serif';
+        ctx.fillText("volume", cx, y + 125);
+    });
+}
+
+// --- DATA MINING HELPERS ---
+
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
+    
     const history = [];
     const sessions = clientsData[selectedClient].sessions || [];
     
@@ -5657,6 +5719,7 @@ function getExerciseHistoryForShare(exerciseName) {
             let maxW = 0;
             let totalV = 0;
             let totalR = 0;
+            
             ex.sets.forEach(s => {
                 const w = parseFloat(s.weight) || 0;
                 const r = parseInt(s.reps) || 0;
@@ -5664,18 +5727,39 @@ function getExerciseHistoryForShare(exerciseName) {
                 totalV += parseFloat(s.volume) || 0;
                 totalR += r;
             });
-            // WPR = Volume / Reps
+            // Avg Weight Per Rep
             const wpr = totalR > 0 ? totalV / totalR : 0;
             
             history.push({ 
                 timestamp: new Date(ex.sets[0].timestamp).getTime(),
                 weight: maxW,
                 volume: totalV,
-                wpr: wpr
+                wpr: wpr,
+                reps: totalR
             });
         }
     });
     return history;
+}
+
+function getLast4Sessions(history) {
+    // Sort Newest -> Oldest
+    const sorted = history.sort((a,b) => b.timestamp - a.timestamp);
+    
+    // Take Top 4
+    const slice = sorted.slice(0, 4);
+    
+    // Reverse for Display (Left = Oldest of the 4, Right = Today)
+    const displayOrder = slice.reverse();
+    
+    return displayOrder.map(h => {
+        const d = new Date(h.timestamp);
+        return {
+            dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
+            wpr: h.wpr,
+            volume: h.volume
+        };
+    });
 }
 
 function getMetricMax(history, key) {
