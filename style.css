@@ -2509,3 +2509,30 @@ body.no-animations #logo-k {
   color: var(--color-text-muted);
   padding-bottom: 4px; /* Optical adjustment */
 }
+
+/* ===== SHARE FEATURE ===== */
+.btn-share {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  background: var(--color-text); /* White/Light for contrast */
+  color: var(--color-bg);       /* Black text */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-share:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+}
+
+.share-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
