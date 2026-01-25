@@ -5396,43 +5396,93 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Vertical Story Format)
+// SOCIAL SHARE ENGINE (Advanced Infographic V2)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
     const btn = document.querySelector('.btn-share');
     if(btn) {
         const originalText = btn.innerHTML;
-        btn.innerHTML = 'Generating...'; // Feedback
+        btn.innerHTML = 'Generating...'; 
         setTimeout(() => btn.innerHTML = originalText, 2000);
     }
 
-    // 1. GATHER DATA
-    let totalVol = 0;
-    let totalSets = 0;
-    let topLiftName = "";
-    let topLiftWeight = 0;
+    // 1. DEEP DATA ANALYSIS
+    // We need to look at history to find PRs and Trends for EACH exercise.
+    const summaries = [];
+    let standoutEx = null;
+    let highestScore = -1;
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
+        
+        // A. Today's Stats
+        let todayMax = 0;
+        let todayVol = 0;
         sets.forEach(s => {
-            // Volume
-            const vol = parseFloat(s.volume) || 0;
-            totalVol += vol;
-            
-            // Sets
-            totalSets++;
-
-            // Top Lift Check
-            const w = parseFloat(s.weight) || 0;
-            if (w > topLiftWeight) {
-                topLiftWeight = w;
-                topLiftName = name;
-            }
+            if (s.weight > todayMax) todayMax = s.weight;
+            todayVol += parseFloat(s.volume) || 0;
         });
+
+        // B. Historical Context
+        const history = getExerciseHistoryForShare(name); 
+        const prevMax = getMetricMax(history, 'weight'); 
+        const prevVolMax = getMetricMax(history, 'volume');
+        const recentAvgVol = getRecentAvg(history, 'volume');
+
+        // C. Determine "The Story" (Notable Element)
+        let tag = `${sets.length} sets`; // Default
+        let subTag = `${Math.round(UNIT_mode.toDisplay(todayVol))} ${UNIT_mode.getLabel()} vol`;
+        let color = '#888'; // Neutral
+        let score = 0; // Importance score for graph selection
+
+        // Priority 1: All-Time Weight PR (The "Squat 225" example)
+        // Must be > 0 and greater than previous max (excluding today if today is in history)
+        if (todayMax > prevMax && prevMax > 0) {
+            tag = `ALL-TIME PR! 🏆`;
+            subTag = `${UNIT_mode.toDisplay(todayMax)} ${UNIT_mode.getLabel()}`;
+            color = '#34c759'; // Green
+            score = 100;
+        } 
+        // Priority 2: Volume PR
+        else if (todayVol > prevVolMax && prevVolMax > 0) {
+            tag = `VOLUME PR! 📈`;
+            subTag = `${Math.round(UNIT_mode.toDisplay(todayVol))} ${UNIT_mode.getLabel()}`;
+            color = '#007aff'; // Blue
+            score = 80;
+        }
+        // Priority 3: Heavy Lift (Near max)
+        else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
+            tag = `Heavy Single`;
+            subTag = `${UNIT_mode.toDisplay(todayMax)} ${UNIT_mode.getLabel()}`;
+            color = '#ff3b30'; // Red
+            score = 60;
+        }
+        // Priority 4: Deload / Light Work
+        else if (todayVol < recentAvgVol * 0.6 && recentAvgVol > 0) {
+            tag = `Recovery / Deload`;
+            subTag = `- ${(100 - (todayVol/recentAvgVol)*100).toFixed(0)}% vol`;
+            color = '#ffcc00'; // Yellow
+            score = 20;
+        }
+        // Priority 5: High Volume (Set Jump)
+        else if (sets.length >= 5) {
+            tag = `High Volume`;
+            subTag = `${sets.length} sets completed`;
+            color = '#bf5af2'; // Purple
+            score = 40;
+        }
+
+        const summary = { name, tag, subTag, color, score, history, todayMax };
+        summaries.push(summary);
+
+        if (score > highestScore) {
+            highestScore = score;
+            standoutEx = summary;
+        }
     });
 
-    // 2. SETUP CANVAS (1080 x 1920 Vertical Story)
+    // 2. CANVAS SETUP (1080 x 1920)
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const W = 1080;
@@ -5440,106 +5490,219 @@ async function generateAndShareCard(dateKey, groups) {
     canvas.width = W;
     canvas.height = H;
 
-    // --- DRAWING ---
-    
-    // Background (Dark Grey)
-    ctx.fillStyle = '#101010';
-    ctx.fillRect(0, 0, W, H);
-
-    // Subtle Gradient (Top Right to Bottom Left)
-    const grd = ctx.createLinearGradient(0, 0, W, H);
-    grd.addColorStop(0, '#1c1c1c');
+    // --- BACKGROUND ---
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#1c1c1e');
     grd.addColorStop(1, '#000000');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
 
-    // "TRUNK" Header
-    ctx.fillStyle = '#34c759'; // Brand Green
-    ctx.font = 'bold 180px "Fredoka", sans-serif'; // Use your brand font
-    ctx.textAlign = 'center';
-    ctx.fillText('Trunk', W/2, 300);
+    // --- COMPACT HEADER ---
+    ctx.fillStyle = '#34c759'; 
+    ctx.font = 'bold 80px "Fredoka", sans-serif'; 
+    ctx.textAlign = 'left';
+    ctx.fillText('Trunk', 60, 120);
 
-    // Date
     const [y, m, d] = dateKey.split('-');
     const dateObj = new Date(y, m-1, d);
-    const dateStr = dateObj.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+    const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '500 80px "Inter", sans-serif';
-    ctx.fillText(dateStr, W/2, 450);
+    ctx.fillStyle = '#888';
+    ctx.font = '500 50px "Inter", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(dateStr, W - 60, 110);
 
-    // Divider Line
+    // Line
     ctx.strokeStyle = '#333';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(150, 520);
-    ctx.lineTo(W-150, 520);
+    ctx.moveTo(60, 160);
+    ctx.lineTo(W-60, 160);
     ctx.stroke();
 
-    // STATS GRID
-    // Volume
-    drawStatBlock(ctx, "TOTAL VOLUME", Math.round(UNIT_mode.toDisplay(totalVol)).toLocaleString(), UNIT_mode.getLabel(), W/2, 800, '#ff3b30');
+    // --- LIST RENDERER ---
+    let currentY = 250;
+    const rowHeight = 160; 
     
-    // Sets
-    drawStatBlock(ctx, "TOTAL SETS", totalSets, "sets", W/2, 1100, '#007aff');
+    summaries.forEach(item => {
+        // Exercise Name
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.font = '600 55px "Inter", sans-serif';
+        ctx.fillText(item.name, 60, currentY);
 
-    // Best Lift (if exists)
-    if (topLiftName) {
-        drawStatBlock(ctx, "TOP LIFT", topLiftName, `${UNIT_mode.toDisplay(topLiftWeight)} ${UNIT_mode.getLabel()}`, W/2, 1400, '#ffcc00');
+        // Tag (The "Notable" bit)
+        ctx.fillStyle = item.color;
+        ctx.font = 'bold 40px "Inter", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(item.tag, W - 60, currentY - 10);
+
+        // Subtext
+        ctx.fillStyle = '#666';
+        ctx.font = '400 35px "Inter", sans-serif';
+        ctx.fillText(item.subTag, W - 60, currentY + 40);
+
+        // Divider (Subtle)
+        ctx.fillStyle = '#222';
+        ctx.fillRect(60, currentY + 70, W-120, 2);
+
+        currentY += rowHeight;
+    });
+
+    // --- GRAPH SECTION (If Standout Exists) ---
+    // Only draw if we have enough room and valid history (at least 2 points)
+    if (standoutEx && standoutEx.history.length > 2 && currentY < H - 500) {
+        
+        const graphY = H - 400; // Bottom area
+        const graphH = 300;
+        const graphW = W - 120;
+        const graphX = 60;
+
+        // Label
+        ctx.fillStyle = '#888';
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 40px "Inter", sans-serif';
+        ctx.fillText(`${standoutEx.name.toUpperCase()} PROGRESS`, graphX, graphY - 50);
+
+        // Prepare Points (Last 12 sessions)
+        // Sort history by date
+        let points = standoutEx.history.sort((a,b) => a.timestamp - b.timestamp);
+        // Take last 15
+        points = points.slice(-15);
+        
+        // Determine Min/Max for Scaling
+        let minW = Infinity, maxW = -Infinity;
+        points.forEach(p => {
+            if(p.weight < minW) minW = p.weight;
+            if(p.weight > maxW) maxW = p.weight;
+        });
+        // Buffer
+        const range = maxW - minW || 1;
+        
+        // Draw Line
+        ctx.beginPath();
+        ctx.strokeStyle = standoutEx.color;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        points.forEach((p, i) => {
+            const x = graphX + (i / (points.length - 1)) * graphW;
+            // Invert Y (Canvas 0 is top)
+            const normY = (p.weight - minW) / range; 
+            const y = (graphY + graphH) - (normY * graphH);
+            
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Draw "Today" Dot
+        const lastP = points[points.length-1];
+        const lastX = graphX + graphW;
+        const lastNormY = (lastP.weight - minW) / range;
+        const lastY = (graphY + graphH) - (lastNormY * graphH);
+
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 12, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // PR Badge on Graph?
+        if (standoutEx.score === 100) {
+            ctx.fillStyle = standoutEx.color;
+            ctx.font = 'bold 30px "Fredoka", sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText("NEW PR!", lastX, lastY - 30);
+        }
     }
-
-    // Footer
-    ctx.fillStyle = '#666';
-    ctx.font = '40px "Inter", sans-serif';
-    ctx.fillText('trunktracker.app', W/2, H - 100);
 
     // 3. EXPORT & SHARE
     try {
         canvas.toBlob(async (blob) => {
-            if (!blob) { alert("Image generation failed"); return; }
-            
-            const file = new File([blob], "workout-summary.png", { type: "image/png" });
+            if (!blob) { alert("Generation failed"); return; }
+            const file = new File([blob], "trunk-summary.png", { type: "image/png" });
 
-            // WEB SHARE API (Native iOS Sheet)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
-                    title: 'Workout Summary',
-                    text: `I moved ${Math.round(UNIT_mode.toDisplay(totalVol)).toLocaleString()} ${UNIT_mode.getLabel()} on Trunk!`
+                    // title/text are often ignored by image shares, but good practice
+                    title: 'Trunk Workout', 
                 });
             } else {
-                // Fallback: Download the image
                 const link = document.createElement('a');
-                link.download = 'trunk-workout.png';
+                link.download = 'trunk-summary.png';
                 link.href = canvas.toDataURL();
                 link.click();
             }
         });
     } catch (err) {
-        console.error("Share failed:", err);
-        alert("Could not share image. " + err.message);
+        console.error(err);
+        alert("Share failed: " + err.message);
     }
 }
 
-// Helper for drawing text blocks on the canvas
-function drawStatBlock(ctx, label, bigValue, subValue, x, y, accentColor) {
-    // Label
-    ctx.fillStyle = '#888';
-    ctx.font = 'bold 40px "Inter", sans-serif';
-    ctx.fillText(label, x, y);
+// --- DATA MINING HELPERS ---
 
-    // Big Value
-    ctx.fillStyle = '#ffffff';
-    // Auto-scale font size if text is huge
-    let fontSize = 160;
-    if (String(bigValue).length > 8) fontSize = 120;
-    if (String(bigValue).length > 12) fontSize = 90;
+function getExerciseHistoryForShare(exerciseName) {
+    if (!selectedClient || !clientsData[selectedClient]) return [];
     
-    ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
-    ctx.fillText(bigValue, x, y + 160);
+    const history = [];
+    const sessions = clientsData[selectedClient].sessions || [];
+    
+    sessions.forEach(sess => {
+        if (!sess.exercises) return;
+        const ex = sess.exercises.find(e => e.exercise === exerciseName);
+        if (ex && ex.sets && ex.sets.length > 0) {
+            // Find max weight and total vol for this session
+            let maxW = 0;
+            let totalV = 0;
+            ex.sets.forEach(s => {
+                if(s.weight > maxW) maxW = s.weight;
+                totalV += parseFloat(s.volume);
+            });
+            // We use the timestamp of the first set as the session time
+            history.push({ 
+                timestamp: new Date(ex.sets[0].timestamp).getTime(),
+                weight: maxW,
+                volume: totalV
+            });
+        }
+    });
+    return history;
+}
 
-    // Sub Value (Unit)
-    ctx.fillStyle = accentColor;
-    ctx.font = 'bold 50px "Inter", sans-serif';
-    ctx.fillText(subValue, x, y + 230);
+function getMetricMax(history, key) {
+    // Return max value of a key (weight or volume) excluding *today* if needed, 
+    // but here we grab ALL history. 
+    // The main logic handles "is today > max of rest".
+    // Actually, to verify a PR, we need the max of *everything before today*.
+    // Since history includes today, we filter.
+    
+    // We assume the last entry is today (because we just pushed it? No, history comes from clientsData).
+    // Let's rely on time.
+    const cutoff = new Date().setHours(0,0,0,0); // Start of today
+    
+    let max = 0;
+    history.forEach(h => {
+        // Only look at history BEFORE today
+        if (h.timestamp < cutoff) {
+            if (h[key] > max) max = h[key];
+        }
+    });
+    return max;
+}
+
+function getRecentAvg(history, key) {
+    // Average of last 5 sessions before today
+    const cutoff = new Date().setHours(0,0,0,0);
+    const past = history.filter(h => h.timestamp < cutoff).sort((a,b) => b.timestamp - a.timestamp); // Newest first
+    
+    if (past.length === 0) return 0;
+    const limit = Math.min(past.length, 5);
+    let sum = 0;
+    for(let i=0; i<limit; i++) {
+        sum += past[i][key];
+    }
+    return sum / limit;
 }
