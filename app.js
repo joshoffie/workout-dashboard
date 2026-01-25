@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Robust History V9)
+// SOCIAL SHARE ENGINE (Deep Search V11)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5417,17 +5417,18 @@ async function generateAndShareCard(dateKey, groups) {
     
     let summaries = [];
 
-    // Card Date Limits
+    // STRICT TIME BOUNDARIES
+    // We filter history to ensure we don't show "future" data if viewing an old card.
     const [y, m, d] = dateKey.split('-');
-    // End of day (for filtering future stuff)
+    // End of the selected day (23:59:59)
     const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
-    // Start of day (for separating "Today" from "History")
+    // Start of the selected day (00:00:00) - Used to separate "History" from "Today"
     const cardDateStart = new Date(y, m-1, d).setHours(0, 0, 0, 0);
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
-        // A. Session Stats (The specific sets selected for this card)
+        // A. Analyze "Today's" Performance (The sets passed in for this card)
         let todayMax = 0;
         let todayVol = 0;
         let totalReps = 0;
@@ -5450,38 +5451,41 @@ async function generateAndShareCard(dateKey, groups) {
             totalReps += r;
         });
 
-        // B. History Context
-        // Get aggregated history by date (Fixed Logic)
+        // B. Deep History Fetch
+        // This now scans ALL entries, not just the first one it finds.
         const rawHistory = getExerciseHistoryForShare(name);
         
-        // Filter 1: Strictly ignore data from the future (if viewing old card)
+        // Filter 1: Remove data from the future (relative to this card)
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
 
-        // Filter 2: Separate "Past" from "This Session"
-        // We use the cardDateStart to safely separate "History" from "Today"
+        // Filter 2: Separate "Past History" from "Current Session"
+        // We exclude anything that happened ON the card's date from the history bucket
         const pastHistory = validHistory.filter(h => h.timestamp < cardDateStart);
         
-        // Construct "Today's" entry
+        // Construct "Today's" Entry for the Trend Table
+        // We use the first set's timestamp to place it correctly on the timeline
+        const sessionTs = sets[0].timestamp ? new Date(sets[0].timestamp).getTime() : new Date().getTime();
+        
         const todayEntry = {
-            timestamp: new Date().getTime(), // Visual placeholder
+            timestamp: sessionTs,
             weight: todayMax,
             volume: todayVol,
             wpr: totalReps > 0 ? todayVol / totalReps : 0,
             reps: totalReps,
-            isToday: true
+            isToday: true // Visual flag
         };
         
-        // Combine: Past History + This Session
+        // Combine for Trend Table: [...Past, Today]
         const historyForTrend = [...pastHistory, todayEntry];
         const last4 = getLast4Sessions(historyForTrend);
 
-        // C. Metrics for Highlights
+        // C. Calculate Highlights (Comparison vs Past)
         const prevMax = getMetricMax(pastHistory, 'weight'); 
         const prevVolMax = getMetricMax(pastHistory, 'volume');
         const recentVolAvg = getRecentAvg(pastHistory, 'volume');
         const pastWPR = getRecentAvg(pastHistory, 'wpr');
 
-        // D. Generate Story
+        // D. Story Generation
         let highlight = "";
         let score = 0;
         let accent = '#888'; 
@@ -5491,7 +5495,7 @@ async function generateAndShareCard(dateKey, groups) {
         if (todayMax > prevMax && prevMax > 0) {
             highlight = `NEW 1RM: ${UNIT_mode.toDisplay(todayMax)} ${unit}! 🏆`;
             score = 100;
-            accent = '#34c759'; // Brand Green
+            accent = '#34c759'; // Green
         }
         // 2. Volume PR
         else if (todayVol > prevVolMax && prevVolMax > 0) {
@@ -5500,7 +5504,7 @@ async function generateAndShareCard(dateKey, groups) {
             score = 90;
             accent = '#34c759';
         }
-        // 3. Heavy Single
+        // 3. Heavy Single (Green Treatment)
         else if (todayMax >= prevMax * 0.90 && prevMax > 0) {
             const pct = ((todayMax / prevMax) * 100).toFixed(0);
             highlight = `${pct}% of All-Time Max 🔋`;
@@ -5581,6 +5585,7 @@ async function generateAndShareCard(dateKey, groups) {
     
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
+    
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
         `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
 
@@ -5704,43 +5709,46 @@ function drawTrendRow(ctx, sessions, x, y, width) {
     });
 }
 
-// --- DATA MINING HELPERS ---
+// --- DATA MINING HELPERS (DEEP SEARCH) ---
 
-// 1. ROBUST HISTORY FETCHER (Groups sets by Date, ignores Sessions)
+function normalizeStr(str) {
+    if(!str) return "";
+    return str.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+// FIX: This now iterates ALL exercises in a session, not just the first one it finds.
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
     
-    const targetName = exerciseName.trim().toLowerCase();
+    const targetKey = normalizeStr(exerciseName);
     const sessions = clientsData[selectedClient].sessions || [];
     
-    // We use a Map to merge all sets from ANY session into distinct days
-    // Key: "YYYY-MM-DD", Value: { sets: [] }
+    // Map: "YYYY-MM-DD" -> { sets: [], timestamp: ms }
     const dateMap = new Map();
 
-    // 1. SCAN EVERYTHING
     sessions.forEach(sess => {
         if (!sess.exercises) return;
         
-        // Find matching exercise (case insensitive)
-        const ex = sess.exercises.find(e => 
-            e.exercise && e.exercise.trim().toLowerCase() === targetName
-        );
-        
-        if (ex && ex.sets && ex.sets.length > 0) {
-            ex.sets.forEach(s => {
-                const d = new Date(s.timestamp);
-                // Create a unique key for this day
-                const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-                
-                if (!dateMap.has(dateKey)) {
-                    dateMap.set(dateKey, { sets: [], timestamp: d.getTime() });
+        // CRITICAL FIX: Use forEach instead of find()
+        // This ensures if you have duplicates (e.g. two "Bench Press" entries in one folder),
+        // we grab the data from BOTH.
+        sess.exercises.forEach(ex => {
+            if (ex.exercise && normalizeStr(ex.exercise) === targetKey) {
+                if (ex.sets && ex.sets.length > 0) {
+                    ex.sets.forEach(s => {
+                        const d = new Date(s.timestamp);
+                        const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+                        
+                        if (!dateMap.has(dateKey)) {
+                            dateMap.set(dateKey, { sets: [], timestamp: d.getTime() });
+                        }
+                        dateMap.get(dateKey).sets.push(s);
+                    });
                 }
-                dateMap.get(dateKey).sets.push(s);
-            });
-        }
+            }
+        });
     });
 
-    // 2. AGGREGATE STATS PER DAY
     const history = [];
     dateMap.forEach((data, key) => {
         let maxW = 0;
@@ -5756,7 +5764,7 @@ function getExerciseHistoryForShare(exerciseName) {
         });
         
         history.push({
-            timestamp: data.timestamp, // Approx time (start of that day's log)
+            timestamp: data.timestamp, 
             weight: maxW,
             volume: totalV,
             wpr: totalR > 0 ? totalV / totalR : 0,
@@ -5768,11 +5776,14 @@ function getExerciseHistoryForShare(exerciseName) {
 }
 
 function getLast4Sessions(history) {
+    // Sort Oldest -> Newest
     const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
+    // Take the last 4
     const slice = sorted.slice(-4);
     
     return slice.map((h, index) => {
         const d = new Date(h.timestamp);
+        // Compare with the *actual* previous session in the full sorted list
         const realIndex = sorted.indexOf(h);
         const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
 
