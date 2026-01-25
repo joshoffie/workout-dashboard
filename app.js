@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Robust V8 - History Fix)
+// SOCIAL SHARE ENGINE (Robust History V9)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5417,17 +5417,17 @@ async function generateAndShareCard(dateKey, groups) {
     
     let summaries = [];
 
-    // Establish time limit: End of the selected day
+    // Card Date Limits
     const [y, m, d] = dateKey.split('-');
+    // End of day (for filtering future stuff)
     const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
-    
-    // We also need the start of that day for strict comparison
+    // Start of day (for separating "Today" from "History")
     const cardDateStart = new Date(y, m-1, d).setHours(0, 0, 0, 0);
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
-        // A. Session Stats (Today's specific performance)
+        // A. Session Stats (The specific sets selected for this card)
         let todayMax = 0;
         let todayVol = 0;
         let totalReps = 0;
@@ -5451,35 +5451,31 @@ async function generateAndShareCard(dateKey, groups) {
         });
 
         // B. History Context
-        // Get ALL history for this exercise (Normalized Name Check)
+        // Get aggregated history by date (Fixed Logic)
         const rawHistory = getExerciseHistoryForShare(name);
         
         // Filter 1: Strictly ignore data from the future (if viewing old card)
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
 
         // Filter 2: Separate "Past" from "This Session"
-        // We identify "This Session" by matching the dateKey, not just the timestamp
-        // This ensures even if timestamps drift slightly, the day matches.
-        const pastHistory = validHistory.filter(h => {
-             // Keep it if it's BEFORE the card's date (Start of day)
-             return h.timestamp < cardDateStart;
-        });
+        // We use the cardDateStart to safely separate "History" from "Today"
+        const pastHistory = validHistory.filter(h => h.timestamp < cardDateStart);
         
-        // Construct "Today's" entry specifically for the Trend Table
+        // Construct "Today's" entry
         const todayEntry = {
-            timestamp: sets[0].timestamp || new Date().getTime(), // Use set timestamp if available
+            timestamp: new Date().getTime(), // Visual placeholder
             weight: todayMax,
             volume: todayVol,
             wpr: totalReps > 0 ? todayVol / totalReps : 0,
             reps: totalReps,
-            isToday: true // Flag for color logic
+            isToday: true
         };
         
         // Combine: Past History + This Session
         const historyForTrend = [...pastHistory, todayEntry];
         const last4 = getLast4Sessions(historyForTrend);
 
-        // C. Metrics for Highlights (Compare Today vs Past)
+        // C. Metrics for Highlights
         const prevMax = getMetricMax(pastHistory, 'weight'); 
         const prevVolMax = getMetricMax(pastHistory, 'volume');
         const recentVolAvg = getRecentAvg(pastHistory, 'volume');
@@ -5504,7 +5500,7 @@ async function generateAndShareCard(dateKey, groups) {
             score = 90;
             accent = '#34c759';
         }
-        // 3. Heavy Single (Green Treatment)
+        // 3. Heavy Single
         else if (todayMax >= prevMax * 0.90 && prevMax > 0) {
             const pct = ((todayMax / prevMax) * 100).toFixed(0);
             highlight = `${pct}% of All-Time Max 🔋`;
@@ -5583,10 +5579,8 @@ async function generateAndShareCard(dateKey, groups) {
     drawHeroStat(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
     drawHeroStat(ctx, "SETS", grandSets, W*0.5, statsY);
     
-    // Best Lift
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
-    
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
         `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
 
@@ -5603,7 +5597,6 @@ async function generateAndShareCard(dateKey, groups) {
         // 1. Exercise Name
         ctx.textAlign = 'left';
         ctx.fillStyle = '#e5e5e5';
-        
         let nameSize = 55;
         if (item.name.length > 15) nameSize = 45;
         if (item.name.length > 25) nameSize = 35;
@@ -5616,7 +5609,6 @@ async function generateAndShareCard(dateKey, groups) {
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
         ctx.font = '600 35px "Inter", sans-serif';
-        
         const tagY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.highlight, W - 60, tagY);
 
@@ -5682,13 +5674,11 @@ function drawTrendRow(ctx, sessions, x, y, width) {
     sessions.forEach((sess, i) => {
         const cx = x + (i * colW) + (colW / 2);
         
-        // Date
         ctx.fillStyle = '#666';
         ctx.font = '500 24px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(sess.dateStr, cx, y);
 
-        // Avg Load
         ctx.fillStyle = sess.wprColor; 
         ctx.font = 'bold 32px "Fredoka", sans-serif';
         const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
@@ -5698,7 +5688,6 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("avg load", cx, y + 70);
 
-        // Volume
         ctx.fillStyle = sess.volColor; 
         ctx.font = 'bold 24px "Fredoka", sans-serif';
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
@@ -5717,46 +5706,64 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
 // --- DATA MINING HELPERS ---
 
-// 1. Robust History Fetcher (Normalizes Names)
+// 1. ROBUST HISTORY FETCHER (Groups sets by Date, ignores Sessions)
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
-    const history = [];
+    
+    const targetName = exerciseName.trim().toLowerCase();
     const sessions = clientsData[selectedClient].sessions || [];
     
-    // Normalize target name for flexible matching
-    const targetName = exerciseName.trim().toLowerCase();
-    
+    // We use a Map to merge all sets from ANY session into distinct days
+    // Key: "YYYY-MM-DD", Value: { sets: [] }
+    const dateMap = new Map();
+
+    // 1. SCAN EVERYTHING
     sessions.forEach(sess => {
         if (!sess.exercises) return;
         
-        // Robust Find: Check trimming and casing
+        // Find matching exercise (case insensitive)
         const ex = sess.exercises.find(e => 
             e.exercise && e.exercise.trim().toLowerCase() === targetName
         );
         
         if (ex && ex.sets && ex.sets.length > 0) {
-            let maxW = 0;
-            let totalV = 0;
-            let totalR = 0;
-            
             ex.sets.forEach(s => {
-                const w = parseFloat(s.weight) || 0;
-                const r = parseInt(s.reps) || 0;
-                if(w > maxW) maxW = w;
-                totalV += parseFloat(s.volume) || 0;
-                totalR += r;
-            });
-            const wpr = totalR > 0 ? totalV / totalR : 0;
-            
-            history.push({ 
-                timestamp: new Date(ex.sets[0].timestamp).getTime(),
-                weight: maxW,
-                volume: totalV,
-                wpr: wpr,
-                reps: totalR
+                const d = new Date(s.timestamp);
+                // Create a unique key for this day
+                const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+                
+                if (!dateMap.has(dateKey)) {
+                    dateMap.set(dateKey, { sets: [], timestamp: d.getTime() });
+                }
+                dateMap.get(dateKey).sets.push(s);
             });
         }
     });
+
+    // 2. AGGREGATE STATS PER DAY
+    const history = [];
+    dateMap.forEach((data, key) => {
+        let maxW = 0;
+        let totalV = 0;
+        let totalR = 0;
+        
+        data.sets.forEach(s => {
+            const w = parseFloat(s.weight) || 0;
+            const r = parseInt(s.reps) || 0;
+            if (w > maxW) maxW = w;
+            totalV += parseFloat(s.volume) || 0;
+            totalR += r;
+        });
+        
+        history.push({
+            timestamp: data.timestamp, // Approx time (start of that day's log)
+            weight: maxW,
+            volume: totalV,
+            wpr: totalR > 0 ? totalV / totalR : 0,
+            reps: totalR
+        });
+    });
+
     return history;
 }
 
@@ -5809,11 +5816,4 @@ function getRecentAvg(history, key) {
         sum += sorted[i][key];
     }
     return sum / limit;
-}
-
-// 2. Strict Date Comparator
-function isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
 }
