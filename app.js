@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Advanced Infographic V2)
+// SOCIAL SHARE ENGINE (Data-Rich Infographic V3)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5407,217 +5407,204 @@ async function generateAndShareCard(dateKey, groups) {
         setTimeout(() => btn.innerHTML = originalText, 2000);
     }
 
-    // 1. DEEP DATA ANALYSIS
-    // We need to look at history to find PRs and Trends for EACH exercise.
-    const summaries = [];
-    let standoutEx = null;
-    let highestScore = -1;
+    // ------------------------------------------
+    // 1. GLOBAL STATS (The Top Row)
+    // ------------------------------------------
+    let grandTotalVol = 0;
+    let grandTotalSets = 0;
+    let grandTopLiftName = "-";
+    let grandTopLiftWeight = 0;
+
+    // ------------------------------------------
+    // 2. EXERCISE ANALYSIS (The List)
+    // ------------------------------------------
+    let summaries = [];
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
-        // A. Today's Stats
+        // A. Session Totals
         let todayMax = 0;
         let todayVol = 0;
+        
         sets.forEach(s => {
-            if (s.weight > todayMax) todayMax = s.weight;
-            todayVol += parseFloat(s.volume) || 0;
+            // Global Tracking
+            const w = parseFloat(s.weight) || 0;
+            const v = parseFloat(s.volume) || 0;
+            
+            grandTotalVol += v;
+            grandTotalSets++;
+            
+            if (w > grandTopLiftWeight) {
+                grandTopLiftWeight = w;
+                grandTopLiftName = name;
+            }
+
+            // Local Tracking
+            if (w > todayMax) todayMax = w;
+            todayVol += v;
         });
 
-        // B. Historical Context
+        // B. History Lookup (For Context)
         const history = getExerciseHistoryForShare(name); 
-        const prevMax = getMetricMax(history, 'weight'); 
-        const prevVolMax = getMetricMax(history, 'volume');
-        const recentAvgVol = getRecentAvg(history, 'volume');
+        // Filter out THIS session from history to compare fairly
+        const pastHistory = history.filter(h => h.timestamp < new Date(sets[0].timestamp).setHours(0,0,0,0));
+        
+        const prevMax = getMetricMax(pastHistory, 'weight'); 
+        const prevVolMax = getMetricMax(pastHistory, 'volume');
+        const recentVolAvg = getRecentAvg(pastHistory, 'volume');
 
-        // C. Determine "The Story" (Notable Element)
-        let tag = `${sets.length} sets`; // Default
-        let subTag = `${Math.round(UNIT_mode.toDisplay(todayVol))} ${UNIT_mode.getLabel()} vol`;
-        let color = '#888'; // Neutral
-        let score = 0; // Importance score for graph selection
+        // C. Story Generation (Specific Numbers)
+        let tag = "";
+        let color = '#888'; // Default Grey
+        let score = 0;      // Sorting Weight
 
-        // Priority 1: All-Time Weight PR (The "Squat 225" example)
-        // Must be > 0 and greater than previous max (excluding today if today is in history)
+        const maxStr = UNIT_mode.toDisplay(todayMax);
+        const volStr = Math.round(UNIT_mode.toDisplay(todayVol)).toLocaleString();
+        const unit = UNIT_mode.getLabel();
+
+        // Priority 1: All-Time PR (Weight)
         if (todayMax > prevMax && prevMax > 0) {
-            tag = `ALL-TIME PR! 🏆`;
-            subTag = `${UNIT_mode.toDisplay(todayMax)} ${UNIT_mode.getLabel()}`;
-            color = '#34c759'; // Green
+            tag = `${maxStr} ${unit}! Heaviest set yet 🏆`;
+            color = '#34c759'; // Brand Green
             score = 100;
-        } 
+        }
         // Priority 2: Volume PR
         else if (todayVol > prevVolMax && prevVolMax > 0) {
-            tag = `VOLUME PR! 📈`;
-            subTag = `${Math.round(UNIT_mode.toDisplay(todayVol))} ${UNIT_mode.getLabel()}`;
-            color = '#007aff'; // Blue
-            score = 80;
+            const diff = ((todayVol - prevVolMax) / prevVolMax * 100).toFixed(0);
+            tag = `${volStr} vol, up ${diff}% 📈`;
+            color = '#34c759'; // Green (User asked for green standout)
+            score = 90;
         }
-        // Priority 3: Heavy Lift (Near max)
+        // Priority 3: Heavy Single (Near Max)
         else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
-            tag = `Heavy Single`;
-            subTag = `${UNIT_mode.toDisplay(todayMax)} ${UNIT_mode.getLabel()}`;
-            color = '#ff3b30'; // Red
+            tag = `${maxStr} ${unit} top set`;
+            color = '#ffffff'; // White (Strong but not PR)
+            score = 70;
+        }
+        // Priority 4: High Volume Jump
+        else if (todayVol > recentVolAvg * 1.15 && recentVolAvg > 0) {
+            const diff = ((todayVol - recentVolAvg) / recentVolAvg * 100).toFixed(0);
+            tag = `${volStr} vol (Up ${diff}%)`;
+            color = '#007aff'; // Blue
             score = 60;
         }
-        // Priority 4: Deload / Light Work
-        else if (todayVol < recentAvgVol * 0.6 && recentAvgVol > 0) {
-            tag = `Recovery / Deload`;
-            subTag = `- ${(100 - (todayVol/recentAvgVol)*100).toFixed(0)}% vol`;
+        // Priority 5: Deload
+        else if (todayVol < recentVolAvg * 0.6 && recentVolAvg > 0) {
+            tag = `Recovery: ${volStr} vol`;
             color = '#ffcc00'; // Yellow
-            score = 20;
+            score = 10;
         }
-        // Priority 5: High Volume (Set Jump)
-        else if (sets.length >= 5) {
-            tag = `High Volume`;
-            subTag = `${sets.length} sets completed`;
-            color = '#bf5af2'; // Purple
-            score = 40;
+        // Default
+        else {
+            tag = `${sets.length} sets completed`;
+            score = 50;
         }
 
-        const summary = { name, tag, subTag, color, score, history, todayMax };
-        summaries.push(summary);
-
-        if (score > highestScore) {
-            highestScore = score;
-            standoutEx = summary;
-        }
+        summaries.push({ 
+            name, 
+            tag, 
+            color, 
+            score, 
+            history, // Full history including today
+            todayMax,
+            todayVol 
+        });
     });
 
-    // 2. CANVAS SETUP (1080 x 1920)
+    // Sort: Highest score (PRs) first
+    summaries.sort((a, b) => b.score - a.score);
+
+    // ------------------------------------------
+    // 3. CANVAS DRAWING
+    // ------------------------------------------
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const W = 1080;
-    const H = 1920;
+    // Dynamic Height: Base (650) + List Items. 
+    // Top item gets extra space for graph (400px), others get standard (180px).
+    const listHeight = (summaries.length > 0 ? 400 : 0) + ((summaries.length - 1) * 180); 
+    const H = Math.max(1920, 700 + listHeight + 200); // Minimum 1920, grow if needed
+    
     canvas.width = W;
     canvas.height = H;
 
     // --- BACKGROUND ---
     const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, '#1c1c1e');
+    grd.addColorStop(0, '#101010');
     grd.addColorStop(1, '#000000');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
 
-    // --- COMPACT HEADER ---
+    // --- HEADER (Compact) ---
     ctx.fillStyle = '#34c759'; 
-    ctx.font = 'bold 80px "Fredoka", sans-serif'; 
+    ctx.font = 'bold 60px "Fredoka", sans-serif'; 
     ctx.textAlign = 'left';
-    ctx.fillText('Trunk', 60, 120);
+    ctx.fillText('Trunk', 60, 100);
 
     const [y, m, d] = dateKey.split('-');
     const dateObj = new Date(y, m-1, d);
     const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     
-    ctx.fillStyle = '#888';
-    ctx.font = '500 50px "Inter", sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.font = '500 40px "Inter", sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(dateStr, W - 60, 110);
+    ctx.fillText(dateStr, W - 60, 95);
 
-    // Line
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(60, 160);
-    ctx.lineTo(W-60, 160);
-    ctx.stroke();
-
-    // --- LIST RENDERER ---
-    let currentY = 250;
-    const rowHeight = 160; 
+    // --- TOP ROW STATS (User Requested) ---
+    const statY = 250;
+    const statCenter = statY + 50;
     
-    summaries.forEach(item => {
-        // Exercise Name
-        ctx.fillStyle = '#ffffff';
+    // Draw 3 Columns
+    drawTopStat(ctx, "TOTAL VOLUME", Math.round(UNIT_mode.toDisplay(grandTotalVol)).toLocaleString(), W * 0.20, statY);
+    drawTopStat(ctx, "TOTAL SETS", grandTotalSets, W * 0.5, statY);
+    drawTopStat(ctx, "BEST LIFT", `${UNIT_mode.toDisplay(grandTopLiftWeight)} ${UNIT_mode.getLabel()}`, W * 0.80, statY);
+
+    // Divider
+    ctx.fillStyle = '#222';
+    ctx.fillRect(60, 450, W-120, 2);
+
+    // --- THE LIST ---
+    let currentY = 550;
+    
+    summaries.forEach((item, index) => {
+        const isStandout = (index === 0); // First item is always the standout
+        
+        // 1. Exercise Name
         ctx.textAlign = 'left';
-        ctx.font = '600 55px "Inter", sans-serif';
+        if (isStandout) {
+            // Standout Style (Green & Big)
+            ctx.fillStyle = '#34c759'; 
+            ctx.font = 'bold 70px "Inter", sans-serif';
+        } else {
+            // Normal Style
+            ctx.fillStyle = '#ffffff'; 
+            ctx.font = '600 50px "Inter", sans-serif';
+        }
         ctx.fillText(item.name, 60, currentY);
 
-        // Tag (The "Notable" bit)
-        ctx.fillStyle = item.color;
-        ctx.font = 'bold 40px "Inter", sans-serif';
+        // 2. The Notable Tag (Right aligned)
         ctx.textAlign = 'right';
-        ctx.fillText(item.tag, W - 60, currentY - 10);
+        ctx.fillStyle = isStandout ? '#34c759' : '#888';
+        ctx.font = isStandout ? 'bold 45px "Inter", sans-serif' : '400 40px "Inter", sans-serif';
+        ctx.fillText(item.tag, W - 60, currentY);
 
-        // Subtext
-        ctx.fillStyle = '#666';
-        ctx.font = '400 35px "Inter", sans-serif';
-        ctx.fillText(item.subTag, W - 60, currentY + 40);
+        // 3. IF STANDOUT: Draw Graph
+        if (isStandout) {
+            drawWPRGraph(ctx, item.history, 60, currentY + 40, W - 120, 250, item.color);
+            currentY += 400; // Large gap for graph
+        } else {
+            currentY += 180; // Standard gap
+        }
 
-        // Divider (Subtle)
-        ctx.fillStyle = '#222';
-        ctx.fillRect(60, currentY + 70, W-120, 2);
-
-        currentY += rowHeight;
+        // Divider
+        if (index < summaries.length - 1) {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(60, currentY - 80, W-120, 2);
+        }
     });
 
-    // --- GRAPH SECTION (If Standout Exists) ---
-    // Only draw if we have enough room and valid history (at least 2 points)
-    if (standoutEx && standoutEx.history.length > 2 && currentY < H - 500) {
-        
-        const graphY = H - 400; // Bottom area
-        const graphH = 300;
-        const graphW = W - 120;
-        const graphX = 60;
-
-        // Label
-        ctx.fillStyle = '#888';
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 40px "Inter", sans-serif';
-        ctx.fillText(`${standoutEx.name.toUpperCase()} PROGRESS`, graphX, graphY - 50);
-
-        // Prepare Points (Last 12 sessions)
-        // Sort history by date
-        let points = standoutEx.history.sort((a,b) => a.timestamp - b.timestamp);
-        // Take last 15
-        points = points.slice(-15);
-        
-        // Determine Min/Max for Scaling
-        let minW = Infinity, maxW = -Infinity;
-        points.forEach(p => {
-            if(p.weight < minW) minW = p.weight;
-            if(p.weight > maxW) maxW = p.weight;
-        });
-        // Buffer
-        const range = maxW - minW || 1;
-        
-        // Draw Line
-        ctx.beginPath();
-        ctx.strokeStyle = standoutEx.color;
-        ctx.lineWidth = 8;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        points.forEach((p, i) => {
-            const x = graphX + (i / (points.length - 1)) * graphW;
-            // Invert Y (Canvas 0 is top)
-            const normY = (p.weight - minW) / range; 
-            const y = (graphY + graphH) - (normY * graphH);
-            
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-
-        // Draw "Today" Dot
-        const lastP = points[points.length-1];
-        const lastX = graphX + graphW;
-        const lastNormY = (lastP.weight - minW) / range;
-        const lastY = (graphY + graphH) - (lastNormY * graphH);
-
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(lastX, lastY, 12, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // PR Badge on Graph?
-        if (standoutEx.score === 100) {
-            ctx.fillStyle = standoutEx.color;
-            ctx.font = 'bold 30px "Fredoka", sans-serif';
-            ctx.textAlign = 'right';
-            ctx.fillText("NEW PR!", lastX, lastY - 30);
-        }
-    }
-
-    // 3. EXPORT & SHARE
+    // 4. EXPORT
     try {
         canvas.toBlob(async (blob) => {
             if (!blob) { alert("Generation failed"); return; }
@@ -5626,8 +5613,7 @@ async function generateAndShareCard(dateKey, groups) {
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
-                    // title/text are often ignored by image shares, but good practice
-                    title: 'Trunk Workout', 
+                    title: 'Trunk Workout',
                 });
             } else {
                 const link = document.createElement('a');
@@ -5642,7 +5628,95 @@ async function generateAndShareCard(dateKey, groups) {
     }
 }
 
-// --- DATA MINING HELPERS ---
+// --- CANVAS HELPERS ---
+
+function drawTopStat(ctx, label, value, x, y) {
+    ctx.textAlign = 'center';
+    
+    ctx.fillStyle = '#666';
+    ctx.font = 'bold 30px "Inter", sans-serif';
+    ctx.fillText(label, x, y);
+
+    ctx.fillStyle = '#ffffff';
+    // Auto-scale text
+    const len = String(value).length;
+    let fontSize = 80;
+    if (len > 5) fontSize = 60;
+    if (len > 8) fontSize = 50;
+    
+    ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
+    ctx.fillText(value, x, y + 80);
+}
+
+function drawWPRGraph(ctx, history, x, y, w, h, color) {
+    // 1. Data Prep: Calculate Weight/Rep Ratio for last 10 sessions
+    // Sort by date
+    let data = history
+        .sort((a,b) => a.timestamp - b.timestamp)
+        .slice(-10) // Last 10 sessions
+        .map(h => {
+            // Calculate Average WPR for that session
+            // Note: history objects from getExerciseHistoryForShare contain 'weight' (max) and 'volume'.
+            // We need to estimate WPR if we don't have reps. 
+            // Actually, let's look at getExerciseHistoryForShare logic below.
+            // It pushes { timestamp, weight, volume, reps }.
+            // Wait, previous helper didn't include reps. Let's fix the helper first.
+            
+            // Fallback WPR calc: Volume / Reps
+            // If Reps is missing, use Max Weight as proxy for "Strength"
+            if (h.reps && h.reps > 0) return h.volume / h.reps;
+            return h.weight; // Fallback to max weight
+        });
+
+    if (data.length < 2) return; // Need at least 2 points for a line
+
+    // 2. Normalize
+    let min = Math.min(...data);
+    let max = Math.max(...data);
+    let range = max - min || 1;
+
+    // 3. Draw Background Box (Subtle)
+    ctx.fillStyle = '#161616';
+    ctx.fillRect(x, y, w, h);
+    
+    // Label
+    ctx.fillStyle = '#444';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 30px "Inter", sans-serif';
+    ctx.fillText("STRENGTH HISTORY (W/R RATIO)", x + 20, y + 40);
+
+    // 4. Draw Line
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    data.forEach((val, i) => {
+        const px = x + 20 + (i / (data.length - 1)) * (w - 40);
+        // Invert Y: higher value = lower pixel y
+        const py = (y + h - 30) - ((val - min) / range) * (h - 80);
+        
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+
+    // 5. Draw Dots
+    data.forEach((val, i) => {
+        const px = x + 20 + (i / (data.length - 1)) * (w - 40);
+        const py = (y + h - 30) - ((val - min) / range) * (h - 80);
+
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        // Make the last dot (today) bigger
+        const r = (i === data.length - 1) ? 10 : 6;
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+// --- DATA MINING HELPERS (UPDATED) ---
 
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
@@ -5654,18 +5728,23 @@ function getExerciseHistoryForShare(exerciseName) {
         if (!sess.exercises) return;
         const ex = sess.exercises.find(e => e.exercise === exerciseName);
         if (ex && ex.sets && ex.sets.length > 0) {
-            // Find max weight and total vol for this session
             let maxW = 0;
             let totalV = 0;
+            let totalReps = 0;
+            
             ex.sets.forEach(s => {
-                if(s.weight > maxW) maxW = s.weight;
-                totalV += parseFloat(s.volume);
+                const w = parseFloat(s.weight) || 0;
+                const r = parseInt(s.reps) || 0;
+                if(w > maxW) maxW = w;
+                totalV += parseFloat(s.volume) || 0;
+                totalReps += r;
             });
-            // We use the timestamp of the first set as the session time
+
             history.push({ 
                 timestamp: new Date(ex.sets[0].timestamp).getTime(),
                 weight: maxW,
-                volume: totalV
+                volume: totalV,
+                reps: totalReps // Added for W/R calc
             });
         }
     });
@@ -5673,36 +5752,19 @@ function getExerciseHistoryForShare(exerciseName) {
 }
 
 function getMetricMax(history, key) {
-    // Return max value of a key (weight or volume) excluding *today* if needed, 
-    // but here we grab ALL history. 
-    // The main logic handles "is today > max of rest".
-    // Actually, to verify a PR, we need the max of *everything before today*.
-    // Since history includes today, we filter.
-    
-    // We assume the last entry is today (because we just pushed it? No, history comes from clientsData).
-    // Let's rely on time.
-    const cutoff = new Date().setHours(0,0,0,0); // Start of today
-    
     let max = 0;
-    history.forEach(h => {
-        // Only look at history BEFORE today
-        if (h.timestamp < cutoff) {
-            if (h[key] > max) max = h[key];
-        }
-    });
+    history.forEach(h => { if (h[key] > max) max = h[key]; });
     return max;
 }
 
 function getRecentAvg(history, key) {
-    // Average of last 5 sessions before today
-    const cutoff = new Date().setHours(0,0,0,0);
-    const past = history.filter(h => h.timestamp < cutoff).sort((a,b) => b.timestamp - a.timestamp); // Newest first
-    
-    if (past.length === 0) return 0;
-    const limit = Math.min(past.length, 5);
+    if (history.length === 0) return 0;
+    // Sort Newest -> Oldest
+    const sorted = history.sort((a,b) => b.timestamp - a.timestamp);
+    const limit = Math.min(sorted.length, 5);
     let sum = 0;
     for(let i=0; i<limit; i++) {
-        sum += past[i][key];
+        sum += sorted[i][key];
     }
     return sum / limit;
 }
