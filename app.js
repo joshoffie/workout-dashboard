@@ -4075,6 +4075,11 @@ function finishAddSet() {
     closeAddSetModal();
     startRestTimer(true);
 
+    // 4. RETENTION: Tell iOS to reset the 3/5/7 day inactive notifications
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.notificationHandler) {
+        window.webkit.messageHandlers.notificationHandler.postMessage("scheduleRetention");
+    }
+
     // --- TUTORIAL LOGIC (RESTORED) ---
     // This is the missing link that triggers the "Graph Bubble" sequence
     if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
