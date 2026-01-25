@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Professional Data Viz V6)
+// SOCIAL SHARE ENGINE (Professional Data Viz V7)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5417,8 +5417,7 @@ async function generateAndShareCard(dateKey, groups) {
     
     let summaries = [];
 
-    // Parse the dateKey to establish a strict "End of Time" for this card
-    // We strictly ignore any data logged AFTER this session.
+    // Establish time limit (End of the selected day)
     const [y, m, d] = dateKey.split('-');
     const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
 
@@ -5448,18 +5447,19 @@ async function generateAndShareCard(dateKey, groups) {
             totalReps += r;
         });
 
-        // B. History Context (Strictly filtered by date)
+        // B. History Context
+        // Get ALL history for this specific exercise name
         const rawHistory = getExerciseHistoryForShare(name);
         
-        // 1. Filter: Only history ON or BEFORE this card's date
+        // Filter 1: Ignore future data (if viewing an old card)
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
 
-        // 2. Ensure "Today" is represented accurately in the trend
-        // (Sometimes history helper pulls from DB which might not be saved yet if offline)
-        // We look for an entry matching today's timestamp approx, or append it.
+        // Filter 2: Separate "Past" from "Today" to allow clean comparison
+        // We define "Today" as the specific session being shared.
         const sessionTs = new Date(sets[0].timestamp).getTime();
-        let historyForTrend = validHistory.filter(h => !isSameDay(new Date(h.timestamp), new Date(sessionTs)));
+        const pastHistory = validHistory.filter(h => !isSameDay(new Date(h.timestamp), new Date(sessionTs)));
         
+        // Construct the "Today" entry for the trend table
         const todayEntry = {
             timestamp: sessionTs,
             weight: todayMax,
@@ -5468,18 +5468,18 @@ async function generateAndShareCard(dateKey, groups) {
             reps: totalReps,
             isToday: true
         };
-        historyForTrend.push(todayEntry);
-
-        // C. Trend Analysis (Last 4 Sessions with Color Logic)
+        
+        // Combine for the "Last 4" Trend Table (Past + Today)
+        const historyForTrend = [...pastHistory, todayEntry];
         const last4 = getLast4Sessions(historyForTrend);
 
-        // D. Comparisons for "Highlight" (Today vs Previous Best)
-        const prevMax = getMetricMax(historyForTrend, 'weight', true); // Exclude today
-        const prevVolMax = getMetricMax(historyForTrend, 'volume', true);
-        const recentVolAvg = getRecentAvg(historyForTrend, 'volume');
-        const pastWPR = getRecentAvg(historyForTrend, 'wpr');
+        // C. Metrics for Highlight Logic
+        const prevMax = getMetricMax(pastHistory, 'weight'); 
+        const prevVolMax = getMetricMax(pastHistory, 'volume');
+        const recentVolAvg = getRecentAvg(pastHistory, 'volume');
+        const pastWPR = getRecentAvg(pastHistory, 'wpr');
 
-        // E. Generate Story
+        // D. Generate Story (The "Highlight")
         let highlight = "";
         let score = 0;
         let accent = '#888'; 
@@ -5489,7 +5489,7 @@ async function generateAndShareCard(dateKey, groups) {
         if (todayMax > prevMax && prevMax > 0) {
             highlight = `NEW 1RM: ${UNIT_mode.toDisplay(todayMax)} ${unit}! 🏆`;
             score = 100;
-            accent = '#34c759'; // Green
+            accent = '#34c759'; // Brand Green
         }
         // 2. Volume PR
         else if (todayVol > prevVolMax && prevVolMax > 0) {
@@ -5498,18 +5498,20 @@ async function generateAndShareCard(dateKey, groups) {
             score = 90;
             accent = '#34c759';
         }
-        // 3. Efficiency (WPR) PR
+        // 3. Heavy Single (Green Treatment)
+        // If it's within 90% of PR, it's significant.
+        else if (todayMax >= prevMax * 0.90 && prevMax > 0) {
+            const pct = ((todayMax / prevMax) * 100).toFixed(0);
+            highlight = `${pct}% of All-Time Max 🔋`;
+            score = 70;
+            accent = '#34c759'; // Green because it's heavy!
+        }
+        // 4. Efficiency Increase
         else if (todayEntry.wpr > pastWPR * 1.05 && pastWPR > 0) {
             const diff = ((todayEntry.wpr - pastWPR) / pastWPR * 100).toFixed(0);
             highlight = `Avg Load Up ${diff}% 🔥`;
-            score = 80;
-            accent = '#34c759';
-        }
-        // 4. Heavy Work
-        else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
-            highlight = `Heavy Single: ${UNIT_mode.toDisplay(todayMax)} ${unit}`;
             score = 60;
-            accent = '#e5e5e5'; // Bright Off-White
+            accent = '#34c759';
         }
         // 5. High Volume
         else if (todayVol > recentVolAvg * 1.2 && recentVolAvg > 0) {
@@ -5517,7 +5519,7 @@ async function generateAndShareCard(dateKey, groups) {
             score = 50;
             accent = '#007aff'; // Blue
         }
-        // Default
+        // Default / Recovery
         else {
             highlight = `${sets.length} Sets Completed`;
             score = 10;
@@ -5527,24 +5529,23 @@ async function generateAndShareCard(dateKey, groups) {
         summaries.push({ name, highlight, score, accent, last4 });
     });
 
-    // Sort by Score (Best lifts top)
+    // Sort: Puts Green/PR items at the top
     summaries.sort((a, b) => b.score - a.score);
 
     // ------------------------------------------
-    // 2. CANVAS LAYOUT LOGIC
+    // 2. CANVAS LAYOUT
     // ------------------------------------------
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const W = 1080;
     
-    // --- SMART EXPANSION ---
-    // If 4 or fewer exercises, we show the deep dive data tables
+    // Mode Switch: If <= 4 items, show the detailed trend tables
     const isExpandedMode = summaries.length <= 4;
     
-    // Calculate Height
     const topZoneH = 380; 
     const footerH = 150;
-    const rowH = isExpandedMode ? 360 : 180; // Taller rows for the data table
+    // Expanded rows are taller to fit the table
+    const rowH = isExpandedMode ? 380 : 180; 
     
     const listH = summaries.length * rowH;
     const H = Math.max(1920, topZoneH + listH + footerH); 
@@ -5554,7 +5555,7 @@ async function generateAndShareCard(dateKey, groups) {
 
     // --- BACKGROUND ---
     const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, '#0d0d0d');
+    grd.addColorStop(0, '#0f0f0f');
     grd.addColorStop(1, '#000000');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
@@ -5568,21 +5569,21 @@ async function generateAndShareCard(dateKey, groups) {
     const dateObj = new Date(y, m-1, d);
     const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     
-    ctx.fillStyle = '#888'; // Softer grey
+    ctx.fillStyle = '#666';
     ctx.font = '500 40px "Inter", sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(dateStr, W - 60, 95);
 
-    // --- GLOBAL STATS ROW ---
+    // --- GLOBAL STATS (Smaller Best Lift) ---
     const statsY = 220;
     drawHeroStat(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
     drawHeroStat(ctx, "SETS", grandSets, W*0.5, statsY);
     
-    // Truncate Best Lift Name
+    // Truncate Best Lift Name if super long
     let bestNameDisplay = bestLiftName;
-    if (bestNameDisplay.length > 10) bestNameDisplay = bestNameDisplay.substring(0, 9) + "..";
+    if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
     
-    // FIXED: Smaller font for Best Lift value so it doesn't dominate
+    // Pass 'true' for isSmall to keep font contained
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
         `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
 
@@ -5596,31 +5597,30 @@ async function generateAndShareCard(dateKey, groups) {
     summaries.forEach((item, i) => {
         const centerY = currentY + (rowH / 2);
         
-        // 1. Exercise Name
+        // 1. Exercise Name (Soft White)
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#e5e5e5'; // Off-white
-        // Dynamic Font Sizing for Name
+        ctx.fillStyle = '#e5e5e5';
+        
         let nameSize = 55;
         if (item.name.length > 15) nameSize = 45;
         if (item.name.length > 25) nameSize = 35;
-        
         ctx.font = `bold ${nameSize}px "Fredoka", sans-serif`; 
         
-        // Position name higher if in Expanded Mode
+        // If expanded, push name up to make room for table
         const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.name, 60, nameY);
 
-        // 2. Highlight Tag (Right Aligned)
+        // 2. Highlight Tag (Colored)
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
-        ctx.font = '600 35px "Inter", sans-serif'; // Clean font
+        ctx.font = '600 35px "Inter", sans-serif';
         
         const tagY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.highlight, W - 60, tagY);
 
-        // 3. EXPANDED DATA (The "Deep Think" Feature)
+        // 3. EXPANDED DATA TABLES
         if (isExpandedMode) {
-            // Draw the colored trend table
+            // Draw the "Last 4" grid
             drawTrendRow(ctx, item.last4, 60, currentY + 120, W - 120);
         }
 
@@ -5630,10 +5630,10 @@ async function generateAndShareCard(dateKey, groups) {
             ctx.fillRect(60, currentY + rowH, W-120, 2);
         }
 
-        currentY += rowH; // No padding, clean stacking
+        currentY += rowH; 
     });
 
-    // --- FOOTER LOGO ---
+    // --- FOOTER ---
     const footerY = H - 60;
     ctx.fillStyle = '#222';
     ctx.font = 'bold 50px "Fredoka", sans-serif'; 
@@ -5655,7 +5655,7 @@ async function generateAndShareCard(dateKey, groups) {
     });
 }
 
-// --- CANVAS HELPERS ---
+// --- VISUAL HELPERS ---
 
 function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     ctx.textAlign = 'center';
@@ -5665,14 +5665,14 @@ function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     ctx.font = 'bold 24px "Inter", sans-serif';
     ctx.fillText(label, x, y);
 
-    // Main Value
+    // Main Value (White)
     ctx.fillStyle = '#e5e5e5';
-    // Use smaller font if requested (for Best Lift)
-    const fontSize = isSmall ? 45 : 60;
+    // Reduced size for "Best Lift" (40px) vs Stats (60px)
+    const fontSize = isSmall ? 40 : 60;
     ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
     ctx.fillText(val1, x, y + 60);
 
-    // Sub Value (Optional)
+    // Sub Value (Green)
     if (val2) {
         ctx.fillStyle = '#34c759';
         ctx.font = 'bold 30px "Fredoka", sans-serif';
@@ -5680,7 +5680,6 @@ function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     }
 }
 
-// --- COLORED TREND ROW ---
 function drawTrendRow(ctx, sessions, x, y, width) {
     const colW = width / 4;
     
@@ -5694,7 +5693,7 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.fillText(sess.dateStr, cx, y);
 
         // 2. Avg Load (Colored)
-        ctx.fillStyle = sess.wprColor; // Dynamic Color!
+        ctx.fillStyle = sess.wprColor; 
         ctx.font = 'bold 32px "Fredoka", sans-serif';
         const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
         ctx.fillText(wprStr, cx, y + 45);
@@ -5704,7 +5703,7 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.fillText("avg load", cx, y + 70);
 
         // 3. Volume (Colored)
-        ctx.fillStyle = sess.volColor; // Dynamic Color!
+        ctx.fillStyle = sess.volColor; 
         ctx.font = 'bold 24px "Fredoka", sans-serif';
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
         ctx.fillText(volStr, cx, y + 115);
@@ -5713,16 +5712,17 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("volume", cx, y + 140);
         
-        // Divider
+        // Vertical Divider line (Dark)
         if (i < sessions.length - 1) {
             ctx.fillStyle = '#222';
-            ctx.fillRect(x + ((i + 1) * colW), y, 2, 140);
+            ctx.fillRect(x + ((i + 1) * colW), y + 10, 2, 130);
         }
     });
 }
 
 // --- DATA MINING HELPERS ---
 
+// Helper: Get Last 4 Distinct Sessions & Colorize
 function getLast4Sessions(history) {
     // 1. Sort Oldest -> Newest
     const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
@@ -5730,27 +5730,26 @@ function getLast4Sessions(history) {
     // 2. Take the last 4 items
     const slice = sorted.slice(-4);
     
-    // 3. Process with Color Logic (Compare n vs n-1)
+    // 3. Map with Color Logic
     return slice.map((h, index) => {
         const d = new Date(h.timestamp);
         
-        // Find previous session for comparison
-        // Note: 'slice' only has 4 items. We need to look at 'sorted' to find the *real* previous item
-        // if this is the first item in the slice.
+        // Comparison logic (Current vs Previous in the list)
+        let wprColor = '#e5e5e5';
+        let volColor = '#888';
+        
+        // We compare to the *actual* previous session in the sorted list
+        // (Not just the slice index)
         const realIndex = sorted.indexOf(h);
         const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
 
-        // Default Colors
-        let wprColor = '#e5e5e5';
-        let volColor = '#888';
-
         if (prev) {
-            // Intensity Logic (WPR)
+            // Load Intensity
             if (h.wpr > prev.wpr * 1.01) wprColor = '#34c759'; // Green
             else if (h.wpr < prev.wpr * 0.95) wprColor = '#ff3b30'; // Red
-            else wprColor = '#ffcc00'; // Yellow (Maintain)
+            else wprColor = '#ffcc00'; // Yellow
 
-            // Volume Logic
+            // Volume
             if (h.volume > prev.volume * 1.05) volColor = '#34c759';
             else if (h.volume < prev.volume * 0.9) volColor = '#ff3b30';
             else volColor = '#ffcc00';
@@ -5801,28 +5800,22 @@ function getExerciseHistoryForShare(exerciseName) {
 
 function getMetricMax(history, key, excludeToday = false) {
     let max = 0;
-    // If excludeToday is true, we ignore the LAST item if it's strictly "today"
-    // But since our history array here can contain a manually added "today" entry,
-    // we should filter by the isToday flag we added earlier?
-    // Actually simpler: just scan the list passed in.
-    // The main function filters 'historyForTrend' before passing to this if needed.
-    // But wait, getMetricMax is called on 'historyForTrend'.
-    // Let's modify logic:
+    // cutoff = timestamp before which we consider data
+    // If excludeToday, we filter anything that happened "today"
+    // Since history entries here are session summaries, we can just use the isToday flag 
+    // IF we passed the augmented array. But this helper usually takes raw history.
+    // Simpler: use the array passed in.
     
-    const cutoff = excludeToday ? new Date().setHours(0,0,0,0) : Infinity;
-
     history.forEach(h => { 
-        if (h.timestamp < cutoff) {
-            if (h[key] > max) max = h[key]; 
-        }
+        if (excludeToday && h.isToday) return; 
+        if (h[key] > max) max = h[key]; 
     });
     return max;
 }
 
 function getRecentAvg(history, key) {
-    // Filter out today to get a "Previous Average" baseline
-    const cutoff = new Date().setHours(0,0,0,0);
-    const past = history.filter(h => h.timestamp < cutoff);
+    // Only use PAST sessions
+    const past = history.filter(h => !h.isToday);
     
     if (past.length === 0) return 0;
     const sorted = past.sort((a,b) => b.timestamp - a.timestamp);
