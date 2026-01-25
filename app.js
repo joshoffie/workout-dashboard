@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Professional Data Viz V7)
+// SOCIAL SHARE ENGINE (Robust V8 - History Fix)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5417,14 +5417,17 @@ async function generateAndShareCard(dateKey, groups) {
     
     let summaries = [];
 
-    // Establish time limit (End of the selected day)
+    // Establish time limit: End of the selected day
     const [y, m, d] = dateKey.split('-');
     const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
+    
+    // We also need the start of that day for strict comparison
+    const cardDateStart = new Date(y, m-1, d).setHours(0, 0, 0, 0);
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
-        // A. Session Stats
+        // A. Session Stats (Today's specific performance)
         let todayMax = 0;
         let todayVol = 0;
         let totalReps = 0;
@@ -5448,38 +5451,41 @@ async function generateAndShareCard(dateKey, groups) {
         });
 
         // B. History Context
-        // Get ALL history for this specific exercise name
+        // Get ALL history for this exercise (Normalized Name Check)
         const rawHistory = getExerciseHistoryForShare(name);
         
-        // Filter 1: Ignore future data (if viewing an old card)
+        // Filter 1: Strictly ignore data from the future (if viewing old card)
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
 
-        // Filter 2: Separate "Past" from "Today" to allow clean comparison
-        // We define "Today" as the specific session being shared.
-        const sessionTs = new Date(sets[0].timestamp).getTime();
-        const pastHistory = validHistory.filter(h => !isSameDay(new Date(h.timestamp), new Date(sessionTs)));
+        // Filter 2: Separate "Past" from "This Session"
+        // We identify "This Session" by matching the dateKey, not just the timestamp
+        // This ensures even if timestamps drift slightly, the day matches.
+        const pastHistory = validHistory.filter(h => {
+             // Keep it if it's BEFORE the card's date (Start of day)
+             return h.timestamp < cardDateStart;
+        });
         
-        // Construct the "Today" entry for the trend table
+        // Construct "Today's" entry specifically for the Trend Table
         const todayEntry = {
-            timestamp: sessionTs,
+            timestamp: sets[0].timestamp || new Date().getTime(), // Use set timestamp if available
             weight: todayMax,
             volume: todayVol,
             wpr: totalReps > 0 ? todayVol / totalReps : 0,
             reps: totalReps,
-            isToday: true
+            isToday: true // Flag for color logic
         };
         
-        // Combine for the "Last 4" Trend Table (Past + Today)
+        // Combine: Past History + This Session
         const historyForTrend = [...pastHistory, todayEntry];
         const last4 = getLast4Sessions(historyForTrend);
 
-        // C. Metrics for Highlight Logic
+        // C. Metrics for Highlights (Compare Today vs Past)
         const prevMax = getMetricMax(pastHistory, 'weight'); 
         const prevVolMax = getMetricMax(pastHistory, 'volume');
         const recentVolAvg = getRecentAvg(pastHistory, 'volume');
         const pastWPR = getRecentAvg(pastHistory, 'wpr');
 
-        // D. Generate Story (The "Highlight")
+        // D. Generate Story
         let highlight = "";
         let score = 0;
         let accent = '#888'; 
@@ -5499,12 +5505,11 @@ async function generateAndShareCard(dateKey, groups) {
             accent = '#34c759';
         }
         // 3. Heavy Single (Green Treatment)
-        // If it's within 90% of PR, it's significant.
         else if (todayMax >= prevMax * 0.90 && prevMax > 0) {
             const pct = ((todayMax / prevMax) * 100).toFixed(0);
             highlight = `${pct}% of All-Time Max 🔋`;
             score = 70;
-            accent = '#34c759'; // Green because it's heavy!
+            accent = '#34c759'; 
         }
         // 4. Efficiency Increase
         else if (todayEntry.wpr > pastWPR * 1.05 && pastWPR > 0) {
@@ -5519,7 +5524,7 @@ async function generateAndShareCard(dateKey, groups) {
             score = 50;
             accent = '#007aff'; // Blue
         }
-        // Default / Recovery
+        // Default
         else {
             highlight = `${sets.length} Sets Completed`;
             score = 10;
@@ -5529,7 +5534,7 @@ async function generateAndShareCard(dateKey, groups) {
         summaries.push({ name, highlight, score, accent, last4 });
     });
 
-    // Sort: Puts Green/PR items at the top
+    // Sort: Best lifts top
     summaries.sort((a, b) => b.score - a.score);
 
     // ------------------------------------------
@@ -5539,12 +5544,11 @@ async function generateAndShareCard(dateKey, groups) {
     const ctx = canvas.getContext('2d');
     const W = 1080;
     
-    // Mode Switch: If <= 4 items, show the detailed trend tables
+    // Smart Expansion: <= 4 items gets detailed view
     const isExpandedMode = summaries.length <= 4;
     
     const topZoneH = 380; 
     const footerH = 150;
-    // Expanded rows are taller to fit the table
     const rowH = isExpandedMode ? 380 : 180; 
     
     const listH = summaries.length * rowH;
@@ -5574,16 +5578,15 @@ async function generateAndShareCard(dateKey, groups) {
     ctx.textAlign = 'right';
     ctx.fillText(dateStr, W - 60, 95);
 
-    // --- GLOBAL STATS (Smaller Best Lift) ---
+    // --- GLOBAL STATS ---
     const statsY = 220;
     drawHeroStat(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
     drawHeroStat(ctx, "SETS", grandSets, W*0.5, statsY);
     
-    // Truncate Best Lift Name if super long
+    // Best Lift
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
     
-    // Pass 'true' for isSmall to keep font contained
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
         `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
 
@@ -5597,7 +5600,7 @@ async function generateAndShareCard(dateKey, groups) {
     summaries.forEach((item, i) => {
         const centerY = currentY + (rowH / 2);
         
-        // 1. Exercise Name (Soft White)
+        // 1. Exercise Name
         ctx.textAlign = 'left';
         ctx.fillStyle = '#e5e5e5';
         
@@ -5606,11 +5609,10 @@ async function generateAndShareCard(dateKey, groups) {
         if (item.name.length > 25) nameSize = 35;
         ctx.font = `bold ${nameSize}px "Fredoka", sans-serif`; 
         
-        // If expanded, push name up to make room for table
         const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.name, 60, nameY);
 
-        // 2. Highlight Tag (Colored)
+        // 2. Highlight Tag
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
         ctx.font = '600 35px "Inter", sans-serif';
@@ -5620,7 +5622,6 @@ async function generateAndShareCard(dateKey, groups) {
 
         // 3. EXPANDED DATA TABLES
         if (isExpandedMode) {
-            // Draw the "Last 4" grid
             drawTrendRow(ctx, item.last4, 60, currentY + 120, W - 120);
         }
 
@@ -5659,20 +5660,15 @@ async function generateAndShareCard(dateKey, groups) {
 
 function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     ctx.textAlign = 'center';
-    
-    // Label
     ctx.fillStyle = '#666';
     ctx.font = 'bold 24px "Inter", sans-serif';
     ctx.fillText(label, x, y);
 
-    // Main Value (White)
     ctx.fillStyle = '#e5e5e5';
-    // Reduced size for "Best Lift" (40px) vs Stats (60px)
     const fontSize = isSmall ? 40 : 60;
     ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
     ctx.fillText(val1, x, y + 60);
 
-    // Sub Value (Green)
     if (val2) {
         ctx.fillStyle = '#34c759';
         ctx.font = 'bold 30px "Fredoka", sans-serif';
@@ -5686,13 +5682,13 @@ function drawTrendRow(ctx, sessions, x, y, width) {
     sessions.forEach((sess, i) => {
         const cx = x + (i * colW) + (colW / 2);
         
-        // 1. Date (Top)
+        // Date
         ctx.fillStyle = '#666';
         ctx.font = '500 24px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(sess.dateStr, cx, y);
 
-        // 2. Avg Load (Colored)
+        // Avg Load
         ctx.fillStyle = sess.wprColor; 
         ctx.font = 'bold 32px "Fredoka", sans-serif';
         const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
@@ -5702,7 +5698,7 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("avg load", cx, y + 70);
 
-        // 3. Volume (Colored)
+        // Volume
         ctx.fillStyle = sess.volColor; 
         ctx.font = 'bold 24px "Fredoka", sans-serif';
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
@@ -5712,7 +5708,6 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("volume", cx, y + 140);
         
-        // Vertical Divider line (Dark)
         if (i < sessions.length - 1) {
             ctx.fillStyle = '#222';
             ctx.fillRect(x + ((i + 1) * colW), y + 10, 2, 130);
@@ -5722,61 +5717,28 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
 // --- DATA MINING HELPERS ---
 
-// Helper: Get Last 4 Distinct Sessions & Colorize
-function getLast4Sessions(history) {
-    // 1. Sort Oldest -> Newest
-    const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
-    
-    // 2. Take the last 4 items
-    const slice = sorted.slice(-4);
-    
-    // 3. Map with Color Logic
-    return slice.map((h, index) => {
-        const d = new Date(h.timestamp);
-        
-        // Comparison logic (Current vs Previous in the list)
-        let wprColor = '#e5e5e5';
-        let volColor = '#888';
-        
-        // We compare to the *actual* previous session in the sorted list
-        // (Not just the slice index)
-        const realIndex = sorted.indexOf(h);
-        const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
-
-        if (prev) {
-            // Load Intensity
-            if (h.wpr > prev.wpr * 1.01) wprColor = '#34c759'; // Green
-            else if (h.wpr < prev.wpr * 0.95) wprColor = '#ff3b30'; // Red
-            else wprColor = '#ffcc00'; // Yellow
-
-            // Volume
-            if (h.volume > prev.volume * 1.05) volColor = '#34c759';
-            else if (h.volume < prev.volume * 0.9) volColor = '#ff3b30';
-            else volColor = '#ffcc00';
-        }
-
-        return {
-            dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
-            wpr: h.wpr || 0,
-            volume: h.volume || 0,
-            wprColor,
-            volColor
-        };
-    });
-}
-
+// 1. Robust History Fetcher (Normalizes Names)
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
     const history = [];
     const sessions = clientsData[selectedClient].sessions || [];
     
+    // Normalize target name for flexible matching
+    const targetName = exerciseName.trim().toLowerCase();
+    
     sessions.forEach(sess => {
         if (!sess.exercises) return;
-        const ex = sess.exercises.find(e => e.exercise === exerciseName);
+        
+        // Robust Find: Check trimming and casing
+        const ex = sess.exercises.find(e => 
+            e.exercise && e.exercise.trim().toLowerCase() === targetName
+        );
+        
         if (ex && ex.sets && ex.sets.length > 0) {
             let maxW = 0;
             let totalV = 0;
             let totalR = 0;
+            
             ex.sets.forEach(s => {
                 const w = parseFloat(s.weight) || 0;
                 const r = parseInt(s.reps) || 0;
@@ -5798,31 +5760,60 @@ function getExerciseHistoryForShare(exerciseName) {
     return history;
 }
 
-function getMetricMax(history, key, excludeToday = false) {
-    let max = 0;
-    // cutoff = timestamp before which we consider data
-    // If excludeToday, we filter anything that happened "today"
-    // Since history entries here are session summaries, we can just use the isToday flag 
-    // IF we passed the augmented array. But this helper usually takes raw history.
-    // Simpler: use the array passed in.
+function getLast4Sessions(history) {
+    const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
+    const slice = sorted.slice(-4);
     
+    return slice.map((h, index) => {
+        const d = new Date(h.timestamp);
+        const realIndex = sorted.indexOf(h);
+        const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
+
+        let wprColor = '#e5e5e5';
+        let volColor = '#888';
+
+        if (prev) {
+            if (h.wpr > prev.wpr * 1.01) wprColor = '#34c759'; 
+            else if (h.wpr < prev.wpr * 0.95) wprColor = '#ff3b30';
+            else wprColor = '#ffcc00';
+
+            if (h.volume > prev.volume * 1.05) volColor = '#34c759';
+            else if (h.volume < prev.volume * 0.9) volColor = '#ff3b30';
+            else volColor = '#ffcc00';
+        }
+
+        return {
+            dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
+            wpr: h.wpr || 0,
+            volume: h.volume || 0,
+            wprColor,
+            volColor
+        };
+    });
+}
+
+function getMetricMax(history, key) {
+    let max = 0;
     history.forEach(h => { 
-        if (excludeToday && h.isToday) return; 
         if (h[key] > max) max = h[key]; 
     });
     return max;
 }
 
 function getRecentAvg(history, key) {
-    // Only use PAST sessions
-    const past = history.filter(h => !h.isToday);
-    
-    if (past.length === 0) return 0;
-    const sorted = past.sort((a,b) => b.timestamp - a.timestamp);
+    if (history.length === 0) return 0;
+    const sorted = history.sort((a,b) => b.timestamp - a.timestamp);
     const limit = Math.min(sorted.length, 5);
     let sum = 0;
     for(let i=0; i<limit; i++) {
         sum += sorted[i][key];
     }
     return sum / limit;
+}
+
+// 2. Strict Date Comparator
+function isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
 }
