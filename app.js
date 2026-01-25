@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Smart Expansion V5 - FIXED)
+// SOCIAL SHARE ENGINE (Professional Data Viz V6)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5416,6 +5416,11 @@ async function generateAndShareCard(dateKey, groups) {
     let bestLiftWeight = 0;
     
     let summaries = [];
+
+    // Parse the dateKey to establish a strict "End of Time" for this card
+    // We strictly ignore any data logged AFTER this session.
+    const [y, m, d] = dateKey.split('-');
+    const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
@@ -5443,32 +5448,38 @@ async function generateAndShareCard(dateKey, groups) {
             totalReps += r;
         });
 
-        // B. History Context
-        const history = getExerciseHistoryForShare(name);
+        // B. History Context (Strictly filtered by date)
+        const rawHistory = getExerciseHistoryForShare(name);
         
-        // Construct "Today's" entry for the trend line
+        // 1. Filter: Only history ON or BEFORE this card's date
+        const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
+
+        // 2. Ensure "Today" is represented accurately in the trend
+        // (Sometimes history helper pulls from DB which might not be saved yet if offline)
+        // We look for an entry matching today's timestamp approx, or append it.
+        const sessionTs = new Date(sets[0].timestamp).getTime();
+        let historyForTrend = validHistory.filter(h => !isSameDay(new Date(h.timestamp), new Date(sessionTs)));
+        
         const todayEntry = {
-            timestamp: new Date().getTime(),
+            timestamp: sessionTs,
             weight: todayMax,
             volume: todayVol,
             wpr: totalReps > 0 ? todayVol / totalReps : 0,
             reps: totalReps,
             isToday: true
         };
-        
-        // Combine history + today (filtering out any existing 'today' from history to avoid dupes)
-        const fullHistory = [...history.filter(h => !isSameDay(new Date(h.timestamp), new Date())), todayEntry];
-        const last4 = getLast4Sessions(fullHistory);
+        historyForTrend.push(todayEntry);
 
-        // Comparisons for "Highlight" (Compare today vs everything BEFORE today)
-        const pastOnly = history.filter(h => h.timestamp < new Date(sets[0].timestamp).setHours(0,0,0,0));
-        
-        const prevMax = getMetricMax(pastOnly, 'weight'); 
-        const prevVolMax = getMetricMax(pastOnly, 'volume');
-        const recentVolAvg = getRecentAvg(pastOnly, 'volume');
-        const pastWPR = getRecentAvg(pastOnly, 'wpr');
+        // C. Trend Analysis (Last 4 Sessions with Color Logic)
+        const last4 = getLast4Sessions(historyForTrend);
 
-        // C. Generate Story
+        // D. Comparisons for "Highlight" (Today vs Previous Best)
+        const prevMax = getMetricMax(historyForTrend, 'weight', true); // Exclude today
+        const prevVolMax = getMetricMax(historyForTrend, 'volume', true);
+        const recentVolAvg = getRecentAvg(historyForTrend, 'volume');
+        const pastWPR = getRecentAvg(historyForTrend, 'wpr');
+
+        // E. Generate Story
         let highlight = "";
         let score = 0;
         let accent = '#888'; 
@@ -5476,7 +5487,7 @@ async function generateAndShareCard(dateKey, groups) {
 
         // 1. All-Time Weight PR
         if (todayMax > prevMax && prevMax > 0) {
-            highlight = `NEW 1RM RECORD! 🏆`;
+            highlight = `NEW 1RM: ${UNIT_mode.toDisplay(todayMax)} ${unit}! 🏆`;
             score = 100;
             accent = '#34c759'; // Green
         }
@@ -5490,19 +5501,19 @@ async function generateAndShareCard(dateKey, groups) {
         // 3. Efficiency (WPR) PR
         else if (todayEntry.wpr > pastWPR * 1.05 && pastWPR > 0) {
             const diff = ((todayEntry.wpr - pastWPR) / pastWPR * 100).toFixed(0);
-            highlight = `Avg Weight/Rep Up ${diff}% 🔥`;
+            highlight = `Avg Load Up ${diff}% 🔥`;
             score = 80;
             accent = '#34c759';
         }
         // 4. Heavy Work
         else if (todayMax >= prevMax * 0.95 && prevMax > 0) {
-            highlight = `Heavy Session (${UNIT_mode.toDisplay(todayMax)} ${unit})`;
+            highlight = `Heavy Single: ${UNIT_mode.toDisplay(todayMax)} ${unit}`;
             score = 60;
-            accent = '#ffffff';
+            accent = '#e5e5e5'; // Bright Off-White
         }
         // 5. High Volume
         else if (todayVol > recentVolAvg * 1.2 && recentVolAvg > 0) {
-            highlight = `High Volume (${Math.round(UNIT_mode.toDisplay(todayVol))} ${unit})`;
+            highlight = `High Volume: ${Math.round(UNIT_mode.toDisplay(todayVol))} ${unit}`;
             score = 50;
             accent = '#007aff'; // Blue
         }
@@ -5527,17 +5538,16 @@ async function generateAndShareCard(dateKey, groups) {
     const W = 1080;
     
     // --- SMART EXPANSION ---
-    // If 4 or fewer exercises, we have room for the "Deep Data" view
+    // If 4 or fewer exercises, we show the deep dive data tables
     const isExpandedMode = summaries.length <= 4;
     
     // Calculate Height
     const topZoneH = 380; 
     const footerH = 150;
-    // Row height depends on mode (Expanded needs more vertical space)
-    const rowH = isExpandedMode ? 320 : 180; 
+    const rowH = isExpandedMode ? 360 : 180; // Taller rows for the data table
     
     const listH = summaries.length * rowH;
-    const H = Math.max(1920, topZoneH + listH + footerH); // Grow if list is long
+    const H = Math.max(1920, topZoneH + listH + footerH); 
 
     canvas.width = W;
     canvas.height = H;
@@ -5555,11 +5565,10 @@ async function generateAndShareCard(dateKey, groups) {
     ctx.textAlign = 'left';
     ctx.fillText('Trunk', 60, 100);
 
-    const [y, m, d] = dateKey.split('-');
     const dateObj = new Date(y, m-1, d);
     const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = '#888'; // Softer grey
     ctx.font = '500 40px "Inter", sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(dateStr, W - 60, 95);
@@ -5569,12 +5578,13 @@ async function generateAndShareCard(dateKey, groups) {
     drawHeroStat(ctx, "VOLUME", Math.round(UNIT_mode.toDisplay(grandVol)).toLocaleString(), W*0.2, statsY);
     drawHeroStat(ctx, "SETS", grandSets, W*0.5, statsY);
     
-    // Truncate Best Lift
+    // Truncate Best Lift Name
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 10) bestNameDisplay = bestNameDisplay.substring(0, 9) + "..";
     
+    // FIXED: Smaller font for Best Lift value so it doesn't dominate
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
-        `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`);
+        `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
 
     // Divider
     ctx.fillStyle = '#222';
@@ -5588,7 +5598,7 @@ async function generateAndShareCard(dateKey, groups) {
         
         // 1. Exercise Name
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#e5e5e5'; // Off-white
         // Dynamic Font Sizing for Name
         let nameSize = 55;
         if (item.name.length > 15) nameSize = 45;
@@ -5596,21 +5606,22 @@ async function generateAndShareCard(dateKey, groups) {
         
         ctx.font = `bold ${nameSize}px "Fredoka", sans-serif`; 
         
-        // Position name higher if in Expanded Mode to make room for data
-        const nameY = isExpandedMode ? currentY + 60 : centerY + 15;
+        // Position name higher if in Expanded Mode
+        const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.name, 60, nameY);
 
-        // 2. Highlight Tag
+        // 2. Highlight Tag (Right Aligned)
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
-        ctx.font = '600 35px "Inter", sans-serif';
+        ctx.font = '600 35px "Inter", sans-serif'; // Clean font
         
-        const tagY = isExpandedMode ? currentY + 60 : centerY + 15;
+        const tagY = isExpandedMode ? currentY + 70 : centerY + 15;
         ctx.fillText(item.highlight, W - 60, tagY);
 
         // 3. EXPANDED DATA (The "Deep Think" Feature)
         if (isExpandedMode) {
-            drawTrendRow(ctx, item.last4, 60, currentY + 100, W - 120);
+            // Draw the colored trend table
+            drawTrendRow(ctx, item.last4, 60, currentY + 120, W - 120);
         }
 
         // Divider
@@ -5619,7 +5630,7 @@ async function generateAndShareCard(dateKey, groups) {
             ctx.fillRect(60, currentY + rowH, W-120, 2);
         }
 
-        currentY += rowH + 20; // Add padding
+        currentY += rowH; // No padding, clean stacking
     });
 
     // --- FOOTER LOGO ---
@@ -5632,7 +5643,7 @@ async function generateAndShareCard(dateKey, groups) {
     // 4. EXPORT
     canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], "trunk-summary.png", { type: "image/png" });
+        const file = new File([blob], "trunk-workout.png", { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file] });
         } else {
@@ -5646,7 +5657,7 @@ async function generateAndShareCard(dateKey, groups) {
 
 // --- CANVAS HELPERS ---
 
-function drawHeroStat(ctx, label, val1, x, y, val2) {
+function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     ctx.textAlign = 'center';
     
     // Label
@@ -5655,8 +5666,10 @@ function drawHeroStat(ctx, label, val1, x, y, val2) {
     ctx.fillText(label, x, y);
 
     // Main Value
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 60px "Fredoka", sans-serif';
+    ctx.fillStyle = '#e5e5e5';
+    // Use smaller font if requested (for Best Lift)
+    const fontSize = isSmall ? 45 : 60;
+    ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
     ctx.fillText(val1, x, y + 60);
 
     // Sub Value (Optional)
@@ -5667,41 +5680,40 @@ function drawHeroStat(ctx, label, val1, x, y, val2) {
     }
 }
 
-// --- MISSING HELPER 1: Draws the "Last 4 Sessions" mini-grid ---
+// --- COLORED TREND ROW ---
 function drawTrendRow(ctx, sessions, x, y, width) {
     const colW = width / 4;
     
     sessions.forEach((sess, i) => {
-        // Center of this column
         const cx = x + (i * colW) + (colW / 2);
         
         // 1. Date (Top)
         ctx.fillStyle = '#666';
-        ctx.font = '500 28px "Inter", sans-serif';
+        ctx.font = '500 24px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(sess.dateStr, cx, y);
 
-        // 2. WPR (Intensity)
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 36px "Fredoka", sans-serif';
+        // 2. Avg Load (Colored)
+        ctx.fillStyle = sess.wprColor; // Dynamic Color!
+        ctx.font = 'bold 32px "Fredoka", sans-serif';
         const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
         ctx.fillText(wprStr, cx, y + 45);
         
         ctx.fillStyle = '#444';
-        ctx.font = '400 20px "Inter", sans-serif';
+        ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("avg load", cx, y + 70);
 
-        // 3. Volume
-        ctx.fillStyle = '#aaa';
-        ctx.font = 'bold 28px "Fredoka", sans-serif';
+        // 3. Volume (Colored)
+        ctx.fillStyle = sess.volColor; // Dynamic Color!
+        ctx.font = 'bold 24px "Fredoka", sans-serif';
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
         ctx.fillText(volStr, cx, y + 115);
         
         ctx.fillStyle = '#444';
-        ctx.font = '400 20px "Inter", sans-serif';
+        ctx.font = '400 18px "Inter", sans-serif';
         ctx.fillText("volume", cx, y + 140);
         
-        // Vertical Divider line (except for last item)
+        // Divider
         if (i < sessions.length - 1) {
             ctx.fillStyle = '#222';
             ctx.fillRect(x + ((i + 1) * colW), y, 2, 140);
@@ -5709,26 +5721,50 @@ function drawTrendRow(ctx, sessions, x, y, width) {
     });
 }
 
-// --- MISSING HELPER 2: Filters and formats the last 4 distinct sessions ---
+// --- DATA MINING HELPERS ---
+
 function getLast4Sessions(history) {
-    // Sort Oldest -> Newest
+    // 1. Sort Oldest -> Newest
     const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
     
-    // Take the last 4
+    // 2. Take the last 4 items
     const slice = sorted.slice(-4);
     
-    return slice.map(h => {
+    // 3. Process with Color Logic (Compare n vs n-1)
+    return slice.map((h, index) => {
         const d = new Date(h.timestamp);
+        
+        // Find previous session for comparison
+        // Note: 'slice' only has 4 items. We need to look at 'sorted' to find the *real* previous item
+        // if this is the first item in the slice.
+        const realIndex = sorted.indexOf(h);
+        const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
+
+        // Default Colors
+        let wprColor = '#e5e5e5';
+        let volColor = '#888';
+
+        if (prev) {
+            // Intensity Logic (WPR)
+            if (h.wpr > prev.wpr * 1.01) wprColor = '#34c759'; // Green
+            else if (h.wpr < prev.wpr * 0.95) wprColor = '#ff3b30'; // Red
+            else wprColor = '#ffcc00'; // Yellow (Maintain)
+
+            // Volume Logic
+            if (h.volume > prev.volume * 1.05) volColor = '#34c759';
+            else if (h.volume < prev.volume * 0.9) volColor = '#ff3b30';
+            else volColor = '#ffcc00';
+        }
+
         return {
-            // Short date format "Jan 12"
             dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
             wpr: h.wpr || 0,
-            volume: h.volume || 0
+            volume: h.volume || 0,
+            wprColor,
+            volColor
         };
     });
 }
-
-// --- DATA MINING HELPERS ---
 
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
@@ -5749,7 +5785,6 @@ function getExerciseHistoryForShare(exerciseName) {
                 totalV += parseFloat(s.volume) || 0;
                 totalR += r;
             });
-            // Avg Weight Per Rep
             const wpr = totalR > 0 ? totalV / totalR : 0;
             
             history.push({ 
@@ -5764,15 +5799,33 @@ function getExerciseHistoryForShare(exerciseName) {
     return history;
 }
 
-function getMetricMax(history, key) {
+function getMetricMax(history, key, excludeToday = false) {
     let max = 0;
-    history.forEach(h => { if (h[key] > max) max = h[key]; });
+    // If excludeToday is true, we ignore the LAST item if it's strictly "today"
+    // But since our history array here can contain a manually added "today" entry,
+    // we should filter by the isToday flag we added earlier?
+    // Actually simpler: just scan the list passed in.
+    // The main function filters 'historyForTrend' before passing to this if needed.
+    // But wait, getMetricMax is called on 'historyForTrend'.
+    // Let's modify logic:
+    
+    const cutoff = excludeToday ? new Date().setHours(0,0,0,0) : Infinity;
+
+    history.forEach(h => { 
+        if (h.timestamp < cutoff) {
+            if (h[key] > max) max = h[key]; 
+        }
+    });
     return max;
 }
 
 function getRecentAvg(history, key) {
-    if (history.length === 0) return 0;
-    const sorted = history.sort((a,b) => b.timestamp - a.timestamp);
+    // Filter out today to get a "Previous Average" baseline
+    const cutoff = new Date().setHours(0,0,0,0);
+    const past = history.filter(h => h.timestamp < cutoff);
+    
+    if (past.length === 0) return 0;
+    const sorted = past.sort((a,b) => b.timestamp - a.timestamp);
     const limit = Math.min(sorted.length, 5);
     let sum = 0;
     for(let i=0; i<limit; i++) {
