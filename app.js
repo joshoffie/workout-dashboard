@@ -5396,7 +5396,7 @@ window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
 
 // =====================================================
-// SOCIAL SHARE ENGINE (Smart Expansion V5)
+// SOCIAL SHARE ENGINE (Smart Expansion V5 - FIXED)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5445,8 +5445,8 @@ async function generateAndShareCard(dateKey, groups) {
 
         // B. History Context
         const history = getExerciseHistoryForShare(name);
-        // Add "Today" to history for the trend view if not already there 
-        // (Our helper pulls from saved data, so we manually construct 'today' for the view)
+        
+        // Construct "Today's" entry for the trend line
         const todayEntry = {
             timestamp: new Date().getTime(),
             weight: todayMax,
@@ -5456,19 +5456,19 @@ async function generateAndShareCard(dateKey, groups) {
             isToday: true
         };
         
-        // Combine for the "Last 4" view
+        // Combine history + today (filtering out any existing 'today' from history to avoid dupes)
         const fullHistory = [...history.filter(h => !isSameDay(new Date(h.timestamp), new Date())), todayEntry];
         const last4 = getLast4Sessions(fullHistory);
 
-        // C. Comparisons for "Highlight" (vs Previous)
-        // We look at the entry *before* today for PR logic
+        // Comparisons for "Highlight" (Compare today vs everything BEFORE today)
         const pastOnly = history.filter(h => h.timestamp < new Date(sets[0].timestamp).setHours(0,0,0,0));
+        
         const prevMax = getMetricMax(pastOnly, 'weight'); 
         const prevVolMax = getMetricMax(pastOnly, 'volume');
         const recentVolAvg = getRecentAvg(pastOnly, 'volume');
         const pastWPR = getRecentAvg(pastOnly, 'wpr');
 
-        // D. Generate Story
+        // C. Generate Story
         let highlight = "";
         let score = 0;
         let accent = '#888'; 
@@ -5533,7 +5533,7 @@ async function generateAndShareCard(dateKey, groups) {
     // Calculate Height
     const topZoneH = 380; 
     const footerH = 150;
-    // Row height depends on mode
+    // Row height depends on mode (Expanded needs more vertical space)
     const rowH = isExpandedMode ? 320 : 180; 
     
     const listH = summaries.length * rowH;
@@ -5667,40 +5667,64 @@ function drawHeroStat(ctx, label, val1, x, y, val2) {
     }
 }
 
+// --- MISSING HELPER 1: Draws the "Last 4 Sessions" mini-grid ---
 function drawTrendRow(ctx, sessions, x, y, width) {
-    // 4 Columns
     const colW = width / 4;
     
     sessions.forEach((sess, i) => {
+        // Center of this column
         const cx = x + (i * colW) + (colW / 2);
         
-        // Date
-        ctx.fillStyle = '#555';
-        ctx.font = '500 24px "Inter", sans-serif';
+        // 1. Date (Top)
+        ctx.fillStyle = '#666';
+        ctx.font = '500 28px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(sess.dateStr, cx, y);
 
-        // Avg Weight
-        const wStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
-        ctx.fillStyle = '#ccc';
-        ctx.font = 'bold 32px "Fredoka", sans-serif';
-        ctx.fillText(wStr, cx, y + 40);
+        // 2. WPR (Intensity)
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px "Fredoka", sans-serif';
+        const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
+        ctx.fillText(wprStr, cx, y + 45);
         
-        // Label for W/R
         ctx.fillStyle = '#444';
-        ctx.font = '400 18px "Inter", sans-serif';
-        ctx.fillText("avg load", cx, y + 65);
+        ctx.font = '400 20px "Inter", sans-serif';
+        ctx.fillText("avg load", cx, y + 70);
 
-        // Volume
-        const vStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
-        ctx.fillStyle = '#888';
-        ctx.font = 'bold 24px "Fredoka", sans-serif';
-        ctx.fillText(vStr, cx, y + 100);
+        // 3. Volume
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 28px "Fredoka", sans-serif';
+        const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
+        ctx.fillText(volStr, cx, y + 115);
         
-        // Label for Vol
         ctx.fillStyle = '#444';
-        ctx.font = '400 18px "Inter", sans-serif';
-        ctx.fillText("volume", cx, y + 125);
+        ctx.font = '400 20px "Inter", sans-serif';
+        ctx.fillText("volume", cx, y + 140);
+        
+        // Vertical Divider line (except for last item)
+        if (i < sessions.length - 1) {
+            ctx.fillStyle = '#222';
+            ctx.fillRect(x + ((i + 1) * colW), y, 2, 140);
+        }
+    });
+}
+
+// --- MISSING HELPER 2: Filters and formats the last 4 distinct sessions ---
+function getLast4Sessions(history) {
+    // Sort Oldest -> Newest
+    const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
+    
+    // Take the last 4
+    const slice = sorted.slice(-4);
+    
+    return slice.map(h => {
+        const d = new Date(h.timestamp);
+        return {
+            // Short date format "Jan 12"
+            dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
+            wpr: h.wpr || 0,
+            volume: h.volume || 0
+        };
     });
 }
 
@@ -5708,7 +5732,6 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
-    
     const history = [];
     const sessions = clientsData[selectedClient].sessions || [];
     
@@ -5719,7 +5742,6 @@ function getExerciseHistoryForShare(exerciseName) {
             let maxW = 0;
             let totalV = 0;
             let totalR = 0;
-            
             ex.sets.forEach(s => {
                 const w = parseFloat(s.weight) || 0;
                 const r = parseInt(s.reps) || 0;
@@ -5740,26 +5762,6 @@ function getExerciseHistoryForShare(exerciseName) {
         }
     });
     return history;
-}
-
-function getLast4Sessions(history) {
-    // Sort Newest -> Oldest
-    const sorted = history.sort((a,b) => b.timestamp - a.timestamp);
-    
-    // Take Top 4
-    const slice = sorted.slice(0, 4);
-    
-    // Reverse for Display (Left = Oldest of the 4, Right = Today)
-    const displayOrder = slice.reverse();
-    
-    return displayOrder.map(h => {
-        const d = new Date(h.timestamp);
-        return {
-            dateStr: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}),
-            wpr: h.wpr,
-            volume: h.volume
-        };
-    });
 }
 
 function getMetricMax(history, key) {
