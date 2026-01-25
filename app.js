@@ -4485,11 +4485,36 @@ function renderDayDetails(dateKey) {
         ${s.notes ? `<div style="padding: 0 0.75rem 0.75rem 3.5rem;">${noteText}</div>` : ''}
        `;
        
-       groupLi.appendChild(setDiv);
+        groupLi.appendChild(setDiv);
     });
     
     container.appendChild(groupLi);
   });
+
+  // --- NEW: SHARE BUTTON INJECTION ---
+  // Only show if we actually rendered workouts (container not empty or showing "No workouts")
+  if (container.children.length > 0 && !container.innerHTML.includes('cal-empty-state')) {
+      
+      const shareContainer = document.createElement('li');
+      shareContainer.style.listStyle = 'none';
+      shareContainer.style.display = 'flex';
+      shareContainer.style.justifyContent = 'center';
+      
+      const shareBtn = document.createElement('button');
+      shareBtn.className = 'btn btn-share';
+      shareBtn.innerHTML = `
+        <svg class="share-icon" viewBox="0 0 24 24">
+           <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+        </svg>
+        <span>Share Summary</span>
+      `;
+      
+      // Pass the specific date and the groups data we just calculated
+      shareBtn.onclick = () => generateAndShareCard(dateKey, groups);
+      
+      shareContainer.appendChild(shareBtn);
+      container.appendChild(shareContainer);
+  }
 }
 
 // =====================================================
@@ -5369,3 +5394,152 @@ window.addEventListener('offline', updateOnlineStatus);
 
 // Run on load
 window.addEventListener('load', updateOnlineStatus);
+
+// =====================================================
+// SOCIAL SHARE ENGINE (Vertical Story Format)
+// =====================================================
+
+async function generateAndShareCard(dateKey, groups) {
+    const btn = document.querySelector('.btn-share');
+    if(btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Generating...'; // Feedback
+        setTimeout(() => btn.innerHTML = originalText, 2000);
+    }
+
+    // 1. GATHER DATA
+    let totalVol = 0;
+    let totalSets = 0;
+    let topLiftName = "";
+    let topLiftWeight = 0;
+
+    Object.keys(groups).forEach(name => {
+        const sets = groups[name];
+        sets.forEach(s => {
+            // Volume
+            const vol = parseFloat(s.volume) || 0;
+            totalVol += vol;
+            
+            // Sets
+            totalSets++;
+
+            // Top Lift Check
+            const w = parseFloat(s.weight) || 0;
+            if (w > topLiftWeight) {
+                topLiftWeight = w;
+                topLiftName = name;
+            }
+        });
+    });
+
+    // 2. SETUP CANVAS (1080 x 1920 Vertical Story)
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1080;
+    const H = 1920;
+    canvas.width = W;
+    canvas.height = H;
+
+    // --- DRAWING ---
+    
+    // Background (Dark Grey)
+    ctx.fillStyle = '#101010';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle Gradient (Top Right to Bottom Left)
+    const grd = ctx.createLinearGradient(0, 0, W, H);
+    grd.addColorStop(0, '#1c1c1c');
+    grd.addColorStop(1, '#000000');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+
+    // "TRUNK" Header
+    ctx.fillStyle = '#34c759'; // Brand Green
+    ctx.font = 'bold 180px "Fredoka", sans-serif'; // Use your brand font
+    ctx.textAlign = 'center';
+    ctx.fillText('Trunk', W/2, 300);
+
+    // Date
+    const [y, m, d] = dateKey.split('-');
+    const dateObj = new Date(y, m-1, d);
+    const dateStr = dateObj.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '500 80px "Inter", sans-serif';
+    ctx.fillText(dateStr, W/2, 450);
+
+    // Divider Line
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(150, 520);
+    ctx.lineTo(W-150, 520);
+    ctx.stroke();
+
+    // STATS GRID
+    // Volume
+    drawStatBlock(ctx, "TOTAL VOLUME", Math.round(UNIT_mode.toDisplay(totalVol)).toLocaleString(), UNIT_mode.getLabel(), W/2, 800, '#ff3b30');
+    
+    // Sets
+    drawStatBlock(ctx, "TOTAL SETS", totalSets, "sets", W/2, 1100, '#007aff');
+
+    // Best Lift (if exists)
+    if (topLiftName) {
+        drawStatBlock(ctx, "TOP LIFT", topLiftName, `${UNIT_mode.toDisplay(topLiftWeight)} ${UNIT_mode.getLabel()}`, W/2, 1400, '#ffcc00');
+    }
+
+    // Footer
+    ctx.fillStyle = '#666';
+    ctx.font = '40px "Inter", sans-serif';
+    ctx.fillText('trunktracker.app', W/2, H - 100);
+
+    // 3. EXPORT & SHARE
+    try {
+        canvas.toBlob(async (blob) => {
+            if (!blob) { alert("Image generation failed"); return; }
+            
+            const file = new File([blob], "workout-summary.png", { type: "image/png" });
+
+            // WEB SHARE API (Native iOS Sheet)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Workout Summary',
+                    text: `I moved ${Math.round(UNIT_mode.toDisplay(totalVol)).toLocaleString()} ${UNIT_mode.getLabel()} on Trunk!`
+                });
+            } else {
+                // Fallback: Download the image
+                const link = document.createElement('a');
+                link.download = 'trunk-workout.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        });
+    } catch (err) {
+        console.error("Share failed:", err);
+        alert("Could not share image. " + err.message);
+    }
+}
+
+// Helper for drawing text blocks on the canvas
+function drawStatBlock(ctx, label, bigValue, subValue, x, y, accentColor) {
+    // Label
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 40px "Inter", sans-serif';
+    ctx.fillText(label, x, y);
+
+    // Big Value
+    ctx.fillStyle = '#ffffff';
+    // Auto-scale font size if text is huge
+    let fontSize = 160;
+    if (String(bigValue).length > 8) fontSize = 120;
+    if (String(bigValue).length > 12) fontSize = 90;
+    
+    ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
+    ctx.fillText(bigValue, x, y + 160);
+
+    // Sub Value (Unit)
+    ctx.fillStyle = accentColor;
+    ctx.font = 'bold 50px "Inter", sans-serif';
+    ctx.fillText(subValue, x, y + 230);
+}
