@@ -5395,7 +5395,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // Run on load
 window.addEventListener('load', updateOnlineStatus);
 // =====================================================
-// SOCIAL SHARE ENGINE (Smart Fit & Precision V12)
+// SOCIAL SHARE ENGINE (Green Swirl Logo V13)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5447,7 +5447,7 @@ async function generateAndShareCard(dateKey, groups) {
             totalReps += r;
         });
 
-        // B. Deep History Fetch (Fuzzy Match)
+        // B. Deep History Fetch
         const rawHistory = getExerciseHistoryForShare(name);
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
         const pastHistory = validHistory.filter(h => h.timestamp < cardDateStart);
@@ -5530,11 +5530,11 @@ async function generateAndShareCard(dateKey, groups) {
     const ctx = canvas.getContext('2d');
     const W = 1080;
     
-    // Auto-Expand: <= 4 items gets detailed view
+    // Auto-Expand
     const isExpandedMode = summaries.length <= 4;
     
     const topZoneH = 380; 
-    const footerH = 150;
+    const footerH = 200; // Increased slightly for the Logo
     const rowH = isExpandedMode ? 380 : 180; 
     
     const listH = summaries.length * rowH;
@@ -5572,7 +5572,6 @@ async function generateAndShareCard(dateKey, groups) {
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
     
-    // FIX: Using formatShareNum to preserve decimals in Best Lift
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
         `${formatShareNum(UNIT_mode.toDisplay(bestLiftWeight))} ${UNIT_mode.getLabel()}`, true);
 
@@ -5586,39 +5585,29 @@ async function generateAndShareCard(dateKey, groups) {
     summaries.forEach((item, i) => {
         const centerY = currentY + (rowH / 2);
         
-        // --- 1. HIGHLIGHT TAG (Right Side) ---
-        // We draw this first so we know how much space it takes
+        // Tag (Right)
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
         ctx.font = '600 35px "Inter", sans-serif';
         const tagY = isExpandedMode ? currentY + 70 : centerY + 15;
-        
-        // Measure highlight width to prevent overlap
         const tagWidth = ctx.measureText(item.highlight).width;
         ctx.fillText(item.highlight, W - 60, tagY);
 
-        // --- 2. EXERCISE NAME (Left Side - Smart Shrink) ---
+        // Name (Left - Smart Shrink)
         ctx.textAlign = 'left';
         ctx.fillStyle = '#e5e5e5';
-        
         const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
-        
-        // Calculate max available width for name (Total - Margins - TagWidth - Buffer)
-        // W=1080, LeftMargin=60, RightMargin=60, Buffer=40
         const maxNameWidth = W - 120 - tagWidth - 40;
         
-        // Dynamic Font Sizing Loop
         let fontSize = 55;
         ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
-        
         while (ctx.measureText(item.name).width > maxNameWidth && fontSize > 25) {
             fontSize -= 2;
             ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
         }
-        
         ctx.fillText(item.name, 60, nameY);
 
-        // --- 3. EXPANDED DATA TABLES ---
+        // Data Tables
         if (isExpandedMode) {
             drawTrendRow(ctx, item.last4, 60, currentY + 120, W - 120);
         }
@@ -5632,26 +5621,41 @@ async function generateAndShareCard(dateKey, groups) {
         currentY += rowH; 
     });
 
-    // --- FOOTER ---
-    const footerY = H - 60;
-    ctx.fillStyle = '#222';
-    ctx.font = 'bold 50px "Fredoka", sans-serif'; 
-    ctx.textAlign = 'center';
-    ctx.fillText('Trunk', W/2, footerY);
+    // --- FOOTER: THE GREEN SWIRL LOGO ---
+    const footerCenterY = H - 100;
+    
+    // Draw the Logo (Radius 40px)
+    drawSpiralLogo(ctx, W/2, footerCenterY, 40);
 
     // 4. EXPORT
-    canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], "trunk-workout.png", { type: "image/png" });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file] });
-        } else {
-            const link = document.createElement('a');
-            link.download = 'trunk-summary.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-    });
+    // Check if we are in the Native App (Bridge exists)
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shareImage) {
+        const dataUrl = canvas.toDataURL("image/png");
+        window.webkit.messageHandlers.shareImage.postMessage(dataUrl);
+        
+        const btn = document.querySelector('.btn-share');
+        if(btn) btn.innerHTML = 'Share Summary';
+        
+    } else {
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], "trunk-workout.png", { type: "image/png" });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file] });
+                } catch (err) { console.log("Share cancelled"); }
+            } else {
+                const link = document.createElement('a');
+                link.download = 'trunk-summary.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+            
+            const btn = document.querySelector('.btn-share');
+            if(btn) btn.innerHTML = 'Share Summary';
+        });
+    }
 }
 
 // --- VISUAL HELPERS ---
@@ -5659,7 +5663,7 @@ async function generateAndShareCard(dateKey, groups) {
 function formatShareNum(num) {
     if (isNaN(num)) return "0";
     if (num % 1 === 0) return num.toString();
-    return num.toFixed(1); // Keeps 22.5 as "22.5" instead of "23"
+    return num.toFixed(1);
 }
 
 function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
@@ -5693,7 +5697,6 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
         ctx.fillStyle = sess.wprColor; 
         ctx.font = 'bold 32px "Fredoka", sans-serif';
-        // FIX: No Math.round here! Use formatShareNum for precision
         const wprStr = `${formatShareNum(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
         ctx.fillText(wprStr, cx, y + 45);
         
@@ -5703,7 +5706,6 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
         ctx.fillStyle = sess.volColor; 
         ctx.font = 'bold 24px "Fredoka", sans-serif';
-        // Volume can still be rounded as it's usually large
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
         ctx.fillText(volStr, cx, y + 115);
         
@@ -5717,6 +5719,37 @@ function drawTrendRow(ctx, sessions, x, y, width) {
         }
     });
 }
+
+// --- LOGO DRAWER (Matches Splash Screen) ---
+function drawSpiralLogo(ctx, cx, cy, r) {
+    const turns = 5.2;
+    const points = 200;
+    
+    ctx.beginPath();
+    for (let i = 0; i <= points; i++) {
+        const t = i / points;
+        const angle = t * (Math.PI * 2 * turns);
+        // Map radius: 0 -> r
+        const radius = r * t;
+        
+        // IMPORTANT: Subtract PI/2 (or rotate -90deg) to match widget orientation
+        const rotAngle = angle - (Math.PI / 2); 
+        
+        const x = cx + radius * Math.cos(rotAngle);
+        const y = cy + radius * Math.sin(rotAngle);
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    
+    // Style: Green Thick Stroke
+    ctx.strokeStyle = '#34c759';
+    ctx.lineWidth = 6; 
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
 
 // --- DATA MINING HELPERS ---
 
