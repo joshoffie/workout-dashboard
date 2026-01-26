@@ -593,7 +593,7 @@ function syncTutorialUI(screenId) {
                  showTutorialTip('backToExercisesBtn', 'Go back to Exercises.', 30, 'left');
              } 
              else if (stage === 'slider-done') {
-                 showTutorialTip('showGraphBtn', 'Tap "Show Graph" to see details.', 20);
+                 showTutorialTip('showGraphBtn', 'Tap "Show Graph"!', 20);
              }
              else if (stage === 'waiting-for-slider') {
                  showTutorialTip('spiralSlider', 'Drag the slider backwards.', 10);
@@ -604,7 +604,7 @@ function syncTutorialUI(screenId) {
                  
                  tutorialTimer = setTimeout(() => {
                     if (!isTutorialMode) return; // Nested Failsafe
-                    showTutorialTip('comparisonBanner', '2. This banner compares today vs. last time.', 10);
+                    showTutorialTip('comparisonBanner', '2. This tab compares the most recent lift vs. the previous lift.', 10);
                     tutorialTimer = setTimeout(() => {
                         if (!isTutorialMode) return; // Nested Failsafe
                         showTutorialTip('addSetBtn', '3. Now, tap here to log a new set.', -10);
@@ -615,7 +615,7 @@ function syncTutorialUI(screenId) {
 
         // 5. GRAPH SCREEN
         else if (screenId === SCREENS.GRAPH) {
-             showTutorialTip('touchLayer', 'Touch and drag across the graph.', 50);
+             showTutorialTip('touchLayer', 'Touch and drag across the graph to see your history visually.', 50);
         }
 
         // 6. CALENDAR SCREEN
@@ -4095,12 +4095,12 @@ function finishAddSet() {
             showTutorialTip('restTimer', 'A rest timer starts automatically.', 30);
             
             tutorialTimer = setTimeout(() => {
-                showTutorialTip('spiralCanvas', 'This spiral tracks your history.', 20);
+                showTutorialTip('spiralCanvas', 'This "trunk" ;) tracks your history.', 20);
                 
                 tutorialTimer = setTimeout(() => {
                     // CRITICAL: Set the specific stage that handleSliderMove looks for!
                     document.body.dataset.tutorialStage = 'waiting-for-slider';
-                    showTutorialTip('spiralSlider', 'Drag the slider backwards to see previous days data.', 10);
+                    showTutorialTip('spiralSlider', 'Drag the slider backwards to see your improvement history!', 10);
                 }, 3500);
             }, 3500); 
         }, 500);
@@ -4135,7 +4135,7 @@ document.getElementById("showGraphBtn").onclick = () => {
       
       // Tutorial Tip Hook
       if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
-         setTimeout(() => showTutorialTip('touchLayer', 'Touch and drag across the graph to see details.', 50), 1000);
+         setTimeout(() => showTutorialTip('touchLayer', 'Touch and drag across the graph to see your history visually.', 50), 1000);
       }
   });
 };
@@ -4965,7 +4965,7 @@ if (openCalendarBtn) {
              document.body.dataset.tutorialStage = 'calendar-visited';
              
              // Point to the grid
-             setTimeout(() => showTutorialTip('calendarGrid', 'This grid tracks your workout consistency.', -20), 500);
+             setTimeout(() => showTutorialTip('calendarGrid', 'This callendar tracks your workouts via...a calendar!', -20), 500);
              
              // Then point to the back button
              setTimeout(() => {
