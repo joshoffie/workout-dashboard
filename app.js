@@ -5394,9 +5394,8 @@ window.addEventListener('offline', updateOnlineStatus);
 
 // Run on load
 window.addEventListener('load', updateOnlineStatus);
-
 // =====================================================
-// SOCIAL SHARE ENGINE (Deep Search V11)
+// SOCIAL SHARE ENGINE (Smart Fit & Precision V12)
 // =====================================================
 
 async function generateAndShareCard(dateKey, groups) {
@@ -5418,17 +5417,14 @@ async function generateAndShareCard(dateKey, groups) {
     let summaries = [];
 
     // STRICT TIME BOUNDARIES
-    // We filter history to ensure we don't show "future" data if viewing an old card.
     const [y, m, d] = dateKey.split('-');
-    // End of the selected day (23:59:59)
     const cardDateLimit = new Date(y, m-1, d).setHours(23, 59, 59, 999);
-    // Start of the selected day (00:00:00) - Used to separate "History" from "Today"
     const cardDateStart = new Date(y, m-1, d).setHours(0, 0, 0, 0);
 
     Object.keys(groups).forEach(name => {
         const sets = groups[name];
         
-        // A. Analyze "Today's" Performance (The sets passed in for this card)
+        // A. Analyze "Today's" Performance
         let todayMax = 0;
         let todayVol = 0;
         let totalReps = 0;
@@ -5451,19 +5447,11 @@ async function generateAndShareCard(dateKey, groups) {
             totalReps += r;
         });
 
-        // B. Deep History Fetch
-        // This now scans ALL entries, not just the first one it finds.
+        // B. Deep History Fetch (Fuzzy Match)
         const rawHistory = getExerciseHistoryForShare(name);
-        
-        // Filter 1: Remove data from the future (relative to this card)
         const validHistory = rawHistory.filter(h => h.timestamp <= cardDateLimit);
-
-        // Filter 2: Separate "Past History" from "Current Session"
-        // We exclude anything that happened ON the card's date from the history bucket
         const pastHistory = validHistory.filter(h => h.timestamp < cardDateStart);
         
-        // Construct "Today's" Entry for the Trend Table
-        // We use the first set's timestamp to place it correctly on the timeline
         const sessionTs = sets[0].timestamp ? new Date(sets[0].timestamp).getTime() : new Date().getTime();
         
         const todayEntry = {
@@ -5472,14 +5460,13 @@ async function generateAndShareCard(dateKey, groups) {
             volume: todayVol,
             wpr: totalReps > 0 ? todayVol / totalReps : 0,
             reps: totalReps,
-            isToday: true // Visual flag
+            isToday: true
         };
         
-        // Combine for Trend Table: [...Past, Today]
         const historyForTrend = [...pastHistory, todayEntry];
         const last4 = getLast4Sessions(historyForTrend);
 
-        // C. Calculate Highlights (Comparison vs Past)
+        // C. Calculate Highlights
         const prevMax = getMetricMax(pastHistory, 'weight'); 
         const prevVolMax = getMetricMax(pastHistory, 'volume');
         const recentVolAvg = getRecentAvg(pastHistory, 'volume');
@@ -5493,7 +5480,7 @@ async function generateAndShareCard(dateKey, groups) {
 
         // 1. All-Time Weight PR
         if (todayMax > prevMax && prevMax > 0) {
-            highlight = `NEW 1RM: ${UNIT_mode.toDisplay(todayMax)} ${unit}! 🏆`;
+            highlight = `NEW 1RM: ${formatShareNum(UNIT_mode.toDisplay(todayMax))} ${unit}! 🏆`;
             score = 100;
             accent = '#34c759'; // Green
         }
@@ -5504,7 +5491,7 @@ async function generateAndShareCard(dateKey, groups) {
             score = 90;
             accent = '#34c759';
         }
-        // 3. Heavy Single (Green Treatment)
+        // 3. Heavy Single
         else if (todayMax >= prevMax * 0.90 && prevMax > 0) {
             const pct = ((todayMax / prevMax) * 100).toFixed(0);
             highlight = `${pct}% of All-Time Max 🔋`;
@@ -5520,7 +5507,7 @@ async function generateAndShareCard(dateKey, groups) {
         }
         // 5. High Volume
         else if (todayVol > recentVolAvg * 1.2 && recentVolAvg > 0) {
-            highlight = `High Volume: ${Math.round(UNIT_mode.toDisplay(todayVol))} ${unit}`;
+            highlight = `High Volume: ${Math.round(UNIT_mode.toDisplay(todayVol)).toLocaleString()} ${unit}`;
             score = 50;
             accent = '#007aff'; // Blue
         }
@@ -5534,7 +5521,6 @@ async function generateAndShareCard(dateKey, groups) {
         summaries.push({ name, highlight, score, accent, last4 });
     });
 
-    // Sort: Best lifts top
     summaries.sort((a, b) => b.score - a.score);
 
     // ------------------------------------------
@@ -5544,7 +5530,7 @@ async function generateAndShareCard(dateKey, groups) {
     const ctx = canvas.getContext('2d');
     const W = 1080;
     
-    // Smart Expansion: <= 4 items gets detailed view
+    // Auto-Expand: <= 4 items gets detailed view
     const isExpandedMode = summaries.length <= 4;
     
     const topZoneH = 380; 
@@ -5586,8 +5572,9 @@ async function generateAndShareCard(dateKey, groups) {
     let bestNameDisplay = bestLiftName;
     if (bestNameDisplay.length > 12) bestNameDisplay = bestNameDisplay.substring(0, 10) + "..";
     
+    // FIX: Using formatShareNum to preserve decimals in Best Lift
     drawHeroStat(ctx, "BEST LIFT", `${bestNameDisplay}`, W*0.8, statsY, 
-        `${UNIT_mode.toDisplay(bestLiftWeight)} ${UNIT_mode.getLabel()}`, true);
+        `${formatShareNum(UNIT_mode.toDisplay(bestLiftWeight))} ${UNIT_mode.getLabel()}`, true);
 
     // Divider
     ctx.fillStyle = '#222';
@@ -5599,25 +5586,39 @@ async function generateAndShareCard(dateKey, groups) {
     summaries.forEach((item, i) => {
         const centerY = currentY + (rowH / 2);
         
-        // 1. Exercise Name
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#e5e5e5';
-        let nameSize = 55;
-        if (item.name.length > 15) nameSize = 45;
-        if (item.name.length > 25) nameSize = 35;
-        ctx.font = `bold ${nameSize}px "Fredoka", sans-serif`; 
-        
-        const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
-        ctx.fillText(item.name, 60, nameY);
-
-        // 2. Highlight Tag
+        // --- 1. HIGHLIGHT TAG (Right Side) ---
+        // We draw this first so we know how much space it takes
         ctx.textAlign = 'right';
         ctx.fillStyle = item.accent;
         ctx.font = '600 35px "Inter", sans-serif';
         const tagY = isExpandedMode ? currentY + 70 : centerY + 15;
+        
+        // Measure highlight width to prevent overlap
+        const tagWidth = ctx.measureText(item.highlight).width;
         ctx.fillText(item.highlight, W - 60, tagY);
 
-        // 3. EXPANDED DATA TABLES
+        // --- 2. EXERCISE NAME (Left Side - Smart Shrink) ---
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#e5e5e5';
+        
+        const nameY = isExpandedMode ? currentY + 70 : centerY + 15;
+        
+        // Calculate max available width for name (Total - Margins - TagWidth - Buffer)
+        // W=1080, LeftMargin=60, RightMargin=60, Buffer=40
+        const maxNameWidth = W - 120 - tagWidth - 40;
+        
+        // Dynamic Font Sizing Loop
+        let fontSize = 55;
+        ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
+        
+        while (ctx.measureText(item.name).width > maxNameWidth && fontSize > 25) {
+            fontSize -= 2;
+            ctx.font = `bold ${fontSize}px "Fredoka", sans-serif`;
+        }
+        
+        ctx.fillText(item.name, 60, nameY);
+
+        // --- 3. EXPANDED DATA TABLES ---
         if (isExpandedMode) {
             drawTrendRow(ctx, item.last4, 60, currentY + 120, W - 120);
         }
@@ -5655,6 +5656,12 @@ async function generateAndShareCard(dateKey, groups) {
 
 // --- VISUAL HELPERS ---
 
+function formatShareNum(num) {
+    if (isNaN(num)) return "0";
+    if (num % 1 === 0) return num.toString();
+    return num.toFixed(1); // Keeps 22.5 as "22.5" instead of "23"
+}
+
 function drawHeroStat(ctx, label, val1, x, y, val2, isSmall = false) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#666';
@@ -5686,7 +5693,8 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
         ctx.fillStyle = sess.wprColor; 
         ctx.font = 'bold 32px "Fredoka", sans-serif';
-        const wprStr = `${Math.round(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
+        // FIX: No Math.round here! Use formatShareNum for precision
+        const wprStr = `${formatShareNum(UNIT_mode.toDisplay(sess.wpr))} ${UNIT_mode.getLabel()}`;
         ctx.fillText(wprStr, cx, y + 45);
         
         ctx.fillStyle = '#444';
@@ -5695,6 +5703,7 @@ function drawTrendRow(ctx, sessions, x, y, width) {
 
         ctx.fillStyle = sess.volColor; 
         ctx.font = 'bold 24px "Fredoka", sans-serif';
+        // Volume can still be rounded as it's usually large
         const volStr = Math.round(UNIT_mode.toDisplay(sess.volume)).toLocaleString();
         ctx.fillText(volStr, cx, y + 115);
         
@@ -5709,29 +5718,23 @@ function drawTrendRow(ctx, sessions, x, y, width) {
     });
 }
 
-// --- DATA MINING HELPERS (DEEP SEARCH) ---
+// --- DATA MINING HELPERS ---
 
 function normalizeStr(str) {
     if(!str) return "";
     return str.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-// FIX: This now iterates ALL exercises in a session, not just the first one it finds.
 function getExerciseHistoryForShare(exerciseName) {
     if (!selectedClient || !clientsData[selectedClient]) return [];
     
     const targetKey = normalizeStr(exerciseName);
     const sessions = clientsData[selectedClient].sessions || [];
-    
-    // Map: "YYYY-MM-DD" -> { sets: [], timestamp: ms }
     const dateMap = new Map();
 
     sessions.forEach(sess => {
         if (!sess.exercises) return;
         
-        // CRITICAL FIX: Use forEach instead of find()
-        // This ensures if you have duplicates (e.g. two "Bench Press" entries in one folder),
-        // we grab the data from BOTH.
         sess.exercises.forEach(ex => {
             if (ex.exercise && normalizeStr(ex.exercise) === targetKey) {
                 if (ex.sets && ex.sets.length > 0) {
@@ -5776,14 +5779,11 @@ function getExerciseHistoryForShare(exerciseName) {
 }
 
 function getLast4Sessions(history) {
-    // Sort Oldest -> Newest
     const sorted = history.sort((a,b) => a.timestamp - b.timestamp);
-    // Take the last 4
     const slice = sorted.slice(-4);
     
     return slice.map((h, index) => {
         const d = new Date(h.timestamp);
-        // Compare with the *actual* previous session in the full sorted list
         const realIndex = sorted.indexOf(h);
         const prev = realIndex > 0 ? sorted[realIndex - 1] : null;
 
