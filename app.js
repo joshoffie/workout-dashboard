@@ -885,7 +885,7 @@ auth.getRedirectResult().then((result) => {
 modalLoginBtn.onclick = async () => {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+   // provider.setCustomParameters({ prompt: 'select_account' });
     
     // We use standard Popup. The iOS App will now handle this 
     // by opening a temporary "Modal Layer" WebView.
