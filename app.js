@@ -83,6 +83,7 @@ async function deleteClientFromFirestore(clientName) {
 let isTutorialMode = false;
 let tutorialTimer = null;
 let tutorialStep = 0;
+let tutorialRafId = null; // <--- NEW: Tracks the animation loop
 let stableWindowHeight = window.innerHeight; // Stores the height WITHOUT keyboard
 
 // 2. FAKE DATA GENERATOR
@@ -223,88 +224,109 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] SMART TOOLTIP POSITIONING ENGINE
+// [app.js] ROBUST STICKY TOOLTIP ENGINE
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
-// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
+  // --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
   if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
 
-  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
+  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE ---
   const loginModal = document.getElementById('loginModal');
   if (loginModal && !loginModal.classList.contains('hidden')) return;
-  // ---------------------------------------------------------------
+
+  // 1. CLEAR OLDER TIPS & LOOPS
   clearTutorialTips();
+
   const target = document.getElementById(targetId);
   if (!target) return;
-  
+
+  // 2. SCROLL INTO VIEW (ONCE)
   if (enableScroll) {
-      // Use 'nearest' to avoid jumping the whole page if the button is already visible
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // 1. Create & Append (To measure dimensions)
+  // 3. CREATE ELEMENT
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
   tip.textContent = text;
+  // Initially hide opacity so it doesn't jump on first frame
+  tip.style.opacity = '0'; 
   document.body.appendChild(tip);
-  
-  // 2. Get Measurements
-  const targetRect = target.getBoundingClientRect();
-  const tipRect = tip.getBoundingClientRect();
-  const screenW = window.innerWidth;
-  // Robust scroll calculation that works on all browsers
-  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-  
-  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
-  const targetCenterX = targetRect.left + (targetRect.width / 2);
-  
-  // Start centered on the target
-  let left = targetCenterX - (tipRect.width / 2);
-  
-  // Safety Padding (10px from edge)
-  const padding = 10; 
-  
-  // Clamp Left: Don't go off the left edge
-  if (left < padding) left = padding;
-  
-  // Clamp Right: Don't go off the right edge
-  if (left + tipRect.width > screenW - padding) {
-      left = screenW - tipRect.width - padding;
-  }
-  
-  // --- ARROW LOGIC (Point to Target) ---
-  // Calculate where the arrow needs to be relative to the text box
-  let arrowX = targetCenterX - left;
-  
-  // Keep arrow inside the box border-radius (don't let it float off the corner)
-  const cornerLimit = 20; 
-  if (arrowX < cornerLimit) arrowX = cornerLimit;
-  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
-  
-  // --- VERTICAL LOGIC (Safety Fix) ---
-  let top;
-  const gap = 15; // Space between button and tip
-  const spaceAbove = targetRect.top; 
 
-  // FIX: Increased threshold (+80px). 
-  // If the button is in the top header area (like the Back button),
-  // we FORCE the tooltip to appear BELOW it.
-  if (spaceAbove > tipRect.height + gap + 80) {
-      // POSITION ABOVE
-      top = scrollY + targetRect.top - tipRect.height - gap;
-      tip.classList.remove('tooltip-below');
-  } else {
-      // POSITION BELOW (Default for Header Buttons)
-      top = scrollY + targetRect.bottom + gap;
-      tip.classList.add('tooltip-below');
-  }
+  // 4. THE LIVE TRACKING LOOP
+  const updatePosition = () => {
+      // Safety: If tip or target is gone, stop.
+      if (!document.body.contains(tip) || !document.body.contains(target)) {
+          cancelAnimationFrame(tutorialRafId);
+          return;
+      }
 
-  // 3. Apply Calculated Styles
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-  tip.style.setProperty('--arrow-x', `${arrowX}px`);
+      // A. Get Measurements (Every Frame)
+      const targetRect = target.getBoundingClientRect();
+      const tipRect = tip.getBoundingClientRect();
+      const screenW = window.innerWidth;
+      const scrollY = window.scrollY || window.pageYOffset;
+
+      // B. Horizontal Logic (Clamping)
+      const targetCenterX = targetRect.left + (targetRect.width / 2);
+      let left = targetCenterX - (tipRect.width / 2);
+      
+      const padding = 10;
+      // Clamp Left
+      if (left < padding) left = padding;
+      // Clamp Right
+      if (left + tipRect.width > screenW - padding) {
+          left = screenW - tipRect.width - padding;
+      }
+
+      // C. Arrow Logic
+      let arrowX = targetCenterX - left;
+      const cornerLimit = 20;
+      if (arrowX < cornerLimit) arrowX = cornerLimit;
+      if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
+
+      // D. Vertical Logic (Smart Flip)
+      // Check space above relative to the viewport top (targetRect.top)
+      const gap = 15;
+      const spaceAbove = targetRect.top; 
+      let top;
+
+      // If button is too high up (header area), force tooltip BELOW
+      // OR if there isn't enough room above for the tooltip
+      if (spaceAbove < tipRect.height + gap + 80) {
+           // POSITION BELOW
+           top = scrollY + targetRect.bottom + gap;
+           tip.classList.add('tooltip-below');
+      } else {
+           // POSITION ABOVE (Default)
+           top = scrollY + targetRect.top - tipRect.height - gap;
+           tip.classList.remove('tooltip-below');
+      }
+
+      // E. Apply Styles
+      tip.style.left = `${left}px`;
+      tip.style.top = `${top}px`;
+      tip.style.setProperty('--arrow-x', `${arrowX}px`);
+      
+      // Reveal after first calculation
+      tip.style.opacity = '1';
+
+      // F. Loop
+      tutorialRafId = requestAnimationFrame(updatePosition);
+  };
+
+  // Start the loop
+  updatePosition();
 }
 
+// [app.js] CLEANUP ENGINE
 function clearTutorialTips() {
+  // 1. Stop the tracker immediately
+  if (tutorialRafId) {
+      cancelAnimationFrame(tutorialRafId);
+      tutorialRafId = null;
+  }
+  
+  // 2. Remove elements
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
 }
 
