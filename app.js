@@ -223,89 +223,99 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] SMART TOOLTIP POSITIONING ENGINE
+// [app.js] SMART TOOLTIP & SPOTLIGHT ENGINE
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
-// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
+  // --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
   if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
-
-  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
+  
+  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE ---
   const loginModal = document.getElementById('loginModal');
   if (loginModal && !loginModal.classList.contains('hidden')) return;
-  // ---------------------------------------------------------------
+
+  // 1. Clear previous highlights/bubbles
   clearTutorialTips();
+
   const target = document.getElementById(targetId);
   if (!target) return;
-  
-  if (enableScroll) {
-      // Use 'nearest' to avoid jumping the whole page if the button is already visible
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // 2. CREATE OVERLAY (The "Lock")
+  let overlay = document.getElementById('tutorialOverlay');
+  if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'tutorialOverlay';
+      overlay.className = 'tutorial-overlay';
+      // Stop clicks on background
+      overlay.onclick = (e) => e.stopPropagation();
+      document.body.appendChild(overlay);
   }
 
-  // 1. Create & Append (To measure dimensions)
+  // 3. HIGHLIGHT TARGET (The "Spotlight")
+  target.classList.add('tutorial-target');
+
+  // 4. AUTO-SCROLL (Scroll "For Them")
+  if (enableScroll) {
+      // 'center' ensures the button is right in the middle
+      target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }
+
+  // 5. CREATE BUBBLE (Existing Logic)
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
   tip.textContent = text;
+  // Make sure bubble is above overlay too
+  tip.style.zIndex = '10000'; 
   document.body.appendChild(tip);
   
-  // 2. Get Measurements
+  // 6. POSITION BUBBLE
   const targetRect = target.getBoundingClientRect();
   const tipRect = tip.getBoundingClientRect();
   const screenW = window.innerWidth;
-  // Robust scroll calculation that works on all browsers
-  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-  
-  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
-  const targetCenterX = targetRect.left + (targetRect.width / 2);
-  
-  // Start centered on the target
-  let left = targetCenterX - (tipRect.width / 2);
-  
-  // Safety Padding (10px from edge)
-  const padding = 10; 
-  
-  // Clamp Left: Don't go off the left edge
-  if (left < padding) left = padding;
-  
-  // Clamp Right: Don't go off the right edge
-  if (left + tipRect.width > screenW - padding) {
-      left = screenW - tipRect.width - padding;
-  }
-  
-  // --- ARROW LOGIC (Point to Target) ---
-  // Calculate where the arrow needs to be relative to the text box
-  let arrowX = targetCenterX - left;
-  
-  // Keep arrow inside the box border-radius (don't let it float off the corner)
-  const cornerLimit = 20; 
-  if (arrowX < cornerLimit) arrowX = cornerLimit;
-  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
-  
-  // --- VERTICAL LOGIC (Safety Fix) ---
-  let top;
-  const gap = 15; // Space between button and tip
-  const spaceAbove = targetRect.top; 
+  const scrollY = window.scrollY || window.pageYOffset;
 
-  // FIX: Increased threshold (+80px). 
-  // If the button is in the top header area (like the Back button),
-  // we FORCE the tooltip to appear BELOW it.
+  // Center Horizontal
+  let left = (targetRect.left + (targetRect.width / 2)) - (tipRect.width / 2);
+  // Clamp edges
+  if (left < 10) left = 10;
+  if (left + tipRect.width > screenW - 10) left = screenW - tipRect.width - 10;
+
+  // Arrow calculation
+  let arrowX = (targetRect.left + (targetRect.width / 2)) - left;
+  if (arrowX < 15) arrowX = 15;
+  if (arrowX > tipRect.width - 15) arrowX = tipRect.width - 15;
+
+  // Vertical (Above or Below)
+  const gap = 15;
+  const spaceAbove = targetRect.top;
+  let top;
+  
+  // Force below for headers, above for footers usually
   if (spaceAbove > tipRect.height + gap + 80) {
-      // POSITION ABOVE
+      // Position Above
       top = scrollY + targetRect.top - tipRect.height - gap;
       tip.classList.remove('tooltip-below');
   } else {
-      // POSITION BELOW (Default for Header Buttons)
+      // Position Below
       top = scrollY + targetRect.bottom + gap;
       tip.classList.add('tooltip-below');
   }
 
-  // 3. Apply Calculated Styles
   tip.style.left = `${left}px`;
   tip.style.top = `${top}px`;
   tip.style.setProperty('--arrow-x', `${arrowX}px`);
 }
 
 function clearTutorialTips() {
+  // 1. Remove Bubbles
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
+  
+  // 2. Remove Overlay
+  const overlay = document.getElementById('tutorialOverlay');
+  if (overlay) overlay.remove();
+
+  // 3. Remove Highlights (Restore normal z-index)
+  document.querySelectorAll('.tutorial-target').forEach(el => {
+      el.classList.remove('tutorial-target');
+  });
 }
 
 // ------------------ Firebase Config ------------------
