@@ -165,7 +165,6 @@ if (startTutorialBtn) {
         clientsData = generateTutorialData();
         renderClients();
           
-        enableTutorialScrollTrigger(); // <--- ADD THIS
         // 6. Start Interaction
         setTimeout(() => {
           showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
@@ -189,7 +188,6 @@ if (endTutorialBtn) {
 
         
       // 2. Kill Pending Timers (The "Zombie" Fix)
-        disableTutorialScrollTrigger(); // <--- ADD THIS
       if (tutorialTimer) clearTimeout(tutorialTimer);
       tutorialTimer = null;
       
@@ -226,226 +224,106 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] SMART TOOLTIP POSITIONING ENGINE
-function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
-// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
-  if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
-
-  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
-  const loginModal = document.getElementById('loginModal');
-  if (loginModal && !loginModal.classList.contains('hidden')) return;
-  // ---------------------------------------------------------------
-  clearTutorialTips();
-  const target = document.getElementById(targetId);
-  if (!target) return;
-  
-  if (enableScroll) {
-      // Use 'nearest' to avoid jumping the whole page if the button is already visible
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // 1. Create & Append (To measure dimensions)
-  const tip = document.createElement('div');
-  tip.className = 'tutorial-tooltip';
-  tip.textContent = text;
-  document.body.appendChild(tip);
-  
-  // 2. Get Measurements
-  const targetRect = target.getBoundingClientRect();
-  const tipRect = tip.getBoundingClientRect();
-  const screenW = window.innerWidth;
-  // Robust scroll calculation that works on all browsers
-  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-  
-  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
-  const targetCenterX = targetRect.left + (targetRect.width / 2);
-  
-  // Start centered on the target
-  let left = targetCenterX - (tipRect.width / 2);
-  
-  // Safety Padding (10px from edge)
-  const padding = 10; 
-  
-  // Clamp Left: Don't go off the left edge
-  if (left < padding) left = padding;
-  
-  // Clamp Right: Don't go off the right edge
-  if (left + tipRect.width > screenW - padding) {
-      left = screenW - tipRect.width - padding;
-  }
-  
-  // --- ARROW LOGIC (Point to Target) ---
-  // Calculate where the arrow needs to be relative to the text box
-  let arrowX = targetCenterX - left;
-  
-  // Keep arrow inside the box border-radius (don't let it float off the corner)
-  const cornerLimit = 20; 
-  if (arrowX < cornerLimit) arrowX = cornerLimit;
-  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
-  
-  // --- VERTICAL LOGIC (Safety Fix) ---
-  let top;
-  const gap = 15; // Space between button and tip
-  const spaceAbove = targetRect.top; 
-
-  // FIX: Increased threshold (+80px). 
-  // If the button is in the top header area (like the Back button),
-  // we FORCE the tooltip to appear BELOW it.
-  if (spaceAbove > tipRect.height + gap + 80) {
-      // POSITION ABOVE
-      top = scrollY + targetRect.top - tipRect.height - gap;
-      tip.classList.remove('tooltip-below');
-  } else {
-      // POSITION BELOW (Default for Header Buttons)
-      top = scrollY + targetRect.bottom + gap;
-      tip.classList.add('tooltip-below');
-  }
-
-  // 3. Apply Calculated Styles
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-  tip.style.setProperty('--arrow-x', `${arrowX}px`);
-}
-
-function clearTutorialTips() {
-  document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
-}
-
-// ==========================================
-// 🎓 ROBUST: TUTORIAL SNAP-BACK ENGINE
-// ==========================================
-
-let tutorialSnapTimer = null;
-
-// 1. Activate (Call this in runTutorial/startTutorial)
-function enableTutorialScrollTrigger() {
-    // Detect BOTH touch dragging and momentum scrolling
-    window.addEventListener('scroll', handleTutorialScroll, { passive: true });
-    window.addEventListener('touchmove', handleTutorialScroll, { passive: true });
-    console.log("🎓 Snap Engine: ENGAGED");
-}
-
-// 2. Deactivate (Call this in endTutorial)
-function disableTutorialScrollTrigger() {
-    window.removeEventListener('scroll', handleTutorialScroll);
-    window.removeEventListener('touchmove', handleTutorialScroll);
-    if (tutorialSnapTimer) clearTimeout(tutorialSnapTimer);
-    console.log("🎓 Snap Engine: DISENGAGED");
-}
-
-// 3. The "Allow & Snap" Logic
-function handleTutorialScroll() {
+// [app.js] ROBUST LOCAL TUTORIAL BUBBLES
+function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center') {
+    // 1. Safety Checks
     if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
+    clearTutorialTips(); // Clear old bubbles
 
-    // A. While scrolling, hide tips so they don't float awkwardly
-    // (Optional: feels cleaner)
-    clearTutorialTips();
+    const target = document.getElementById(targetId);
+    if (!target) return;
 
-    // B. Reset the "Snap" timer (Debounce)
-    if (tutorialSnapTimer) clearTimeout(tutorialSnapTimer);
+    // 2. Identify the "Local" Universe (The Scrolling Container)
+    // We try to find the current active screen (e.g., setsDiv, sessionsDiv)
+    // If the target is Fixed (like a header button), we fallback to body.
+    let container = document.getElementById(currentScreen);
+    let isFixedTarget = false;
 
-    // C. Set the Snap Action (2.0 Seconds after motion STOPS)
-    tutorialSnapTimer = setTimeout(() => {
-        executeTutorialSnap();
-    }, 2000); 
-}
+    // DETECT FIXED ELEMENTS (Headers/Footers)
+    // If the target is in a fixed header, we MUST use body/fixed positioning
+    if (target.closest('.header') || target.closest('.footer') || target.style.position === 'fixed') {
+        container = document.body;
+        isFixedTarget = true;
+    }
 
-// 4. The Executor
-function executeTutorialSnap() {
-    if (!isTutorialMode) return;
+    if (!container) container = document.body;
+
+    // 3. Create the Bubble
+    const tip = document.createElement('div');
+    tip.className = 'tutorial-tooltip';
+    tip.textContent = text;
     
-    const stage = document.body.dataset.tutorialStage;
-    console.log(`🧲 Snapping user to stage: [${stage}]`);
+    // 4. Attach Locally
+    container.appendChild(tip);
 
-    let targetId = null;
-    let tipText = "";
-    let align = "center";
+    // 5. Calculate "Absolute" Coordinates
+    // We need the position relative to the CONTAINER, not the window.
+    const tRect = target.getBoundingClientRect();
+    const cRect = container.getBoundingClientRect();
+    
+    let top, left;
 
-    // --- MAP STAGES TO TARGETS ---
-    switch (stage) {
-        // HOME
-        case 'start':
-        case 'home-returned': 
-            // Point to the first client
-            const firstClient = document.querySelector('#clientList li span');
-            if (firstClient) {
-                firstClient.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // We manually show the tip on the PARENT li for better positioning
-                setTimeout(() => showTutorialTip('clientList', 'Tap the profile to continue.', 40), 500);
-            }
-            return;
-
-        // SESSIONS
-        case 'sessions':
-            const firstSession = document.querySelector('#sessionList li span');
-            if (firstSession) {
-                firstSession.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => showTutorialTip('sessionList', 'Tap the session to view details.', 40), 500);
-            }
-            return;
-
-        // EXERCISES
-        case 'exercises':
-            const firstEx = document.querySelector('#exerciseList li span');
-            if (firstEx) {
-                firstEx.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => showTutorialTip('exerciseList', 'Tap the exercise to see data.', 40), 500);
-            }
-            return;
-
-        // SETS (The Main Fix)
-        case 'sets-view': 
-        case 'post-log':
-            // Instead of clicking, we point to the "Add Set" button
-            targetId = 'addSetBtn';
-            tipText = 'Tap here to log your set.';
-            align = -10; // Vertical offset
-            break;
-
-        // SLIDER (Special Case)
-        case 'waiting-for-slider':
-            targetId = 'spiralSlider';
-            tipText = 'Drag the slider backwards.';
-            break;
-            
-        // GRAPH
-        case 'graph-touched':
-             targetId = 'backToSetsFromGraphBtn';
-             tipText = 'Press here to return.';
-             align = 'left';
-             break;
-
-        // CALENDAR
-        case 'calendar-visited':
-             targetId = 'backToSessionsFromCalBtn';
-             tipText = 'Tap back to return.';
-             align = 'left';
-             break;
-
-        // SETTINGS
-        case 'settings-start':
-             targetId = 'settingUnitToggle';
-             tipText = 'Toggle Lbs/Kg here.';
-             break;
-        case 'timer-settings-open':
-             targetId = 'closeTimerSettingsBtn';
-             tipText = 'Tap Done to return.';
-             break;
-    }
-
-    // --- EXECUTE SNAP ---
-    if (targetId) {
-        const el = document.getElementById(targetId);
-        if (el) {
-            // 1. Smooth Scroll to Target
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // 2. Show Bubble (Delayed slightly so scroll finishes)
-            setTimeout(() => {
-                showTutorialTip(targetId, tipText, typeof align === 'number' ? align : 0, typeof align === 'string' ? align : 'center');
-            }, 500);
+    if (isFixedTarget) {
+        // FIXED MODE: Visual coordinates (ViewPort)
+        tip.style.position = 'fixed';
+        top = tRect.bottom + 15; // Gap
+        left = tRect.left + (tRect.width / 2) - (120); // Center-ish estimate (refined below)
+        
+        // Header Safety: If button is at bottom (Footer), flip bubble up
+        if (tRect.top > window.innerHeight / 2) {
+            top = tRect.top - 60; // Approximate height of bubble
+            tip.classList.remove('tooltip-below');
+        } else {
+            tip.classList.add('tooltip-below');
         }
+
+    } else {
+        // SCROLL MODE: Physical coordinates (Container + Scroll Offset)
+        // Ensure container allows positioning
+        const style = window.getComputedStyle(container);
+        if (style.position === 'static') container.style.position = 'relative';
+        
+        tip.style.position = 'absolute';
+        tip.style.zIndex = '999';
+
+        // Math: (Target Visual Top - Container Visual Top) + Container Scroll History
+        top = (tRect.bottom - cRect.top) + container.scrollTop + 15;
+        left = (tRect.left - cRect.left) + (tRect.width / 2);
+        
+        tip.classList.add('tooltip-below');
     }
+
+    // 6. Apply & Refine Horizontal Center
+    // (We render first to get the bubble's width, then shift it)
+    tip.style.top = `${top}px`;
+    tip.style.left = `${left}px`;
+    
+    // Now that it's in the DOM, we can center it perfectly using transform
+    // This removes the need for complex width guessing
+    tip.style.transform = "translateX(-50%)";
+
+    // 7. Edge Guard (Don't let it overflow left/right)
+    // We use a small timeout to allow the browser to render the width
+    setTimeout(() => {
+        const tipRect = tip.getBoundingClientRect();
+        const screenW = window.innerWidth;
+        const padding = 10;
+
+        // Check Right Edge
+        if (tipRect.right > screenW - padding) {
+            const shift = tipRect.right - (screenW - padding);
+            tip.style.transform = `translateX(calc(-50% - ${shift}px))`;
+            // Move arrow to compensate
+            tip.style.setProperty('--arrow-x', `calc(50% + ${shift}px)`);
+        }
+        // Check Left Edge
+        else if (tipRect.left < padding) {
+            const shift = padding - tipRect.left;
+            tip.style.transform = `translateX(calc(-50% + ${shift}px))`;
+            // Move arrow to compensate
+            tip.style.setProperty('--arrow-x', `calc(50% - ${shift}px)`);
+        }
+    }, 0);
 }
 
 // ------------------ Firebase Config ------------------
