@@ -164,7 +164,8 @@ if (startTutorialBtn) {
         // 5. Load Data & Render
         clientsData = generateTutorialData();
         renderClients();
-
+          
+        enableTutorialScrollTrigger(); // <--- ADD THIS
         // 6. Start Interaction
         setTimeout(() => {
           showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
@@ -185,8 +186,10 @@ if (endTutorialBtn) {
       // 1. Immediate State Kill
       isTutorialMode = false;
       document.body.removeAttribute('data-tutorial-stage');
-      
+
+        
       // 2. Kill Pending Timers (The "Zombie" Fix)
+        disableTutorialScrollTrigger(); // <--- ADD THIS
       if (tutorialTimer) clearTimeout(tutorialTimer);
       tutorialTimer = null;
       
@@ -306,6 +309,69 @@ function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'cent
 
 function clearTutorialTips() {
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
+}
+
+// ==========================================
+// 🎓 ROBUST: TUTORIAL SCROLL ENGINE
+// ==========================================
+let tutorialScrollCooldown = false;
+
+function enableTutorialScrollTrigger() {
+    // We use { passive: false } to allow preventing the default scroll if needed
+    window.addEventListener('wheel', handleTutorialScroll, { passive: false });
+    window.addEventListener('touchmove', handleTutorialScroll, { passive: false });
+    console.log("🎓 Tutorial Scroll Engine: ENGAGED");
+}
+
+function disableTutorialScrollTrigger() {
+    window.removeEventListener('wheel', handleTutorialScroll);
+    window.removeEventListener('touchmove', handleTutorialScroll);
+    console.log("🎓 Tutorial Scroll Engine: DISENGAGED");
+}
+
+function handleTutorialScroll(e) {
+    // 1. SAFETY: Only run if tutorial is actually active
+    if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
+
+    // 2. EXCEPTION: Allow scrolling for the "Slider" step
+    // We don't want to auto-click if they are trying to drag the spiral slider
+    const stage = document.body.dataset.tutorialStage;
+    if (stage === 'waiting-for-slider') return; 
+
+    // 3. COOLDOWN: Prevent rapid-fire skipping (1.5s delay)
+    if (tutorialScrollCooldown) return;
+    
+    // 4. ACTION: Stop the actual scroll (keeps view stable) & Advance
+    // e.preventDefault(); // Uncomment if you want to strictly freeze the screen
+    tutorialScrollCooldown = true;
+    setTimeout(() => tutorialScrollCooldown = false, 1500);
+
+    console.log(`📜 Scroll detected at stage [${stage}]. Auto-advancing...`);
+
+    // 5. ROUTER: Decide what to click based on the stage
+    if (stage === 'start') {
+        const item = document.querySelector('#clientList li');
+        if (item) item.click();
+    } 
+    else if (stage === 'sessions') {
+        const item = document.querySelector('#sessionList li');
+        if (item) item.click();
+    }
+    else if (stage === 'exercises') {
+        const item = document.querySelector('#exerciseList li');
+        if (item) item.click();
+    }
+    else if (stage === 'sets-view') {
+        // In the Sets view, scrolling now triggers the "Add Set" action
+        // effectively skipping the reading delay if the user is impatient
+        const btn = document.getElementById('addSetBtn');
+        if (btn) btn.click();
+    }
+    else if (stage === 'calendar-visited') {
+        // If they scroll on calendar, send them back
+        const btn = document.getElementById('backToSessionsFromCalBtn');
+        if (btn) btn.click();
+    }
 }
 
 // ------------------ Firebase Config ------------------
@@ -1695,6 +1761,13 @@ function renderExercises() {
     nameSpan.textContent = ex.exercise;
     li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } 
     selectExercise(idx); };
+
+      // [FIX] ROBUST: Aesthetic Lock for Incline Dumbbell
+    // Makes it visible but unclickable/un-touchable
+    if (ex.exercise.trim().toLowerCase() === 'incline dumbbell') {
+        li.style.pointerEvents = 'none'; // Clicks pass right through
+        li.style.opacity = '0.7';       // Slight dim for visual feedback (optional)
+    }
 
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'edit-actions';
