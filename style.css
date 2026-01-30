@@ -59,8 +59,17 @@
   -webkit-tap-highlight-color: transparent; /* <--- Kills the gray flash box */
   outline: none; /* <--- Kills the focus outline box */
 }
-body { background-color: var(--color-bg); color: var(--color-text); min-height: 100vh;
+/* --- 🛑 CSS SCROLL FIX START 🛑 --- */
+html, body {
+  width: 100%;
+  height: 100%;           /* Force full height */
+  overflow: hidden;       /* KILL the browser scrollbar */
+  position: fixed;        /* Lock the viewport in place */
+  overscroll-behavior: none; /* Disable browser swipe actions */
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
+/* --- 🛑 CSS SCROLL FIX END 🛑 --- */
 .hidden { display: none !important; }
 
 /* ===== LOGIN MODAL ===== */
