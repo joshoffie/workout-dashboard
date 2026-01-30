@@ -225,34 +225,48 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// 2. THE MASTER FUNCTION (Scrolls -> Waits -> Shows)
+// [app.js] CONTAINER-SAFE SCROLL & TOOLTIP ENGINE
 function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
   // --- FAILSAFE: STOP IF TUTORIAL OFF ---
   if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
   const loginModal = document.getElementById('loginModal');
   if (loginModal && !loginModal.classList.contains('hidden')) return;
 
-  // 1. CLEAR EVERYTHING FIRST
+  // 1. CLEAR EVERYTHING
   clearTutorialTips();
 
   const target = document.getElementById(targetId);
   if (!target) return;
 
-  // 2. SCROLL LOGIC
+  [cite_start]// 2. SAFE SCROLL LOGIC (The Fix) [cite: 53]
   if (enableScroll) {
-      // Force the element to the center of the viewport
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      // WAIT for the scroll to finish before attaching the bubble
-      tutorialScrollTimeout = setTimeout(() => {
-           renderStickyBubble(target, text);
-      }, 600); // 600ms allows the smooth scroll to settle
+      // Find the parent screen (e.g., setsDiv, clientsDiv)
+      const container = target.closest('.screen') || target.closest('.scroll-y');
+      
+      if (container) {
+          // Calculate the position of the button relative to the container
+          // We want to center it: (ButtonTop - ContainerTop) - (1/2 ContainerHeight) + (1/2 ButtonHeight)
+          const targetTop = target.offsetTop;
+          const containerHeight = container.clientHeight;
+          const targetHeight = target.clientHeight;
+          
+          const scrollPos = targetTop - (containerHeight / 2) + (targetHeight / 2);
+          
+          // Scroll ONLY the container
+          container.scrollTo({ top: scrollPos, behavior: 'smooth' });
+          
+          // Wait for scroll to settle
+          tutorialScrollTimeout = setTimeout(() => {
+               renderStickyBubble(target, text);
+          }, 600);
+          return;
+      }
+      // Fallback: If no container found, just render immediately (Don't risk window scroll)
+      renderStickyBubble(target, text);
   } else {
-      // Show immediately if no scroll needed
       renderStickyBubble(target, text);
   }
 }
-
 // 3. THE RENDERER (The "Sticky" Logic)
 function renderStickyBubble(target, text) {
     // Double-check existence (in case user navigated away during the 600ms wait)
