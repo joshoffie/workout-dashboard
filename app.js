@@ -5480,7 +5480,7 @@ async function generateAndShareCard(dateKey, groups) {
 
         // 1. All-Time Weight PR
         if (todayMax > prevMax && prevMax > 0) {
-            highlight = `NEW 1RM: ${formatShareNum(UNIT_mode.toDisplay(todayMax))} ${unit}! 🏆`;
+            highlight = `NEW MAX: ${formatShareNum(UNIT_mode.toDisplay(todayMax))} ${unit}! 🏆`;
             score = 100;
             accent = '#34c759'; // Green
         }
