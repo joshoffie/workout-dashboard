@@ -164,7 +164,7 @@ if (startTutorialBtn) {
         // 5. Load Data & Render
         clientsData = generateTutorialData();
         renderClients();
-          
+
         // 6. Start Interaction
         setTimeout(() => {
           showTutorialTip('clientList', 'Tap the profile to see sessions.', 40);
@@ -185,8 +185,7 @@ if (endTutorialBtn) {
       // 1. Immediate State Kill
       isTutorialMode = false;
       document.body.removeAttribute('data-tutorial-stage');
-
-        
+      
       // 2. Kill Pending Timers (The "Zombie" Fix)
       if (tutorialTimer) clearTimeout(tutorialTimer);
       tutorialTimer = null;
@@ -224,105 +223,91 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// ==========================================
-// 📍 ROBUST: LOCAL BUBBLE ENGINE
-// ==========================================
-function showTutorialTip(targetId, text) {
-    // 1. Safety Checks
-    if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
-    
-    // Stop any login modal conflicts
-    const loginModal = document.getElementById('loginModal');
-    if (loginModal && !loginModal.classList.contains('hidden')) return;
+// [app.js] SMART TOOLTIP POSITIONING ENGINE
+function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
+// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
+  if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
 
-    // Clear previous bubbles
-    clearTutorialTips();
+  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
+  const loginModal = document.getElementById('loginModal');
+  if (loginModal && !loginModal.classList.contains('hidden')) return;
+  // ---------------------------------------------------------------
+  clearTutorialTips();
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  
+  if (enableScroll) {
+      // Use 'nearest' to avoid jumping the whole page if the button is already visible
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
-    const target = document.getElementById(targetId);
-    if (!target) return;
+  // 1. Create & Append (To measure dimensions)
+  const tip = document.createElement('div');
+  tip.className = 'tutorial-tooltip';
+  tip.textContent = text;
+  document.body.appendChild(tip);
+  
+  // 2. Get Measurements
+  const targetRect = target.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  const screenW = window.innerWidth;
+  // Robust scroll calculation that works on all browsers
+  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+  
+  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
+  const targetCenterX = targetRect.left + (targetRect.width / 2);
+  
+  // Start centered on the target
+  let left = targetCenterX - (tipRect.width / 2);
+  
+  // Safety Padding (10px from edge)
+  const padding = 10; 
+  
+  // Clamp Left: Don't go off the left edge
+  if (left < padding) left = padding;
+  
+  // Clamp Right: Don't go off the right edge
+  if (left + tipRect.width > screenW - padding) {
+      left = screenW - tipRect.width - padding;
+  }
+  
+  // --- ARROW LOGIC (Point to Target) ---
+  // Calculate where the arrow needs to be relative to the text box
+  let arrowX = targetCenterX - left;
+  
+  // Keep arrow inside the box border-radius (don't let it float off the corner)
+  const cornerLimit = 20; 
+  if (arrowX < cornerLimit) arrowX = cornerLimit;
+  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
+  
+  // --- VERTICAL LOGIC (Safety Fix) ---
+  let top;
+  const gap = 15; // Space between button and tip
+  const spaceAbove = targetRect.top; 
 
-    // 2. Determine "Universe" (Where does the bubble live?)
-    // Default: Global (Attached to Body) - Good for Headers/Footers
-    let container = document.body;
-    let isFixed = true;
+  // FIX: Increased threshold (+80px). 
+  // If the button is in the top header area (like the Back button),
+  // we FORCE the tooltip to appear BELOW it.
+  if (spaceAbove > tipRect.height + gap + 80) {
+      // POSITION ABOVE
+      top = scrollY + targetRect.top - tipRect.height - gap;
+      tip.classList.remove('tooltip-below');
+  } else {
+      // POSITION BELOW (Default for Header Buttons)
+      top = scrollY + targetRect.bottom + gap;
+      tip.classList.add('tooltip-below');
+  }
 
-    // Try to find the active screen (e.g., #sessionsDiv)
-    const currentScreenEl = document.getElementById(currentScreen);
-    
-    // If the target is inside the active screen...
-    if (currentScreenEl && currentScreenEl.contains(target)) {
-        // ...and it is NOT a fixed element (like a header button)...
-        const style = window.getComputedStyle(target);
-        if (style.position !== 'fixed') {
-            // ...Then attach it LOCALLY to the screen!
-            container = currentScreenEl;
-            isFixed = false;
-        }
-    }
-
-    // 3. Create the Bubble
-    const tip = document.createElement('div');
-    tip.className = 'tutorial-tooltip';
-    tip.textContent = text;
-    
-    // 4. Attach to the Container
-    container.appendChild(tip);
-
-    // 5. Calculate Position
-    const tRect = target.getBoundingClientRect();
-    const cRect = container.getBoundingClientRect();
-    
-    if (isFixed) {
-        // --- GLOBAL MODE (Fixed Headers) ---
-        tip.style.position = 'fixed';
-        tip.style.top = `${tRect.bottom + 15}px`;
-        tip.style.left = `${tRect.left + (tRect.width / 2)}px`;
-        tip.style.zIndex = '9999';
-    } else {
-        // --- LOCAL MODE (Scrolling Lists) ---
-        // Ensure the container can handle absolute children
-        const cStyle = window.getComputedStyle(container);
-        if (cStyle.position === 'static') container.style.position = 'relative';
-
-        tip.style.position = 'absolute';
-        
-        // VERTICAL: (Visual Difference) + (Scroll Amount) + Gap
-        // This locks it to the button's Y position within the list
-        const relativeTop = (tRect.bottom - cRect.top) + container.scrollTop + 15;
-        tip.style.top = `${relativeTop}px`;
-        
-        // HORIZONTAL: (Visual Difference) + Half Width
-        const relativeLeft = (tRect.left - cRect.left) + (tRect.width / 2);
-        tip.style.left = `${relativeLeft}px`;
-        
-        tip.style.zIndex = '100'; // Above list items
-    }
-
-    // 6. Center & Style
-    tip.style.transform = 'translateX(-50%)';
-    tip.classList.add('tooltip-below');
-
-    // 7. Edge Guard (Prevent Overflow off-screen)
-    // We delay 10ms to let the browser calculate the width
-    setTimeout(() => {
-        const tipRect = tip.getBoundingClientRect();
-        const screenW = window.innerWidth;
-        const padding = 10;
-        
-        // Hit Right Edge? Shift Left.
-        if (tipRect.right > screenW - padding) {
-            const shift = tipRect.right - (screenW - padding);
-            tip.style.transform = `translateX(calc(-50% - ${shift}px))`;
-            tip.style.setProperty('--arrow-x', `calc(50% + ${shift}px)`);
-        }
-        // Hit Left Edge? Shift Right.
-        else if (tipRect.left < padding) {
-            const shift = padding - tipRect.left;
-            tip.style.transform = `translateX(calc(-50% + ${shift}px))`;
-            tip.style.setProperty('--arrow-x', `calc(50% - ${shift}px)`);
-        }
-    }, 10);
+  // 3. Apply Calculated Styles
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+  tip.style.setProperty('--arrow-x', `${arrowX}px`);
 }
+
+function clearTutorialTips() {
+  document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
+}
+
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
@@ -1710,13 +1695,6 @@ function renderExercises() {
     nameSpan.textContent = ex.exercise;
     li.onclick = (e) => { if (editMode) { e.stopPropagation(); return; } 
     selectExercise(idx); };
-
-      // [FIX] ROBUST: Aesthetic Lock for Incline Dumbbell
-    // Makes it visible but unclickable/un-touchable
-    if (ex.exercise.trim().toLowerCase() === 'incline dumbbell') {
-        li.style.pointerEvents = 'none'; // Clicks pass right through
-        li.style.opacity = '0.7';       // Slight dim for visual feedback (optional)
-    }
 
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'edit-actions';
