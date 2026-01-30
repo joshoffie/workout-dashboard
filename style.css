@@ -1,3 +1,37 @@
+// ==========================================
+// 🎨 TUTORIAL SPOTLIGHT STYLES
+// ==========================================
+const tutorialStyle = document.createElement('style');
+tutorialStyle.innerHTML = `
+  /* The Dark Overlay */
+  .tutorial-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Dark Dim */
+    z-index: 9998;
+    touch-action: none; /* STOPS SCROLLING on the background */
+    cursor: default;
+    transition: opacity 0.3s ease;
+  }
+
+  /* The Highlighted Button/Element */
+  .tutorial-target {
+    position: relative !important; 
+    z-index: 9999 !important; /* Above the overlay */
+    pointer-events: auto !important; /* Allow clicking/dragging THIS item */
+    box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.8), 0 0 20px rgba(0,0,0,0.5); /* Green Glow */
+    border-radius: 8px;
+    background-color: var(--color-bg, #1c1c1e); /* Ensure it's not transparent */
+    transition: box-shadow 0.3s ease;
+  }
+  
+  /* Handle lists/transparent items specifically */
+  ul.tutorial-target, li.tutorial-target {
+    background-color: var(--color-card, #2c2c2e); 
+  }
+`;
+document.head.appendChild(tutorialStyle);
+
+
 .app-header {
   background-color: var(--color-card); 
   
@@ -122,6 +156,8 @@ html, body {
   78.5% { transform: rotate(-90deg); } /* Hold steady while growing */
   100% { transform: rotate(270deg); }  /* Spin 360deg while retracting */
 }
+
+
 
 
 /* ===== TEXT STYLING (UNCHANGED) ===== */
