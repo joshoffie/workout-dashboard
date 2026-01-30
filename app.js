@@ -338,7 +338,7 @@ function clearTutorialTips() {
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
-  authDomain: "trunk-tracker.web.app", // <--- Updated to your custom domain
+  authDomain: "trunktracker.app", // <--- Updated to your custom domain
   projectId: "free-workout-tracker",
   storageBucket: "free-workout-tracker.firebasestorage.app",
   messagingSenderId: "797968203224",
