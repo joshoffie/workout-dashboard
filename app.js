@@ -223,102 +223,89 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] ROBUST SPOTLIGHT & SCROLL LOCK ENGINE
-function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center') {
-  // --- FAILSAFE: STOP IF TUTORIAL IS OVER ---
+// [app.js] SMART TOOLTIP POSITIONING ENGINE
+function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center', enableScroll = true) {
+// --- FAILSAFE 1: STOP IF TUTORIAL IS OVER ---
   if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
+
+  // --- FAILSAFE 2: STOP IF LOGIN IS VISIBLE (Ghost Bubble Fix) ---
   const loginModal = document.getElementById('loginModal');
   if (loginModal && !loginModal.classList.contains('hidden')) return;
-
-  // 1. Clear previous state (unlocks screen momentarily)
+  // ---------------------------------------------------------------
   clearTutorialTips();
-
   const target = document.getElementById(targetId);
   if (!target) return;
-
-  // 2. IDENTIFY THE ACTIVE SCREEN (To Lock It)
-  // We need to find which "screen" div this target lives in
-  const parentScreen = target.closest('.screen') || document.body;
-
-  // 3. CREATE OVERLAY (Visual Dimmer)
-  let overlay = document.getElementById('tutorialOverlay');
-  if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'tutorialOverlay';
-      overlay.className = 'tutorial-overlay';
-      // Swallow clicks on the background
-      overlay.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
-      document.body.appendChild(overlay);
+  
+  if (enableScroll) {
+      // Use 'nearest' to avoid jumping the whole page if the button is already visible
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  // 4. HIGHLIGHT TARGET
-  target.classList.add('tutorial-target');
-
-  // 5. EXECUTE SCROLL & LOCK SEQUENCE
-  // A. Ensure we can scroll (Remove lock if it stuck)
-  parentScreen.classList.remove('stop-scrolling');
-
-  // B. Scroll the target to center
-  target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-
-  // C. Lock the screen AFTER the scroll finishes (approx 400ms)
-  setTimeout(() => {
-      // Only lock if we are still targeting this element
-      if (target.classList.contains('tutorial-target')) {
-          parentScreen.classList.add('stop-scrolling');
-      }
-  }, 400);
-
-  // 6. CREATE & POSITION BUBBLE (Standard Logic)
+  // 1. Create & Append (To measure dimensions)
   const tip = document.createElement('div');
   tip.className = 'tutorial-tooltip';
   tip.textContent = text;
-  tip.style.zIndex = '10000'; // Above overlay
   document.body.appendChild(tip);
   
-  // Calculate Position
-  const tRect = target.getBoundingClientRect();
+  // 2. Get Measurements
+  const targetRect = target.getBoundingClientRect();
   const tipRect = tip.getBoundingClientRect();
   const screenW = window.innerWidth;
+  // Robust scroll calculation that works on all browsers
+  const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
   
-  // Horizontal Center
-  let left = (tRect.left + (tRect.width / 2)) - (tipRect.width / 2);
-  if (left < 10) left = 10;
-  if (left + tipRect.width > screenW - 10) left = screenW - tipRect.width - 10;
-
-  // Arrow
-  let arrowX = (tRect.left + (tRect.width / 2)) - left;
+  // --- HORIZONTAL LOGIC (Clamp to Screen) ---
+  const targetCenterX = targetRect.left + (targetRect.width / 2);
   
-  // Vertical (Above/Below)
-  const gap = 15;
+  // Start centered on the target
+  let left = targetCenterX - (tipRect.width / 2);
+  
+  // Safety Padding (10px from edge)
+  const padding = 10; 
+  
+  // Clamp Left: Don't go off the left edge
+  if (left < padding) left = padding;
+  
+  // Clamp Right: Don't go off the right edge
+  if (left + tipRect.width > screenW - padding) {
+      left = screenW - tipRect.width - padding;
+  }
+  
+  // --- ARROW LOGIC (Point to Target) ---
+  // Calculate where the arrow needs to be relative to the text box
+  let arrowX = targetCenterX - left;
+  
+  // Keep arrow inside the box border-radius (don't let it float off the corner)
+  const cornerLimit = 20; 
+  if (arrowX < cornerLimit) arrowX = cornerLimit;
+  if (arrowX > tipRect.width - cornerLimit) arrowX = tipRect.width - cornerLimit;
+  
+  // --- VERTICAL LOGIC (Safety Fix) ---
   let top;
-  if (tRect.top > tipRect.height + gap + 80) {
-      top = tRect.top - tipRect.height - gap;
+  const gap = 15; // Space between button and tip
+  const spaceAbove = targetRect.top; 
+
+  // FIX: Increased threshold (+80px). 
+  // If the button is in the top header area (like the Back button),
+  // we FORCE the tooltip to appear BELOW it.
+  if (spaceAbove > tipRect.height + gap + 80) {
+      // POSITION ABOVE
+      top = scrollY + targetRect.top - tipRect.height - gap;
       tip.classList.remove('tooltip-below');
   } else {
-      top = tRect.bottom + gap;
+      // POSITION BELOW (Default for Header Buttons)
+      top = scrollY + targetRect.bottom + gap;
       tip.classList.add('tooltip-below');
   }
 
+  // 3. Apply Calculated Styles
   tip.style.left = `${left}px`;
   tip.style.top = `${top}px`;
   tip.style.setProperty('--arrow-x', `${arrowX}px`);
 }
+
 function clearTutorialTips() {
-  // 1. Remove DOM Elements
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
-  const overlay = document.getElementById('tutorialOverlay');
-  if (overlay) overlay.remove();
-
-  // 2. Clean up Targets
-  document.querySelectorAll('.tutorial-target').forEach(el => {
-      el.classList.remove('tutorial-target');
-  });
-
-  // 3. RELEASE SCROLL LOCK (Critical)
-  document.querySelectorAll('.stop-scrolling').forEach(el => {
-      el.classList.remove('stop-scrolling');
-  });
 }
 
 // ------------------ Firebase Config ------------------
