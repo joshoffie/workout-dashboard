@@ -224,108 +224,105 @@ if (endTutorialBtn) {
 }
 
 // [app.js] SMART TOOLTIP POSITIONING ENGINE
-// [app.js] ROBUST LOCAL TUTORIAL BUBBLES
-function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'center') {
+// ==========================================
+// 📍 ROBUST: LOCAL BUBBLE ENGINE
+// ==========================================
+function showTutorialTip(targetId, text) {
     // 1. Safety Checks
     if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
-    clearTutorialTips(); // Clear old bubbles
+    
+    // Stop any login modal conflicts
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal && !loginModal.classList.contains('hidden')) return;
+
+    // Clear previous bubbles
+    clearTutorialTips();
 
     const target = document.getElementById(targetId);
     if (!target) return;
 
-    // 2. Identify the "Local" Universe (The Scrolling Container)
-    // We try to find the current active screen (e.g., setsDiv, sessionsDiv)
-    // If the target is Fixed (like a header button), we fallback to body.
-    let container = document.getElementById(currentScreen);
-    let isFixedTarget = false;
+    // 2. Determine "Universe" (Where does the bubble live?)
+    // Default: Global (Attached to Body) - Good for Headers/Footers
+    let container = document.body;
+    let isFixed = true;
 
-    // DETECT FIXED ELEMENTS (Headers/Footers)
-    // If the target is in a fixed header, we MUST use body/fixed positioning
-    if (target.closest('.header') || target.closest('.footer') || target.style.position === 'fixed') {
-        container = document.body;
-        isFixedTarget = true;
+    // Try to find the active screen (e.g., #sessionsDiv)
+    const currentScreenEl = document.getElementById(currentScreen);
+    
+    // If the target is inside the active screen...
+    if (currentScreenEl && currentScreenEl.contains(target)) {
+        // ...and it is NOT a fixed element (like a header button)...
+        const style = window.getComputedStyle(target);
+        if (style.position !== 'fixed') {
+            // ...Then attach it LOCALLY to the screen!
+            container = currentScreenEl;
+            isFixed = false;
+        }
     }
-
-    if (!container) container = document.body;
 
     // 3. Create the Bubble
     const tip = document.createElement('div');
     tip.className = 'tutorial-tooltip';
     tip.textContent = text;
     
-    // 4. Attach Locally
+    // 4. Attach to the Container
     container.appendChild(tip);
 
-    // 5. Calculate "Absolute" Coordinates
-    // We need the position relative to the CONTAINER, not the window.
+    // 5. Calculate Position
     const tRect = target.getBoundingClientRect();
     const cRect = container.getBoundingClientRect();
     
-    let top, left;
-
-    if (isFixedTarget) {
-        // FIXED MODE: Visual coordinates (ViewPort)
+    if (isFixed) {
+        // --- GLOBAL MODE (Fixed Headers) ---
         tip.style.position = 'fixed';
-        top = tRect.bottom + 15; // Gap
-        left = tRect.left + (tRect.width / 2) - (120); // Center-ish estimate (refined below)
-        
-        // Header Safety: If button is at bottom (Footer), flip bubble up
-        if (tRect.top > window.innerHeight / 2) {
-            top = tRect.top - 60; // Approximate height of bubble
-            tip.classList.remove('tooltip-below');
-        } else {
-            tip.classList.add('tooltip-below');
-        }
-
+        tip.style.top = `${tRect.bottom + 15}px`;
+        tip.style.left = `${tRect.left + (tRect.width / 2)}px`;
+        tip.style.zIndex = '9999';
     } else {
-        // SCROLL MODE: Physical coordinates (Container + Scroll Offset)
-        // Ensure container allows positioning
-        const style = window.getComputedStyle(container);
-        if (style.position === 'static') container.style.position = 'relative';
-        
-        tip.style.position = 'absolute';
-        tip.style.zIndex = '999';
+        // --- LOCAL MODE (Scrolling Lists) ---
+        // Ensure the container can handle absolute children
+        const cStyle = window.getComputedStyle(container);
+        if (cStyle.position === 'static') container.style.position = 'relative';
 
-        // Math: (Target Visual Top - Container Visual Top) + Container Scroll History
-        top = (tRect.bottom - cRect.top) + container.scrollTop + 15;
-        left = (tRect.left - cRect.left) + (tRect.width / 2);
+        tip.style.position = 'absolute';
         
-        tip.classList.add('tooltip-below');
+        // VERTICAL: (Visual Difference) + (Scroll Amount) + Gap
+        // This locks it to the button's Y position within the list
+        const relativeTop = (tRect.bottom - cRect.top) + container.scrollTop + 15;
+        tip.style.top = `${relativeTop}px`;
+        
+        // HORIZONTAL: (Visual Difference) + Half Width
+        const relativeLeft = (tRect.left - cRect.left) + (tRect.width / 2);
+        tip.style.left = `${relativeLeft}px`;
+        
+        tip.style.zIndex = '100'; // Above list items
     }
 
-    // 6. Apply & Refine Horizontal Center
-    // (We render first to get the bubble's width, then shift it)
-    tip.style.top = `${top}px`;
-    tip.style.left = `${left}px`;
-    
-    // Now that it's in the DOM, we can center it perfectly using transform
-    // This removes the need for complex width guessing
-    tip.style.transform = "translateX(-50%)";
+    // 6. Center & Style
+    tip.style.transform = 'translateX(-50%)';
+    tip.classList.add('tooltip-below');
 
-    // 7. Edge Guard (Don't let it overflow left/right)
-    // We use a small timeout to allow the browser to render the width
+    // 7. Edge Guard (Prevent Overflow off-screen)
+    // We delay 10ms to let the browser calculate the width
     setTimeout(() => {
         const tipRect = tip.getBoundingClientRect();
         const screenW = window.innerWidth;
         const padding = 10;
-
-        // Check Right Edge
+        
+        // Hit Right Edge? Shift Left.
         if (tipRect.right > screenW - padding) {
             const shift = tipRect.right - (screenW - padding);
             tip.style.transform = `translateX(calc(-50% - ${shift}px))`;
-            // Move arrow to compensate
             tip.style.setProperty('--arrow-x', `calc(50% + ${shift}px)`);
         }
-        // Check Left Edge
+        // Hit Left Edge? Shift Right.
         else if (tipRect.left < padding) {
             const shift = padding - tipRect.left;
             tip.style.transform = `translateX(calc(-50% + ${shift}px))`;
-            // Move arrow to compensate
             tip.style.setProperty('--arrow-x', `calc(50% - ${shift}px)`);
         }
-    }, 0);
+    }, 10);
 }
-
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
