@@ -1,36 +1,41 @@
 // ==========================================
-// 🎨 TUTORIAL SPOTLIGHT STYLES
+// 🎨 TUTORIAL SPOTLIGHT & LOCK STYLES
 // ==========================================
 const tutorialStyle = document.createElement('style');
 tutorialStyle.innerHTML = `
-  /* The Dark Overlay */
+  /* 1. The Dark Overlay */
   .tutorial-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.7); /* Dark Dim */
     z-index: 9998;
-    touch-action: none; /* STOPS SCROLLING on the background */
+    touch-action: none; /* Block touches on background */
     cursor: default;
-    transition: opacity 0.3s ease;
   }
 
-  /* The Highlighted Button/Element */
+  /* 2. The Highlighted Target (Tighter & Cleaner) */
   .tutorial-target {
     position: relative !important; 
-    z-index: 9999 !important; /* Above the overlay */
-    pointer-events: auto !important; /* Allow clicking/dragging THIS item */
-    box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.8), 0 0 20px rgba(0,0,0,0.5); /* Green Glow */
-    border-radius: 8px;
-    background-color: var(--color-bg, #1c1c1e); /* Ensure it's not transparent */
-    transition: box-shadow 0.3s ease;
+    z-index: 9999 !important; /* Pop above overlay */
+    pointer-events: auto !important; /* Allow interaction */
+    
+    /* Tight Green Border + Subtle Glow */
+    box-shadow: 0 0 0 2px #34c759, 0 0 12px rgba(52, 199, 89, 0.5) !important;
+    border-radius: 6px; /* Smooth corners */
+    transition: box-shadow 0.2s ease;
   }
   
-  /* Handle lists/transparent items specifically */
-  ul.tutorial-target, li.tutorial-target {
-    background-color: var(--color-card, #2c2c2e); 
+  /* Fix for circular buttons (like radio toggles) */
+  .tutorial-target.round, .tutorial-target.btn-icon {
+    border-radius: 50% !important;
+  }
+
+  /* 3. HARD SCROLL LOCK (Applied to the Screen Div) */
+  .stop-scrolling {
+    overflow: hidden !important;
+    touch-action: none !important;
   }
 `;
 document.head.appendChild(tutorialStyle);
-
 
 .app-header {
   background-color: var(--color-card); 
