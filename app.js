@@ -312,65 +312,139 @@ function clearTutorialTips() {
 }
 
 // ==========================================
-// 🎓 ROBUST: TUTORIAL SCROLL ENGINE
+// 🎓 ROBUST: TUTORIAL SNAP-BACK ENGINE
 // ==========================================
-let tutorialScrollCooldown = false;
 
+let tutorialSnapTimer = null;
+
+// 1. Activate (Call this in runTutorial/startTutorial)
 function enableTutorialScrollTrigger() {
-    // We use { passive: false } to allow preventing the default scroll if needed
-    window.addEventListener('wheel', handleTutorialScroll, { passive: false });
-    window.addEventListener('touchmove', handleTutorialScroll, { passive: false });
-    console.log("🎓 Tutorial Scroll Engine: ENGAGED");
+    // Detect BOTH touch dragging and momentum scrolling
+    window.addEventListener('scroll', handleTutorialScroll, { passive: true });
+    window.addEventListener('touchmove', handleTutorialScroll, { passive: true });
+    console.log("🎓 Snap Engine: ENGAGED");
 }
 
+// 2. Deactivate (Call this in endTutorial)
 function disableTutorialScrollTrigger() {
-    window.removeEventListener('wheel', handleTutorialScroll);
+    window.removeEventListener('scroll', handleTutorialScroll);
     window.removeEventListener('touchmove', handleTutorialScroll);
-    console.log("🎓 Tutorial Scroll Engine: DISENGAGED");
+    if (tutorialSnapTimer) clearTimeout(tutorialSnapTimer);
+    console.log("🎓 Snap Engine: DISENGAGED");
 }
 
-function handleTutorialScroll(e) {
-    // 1. SAFETY: Only run if tutorial is actually active
+// 3. The "Allow & Snap" Logic
+function handleTutorialScroll() {
     if (typeof isTutorialMode === 'undefined' || !isTutorialMode) return;
 
-    // 2. EXCEPTION: Allow scrolling for the "Slider" step
-    // We don't want to auto-click if they are trying to drag the spiral slider
-    const stage = document.body.dataset.tutorialStage;
-    if (stage === 'waiting-for-slider') return; 
+    // A. While scrolling, hide tips so they don't float awkwardly
+    // (Optional: feels cleaner)
+    clearTutorialTips();
 
-    // 3. COOLDOWN: Prevent rapid-fire skipping (1.5s delay)
-    if (tutorialScrollCooldown) return;
+    // B. Reset the "Snap" timer (Debounce)
+    if (tutorialSnapTimer) clearTimeout(tutorialSnapTimer);
+
+    // C. Set the Snap Action (2.0 Seconds after motion STOPS)
+    tutorialSnapTimer = setTimeout(() => {
+        executeTutorialSnap();
+    }, 2000); 
+}
+
+// 4. The Executor
+function executeTutorialSnap() {
+    if (!isTutorialMode) return;
     
-    // 4. ACTION: Stop the actual scroll (keeps view stable) & Advance
-    // e.preventDefault(); // Uncomment if you want to strictly freeze the screen
-    tutorialScrollCooldown = true;
-    setTimeout(() => tutorialScrollCooldown = false, 1500);
+    const stage = document.body.dataset.tutorialStage;
+    console.log(`🧲 Snapping user to stage: [${stage}]`);
 
-    console.log(`📜 Scroll detected at stage [${stage}]. Auto-advancing...`);
+    let targetId = null;
+    let tipText = "";
+    let align = "center";
 
-    // 5. ROUTER: Decide what to click based on the stage
-    if (stage === 'start') {
-        const item = document.querySelector('#clientList li');
-        if (item) item.click();
-    } 
-    else if (stage === 'sessions') {
-        const item = document.querySelector('#sessionList li');
-        if (item) item.click();
+    // --- MAP STAGES TO TARGETS ---
+    switch (stage) {
+        // HOME
+        case 'start':
+        case 'home-returned': 
+            // Point to the first client
+            const firstClient = document.querySelector('#clientList li span');
+            if (firstClient) {
+                firstClient.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // We manually show the tip on the PARENT li for better positioning
+                setTimeout(() => showTutorialTip('clientList', 'Tap the profile to continue.', 40), 500);
+            }
+            return;
+
+        // SESSIONS
+        case 'sessions':
+            const firstSession = document.querySelector('#sessionList li span');
+            if (firstSession) {
+                firstSession.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => showTutorialTip('sessionList', 'Tap the session to view details.', 40), 500);
+            }
+            return;
+
+        // EXERCISES
+        case 'exercises':
+            const firstEx = document.querySelector('#exerciseList li span');
+            if (firstEx) {
+                firstEx.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => showTutorialTip('exerciseList', 'Tap the exercise to see data.', 40), 500);
+            }
+            return;
+
+        // SETS (The Main Fix)
+        case 'sets-view': 
+        case 'post-log':
+            // Instead of clicking, we point to the "Add Set" button
+            targetId = 'addSetBtn';
+            tipText = 'Tap here to log your set.';
+            align = -10; // Vertical offset
+            break;
+
+        // SLIDER (Special Case)
+        case 'waiting-for-slider':
+            targetId = 'spiralSlider';
+            tipText = 'Drag the slider backwards.';
+            break;
+            
+        // GRAPH
+        case 'graph-touched':
+             targetId = 'backToSetsFromGraphBtn';
+             tipText = 'Press here to return.';
+             align = 'left';
+             break;
+
+        // CALENDAR
+        case 'calendar-visited':
+             targetId = 'backToSessionsFromCalBtn';
+             tipText = 'Tap back to return.';
+             align = 'left';
+             break;
+
+        // SETTINGS
+        case 'settings-start':
+             targetId = 'settingUnitToggle';
+             tipText = 'Toggle Lbs/Kg here.';
+             break;
+        case 'timer-settings-open':
+             targetId = 'closeTimerSettingsBtn';
+             tipText = 'Tap Done to return.';
+             break;
     }
-    else if (stage === 'exercises') {
-        const item = document.querySelector('#exerciseList li');
-        if (item) item.click();
-    }
-    else if (stage === 'sets-view') {
-        // In the Sets view, scrolling now triggers the "Add Set" action
-        // effectively skipping the reading delay if the user is impatient
-        const btn = document.getElementById('addSetBtn');
-        if (btn) btn.click();
-    }
-    else if (stage === 'calendar-visited') {
-        // If they scroll on calendar, send them back
-        const btn = document.getElementById('backToSessionsFromCalBtn');
-        if (btn) btn.click();
+
+    // --- EXECUTE SNAP ---
+    if (targetId) {
+        const el = document.getElementById(targetId);
+        if (el) {
+            // 1. Smooth Scroll to Target
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 2. Show Bubble (Delayed slightly so scroll finishes)
+            setTimeout(() => {
+                showTutorialTip(targetId, tipText, typeof align === 'number' ? align : 0, typeof align === 'string' ? align : 'center');
+            }, 500);
+        }
     }
 }
 
