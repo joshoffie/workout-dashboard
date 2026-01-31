@@ -59,32 +59,15 @@
   -webkit-tap-highlight-color: transparent; /* <--- Kills the gray flash box */
   outline: none; /* <--- Kills the focus outline box */
 }
-/* --- CSS SCROLL FIX UPDATED --- */
-html {
+/* --- 🛑 CSS SCROLL FIX START 🛑 --- */
+html, body {
   width: 100%;
-  height: 100%;
-  height: 100dvh; /* Dynamic viewport height */
-  background-color: #101010; /* Hardcoded match */
-}
-
-body {
-  width: 100%;
-  height: 100%;
-  min-height: 100dvh; /* Ensure it fills the dynamic height */
-  
-  /* REMOVED: position: fixed; <--- THIS WAS THE CAUSE */
-  position: relative; 
-  
-  overflow: hidden; /* This keeps the scroll lock working */
-  margin: 0;
-  padding: 0;
-  overscroll-behavior: none;
+  height: 100%;           /* Force full height */
+  overflow: hidden;       /* KILL the browser scrollbar */
+  position: fixed;        /* Lock the viewport in place */
+  overscroll-behavior: none; /* Disable browser swipe actions */
   background-color: var(--color-bg);
   color: var(--color-text);
-  
-  /* Ensure padding respects the notch */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
 }
 /* --- 🛑 CSS SCROLL FIX END 🛑 --- */
 .hidden { display: none !important; }
@@ -409,10 +392,8 @@ td .btn-delete {
   position: absolute; top: 0;
   left: 0; width: 100%; 
   
-  /* --- CHANGE THIS SECTION --- */
-  height: 100vh; /* Fallback for old phones */
-  height: 100dvh; /* <--- THE FIX: Adapts instantly to the visible area */
-  /* --------------------------- */
+  /* CHANGED: Fixed height + Scroll = Native Momentum Feel */
+  height: 100vh; 
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Critical for iOS momentum */
   
