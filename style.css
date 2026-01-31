@@ -66,7 +66,7 @@ html, body {
   overflow: hidden;       /* KILL the browser scrollbar */
   position: fixed;        /* Lock the viewport in place */
   overscroll-behavior: none; /* Disable browser swipe actions */
-  background-color: var(--color-bg);
+  background-color: #101010; /* Hardcode this. Don't rely solely on var() for root */
   color: var(--color-text);
 }
 /* --- 🛑 CSS SCROLL FIX END 🛑 --- */
