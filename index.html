@@ -478,26 +478,5 @@
   }
 </script>
   <script src="app.js"></script>
-  <script>
-  // FIX: Force layout refresh when returning from Privacy Policy/Modals
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      // 1. Force scroll to top to realign viewport
-      window.scrollTo(0, 0);
-      
-      // 2. Force a visual repaint (The "Jiggle")
-      // We briefly toggle the body height to force the browser to remeasure 100dvh
-      document.body.style.height = '100.1dvh';
-      requestAnimationFrame(() => {
-          document.body.style.height = '100dvh';
-      });
-    }
-  });
-
-  // Backup: Handle window resize events (rotation/modals) aggressively
-  window.addEventListener('resize', () => {
-      window.scrollTo(0, 0);
-  });
-</script>
 </body>
 </html>
