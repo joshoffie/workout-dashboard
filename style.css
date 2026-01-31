@@ -392,8 +392,10 @@ td .btn-delete {
   position: absolute; top: 0;
   left: 0; width: 100%; 
   
-  /* CHANGED: Fixed height + Scroll = Native Momentum Feel */
-  height: 100vh; 
+  /* --- CHANGE THIS SECTION --- */
+  height: 100vh; /* Fallback for old phones */
+  height: 100dvh; /* <--- THE FIX: Adapts instantly to the visible area */
+  /* --------------------------- */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Critical for iOS momentum */
   
