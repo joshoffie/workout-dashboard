@@ -376,7 +376,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 1. ENABLE PERSISTENCE (Clean Production Version)
+// 1. ENABLE PERSISTENCE (Runs in the background)
 db.enablePersistence({ synchronizeTabs: true })
   .catch((err) => {
     if (err.code == 'failed-precondition') {
@@ -384,11 +384,10 @@ db.enablePersistence({ synchronizeTabs: true })
     } else if (err.code == 'unimplemented') {
       console.log("❌ Offline mode not supported in this browser.");
     }
-  })
-  .finally(() => {
-    // 2. CRITICAL: Always start the app ONLY after the DB is ready
-    initAuthListener();
   });
+
+// 2. CRITICAL: Start checking Auth immediately so the UI draws instantly!
+initAuthListener();
 
 let clientsData = {};
 let selectedClient = null;
