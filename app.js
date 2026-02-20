@@ -734,6 +734,16 @@ if (settingsBtn) {
         if (currentScreen !== SCREENS.SETTINGS) {
             console.log("Saving Memory State:", currentScreen);
             lastActiveScreen = currentScreen;
+            
+            // --- NEW: Reveal "End Workout" if active ---
+            const endBtnItem = document.getElementById('endWorkoutBtnItem');
+            if (endBtnItem) {
+                if (localStorage.getItem('trunk_workout_active') === 'true') {
+                    endBtnItem.classList.remove('hidden');
+                } else {
+                    endBtnItem.classList.add('hidden');
+                }
+            }
         }
 
         // 2. Go to Settings
@@ -4087,6 +4097,9 @@ function finishAddSet() {
         plates: savedPlates
     });
     saveUserJson();
+
+    // --- NEW: Flag that a workout is actively happening ---
+    localStorage.setItem('trunk_workout_active', 'true');
     
     // --- HAPTICS ---
     try {
@@ -5887,4 +5900,76 @@ function getRecentAvg(history, key) {
         sum += sorted[i][key];
     }
     return sum / limit;
+}
+
+// ==========================================
+// END WORKOUT ENGINE
+// ==========================================
+const endWorkoutBtnItem = document.getElementById('endWorkoutBtnItem');
+
+if (endWorkoutBtnItem) {
+    endWorkoutBtnItem.onclick = () => {
+        // 1. Heavy Haptic Confirmation
+        if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-1);
+
+        // 2. Clear Active State & Global Timer
+        localStorage.removeItem('trunk_workout_active');
+        localStorage.removeItem(KEY_GLOBAL_TIMER);
+        
+        // 3. Clear ALL Local Exercise Timers
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('restTimer_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        // 4. Hide UI Timers Immediately
+        const globalEl = document.getElementById('globalHeaderTimer');
+        if (globalEl) globalEl.classList.add('hidden');
+        
+        const localEl = document.getElementById('restTimer');
+        if (localEl) localEl.classList.add('hidden');
+
+        // 5. Kill Foreground JS Haptics & Flashlight
+        if (typeof foregroundHapticTimeouts !== 'undefined') {
+            foregroundHapticTimeouts.forEach(id => clearTimeout(id));
+            foregroundHapticTimeouts = [];
+        }
+
+        // 6. Signal Swift to Kill Widget & Background Notifications
+        if (window.webkit && window.webkit.messageHandlers.notificationHandler) {
+            window.webkit.messageHandlers.notificationHandler.postMessage("cancel");
+        }
+
+        // 7. Smoothly Animate the Button Away
+        // Lock the current pixel height before shrinking to zero
+        endWorkoutBtnItem.style.height = endWorkoutBtnItem.scrollHeight + 'px';
+        void endWorkoutBtnItem.offsetHeight; // Force reflow
+        
+        // Collapse
+        endWorkoutBtnItem.style.height = '0px';
+        endWorkoutBtnItem.style.paddingTop = '0px';
+        endWorkoutBtnItem.style.paddingBottom = '0px';
+        endWorkoutBtnItem.style.borderWidth = '0px';
+        endWorkoutBtnItem.style.opacity = '0';
+        endWorkoutBtnItem.style.marginTop = '0px';
+        endWorkoutBtnItem.style.marginBottom = '0px';
+        
+        // Clean up classes after animation finishes
+        setTimeout(() => {
+            endWorkoutBtnItem.classList.add('hidden');
+            
+            // Reset inline styles so it formats correctly next time it appears
+            endWorkoutBtnItem.style.height = '';
+            endWorkoutBtnItem.style.paddingTop = '';
+            endWorkoutBtnItem.style.paddingBottom = '';
+            endWorkoutBtnItem.style.borderWidth = '';
+            endWorkoutBtnItem.style.opacity = '';
+            endWorkoutBtnItem.style.marginTop = '';
+            endWorkoutBtnItem.style.marginBottom = '';
+        }, 300);
+    };
 }
