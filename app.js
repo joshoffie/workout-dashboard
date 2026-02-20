@@ -1800,7 +1800,7 @@ function selectExercise(idx) {
 const spiralState = {
     svg: null, hitPath: null, segmentsGroup: null, markersGroup: null, timeBall: null, dateDisplay: null,
     fullHistory: [], visibleHistory: [], hitPathLookup: [], workoutVisualPoints: [],
-    totalLen: 0, isDragging: false, currentRange: '8w',
+    totalLen: 0, isDragging: false, currentRange: 'all',
     CX: 250, CY: 250, START_RADIUS: 30, OFFSETS: { sets: -21, reps: -7, vol: 7, wpr: 21 },
     RADIAL_PITCH: 45, TURNS: 3.8,
     slider: null
