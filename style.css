@@ -2586,3 +2586,49 @@ tutorialStyle.innerHTML = `
   }
 `;
 document.head.appendChild(tutorialStyle);
+
+/* ==========================================
+   END WORKOUT BUTTON (Settings Menu)
+   ========================================== */
+.btn-end-workout {
+    display: flex !important;
+    justify-content: center !important; /* Perfectly centers the text */
+    align-items: center;
+    
+    background: rgba(255, 59, 48, 0.1) !important; /* Frosted Red Glass */
+    border: 1px solid rgba(255, 59, 48, 0.3) !important;
+    color: var(--color-red) !important;
+    
+    font-family: 'Fredoka', sans-serif !important; /* Distinct from standard Inter text */
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem !important; /* Detaches it slightly from the list below */
+    
+    /* Prep for the JS slide-away animation */
+    overflow: hidden;
+    transition: all 0.3s ease;
+    
+    /* The Breathing Glow */
+    animation: red-glass-pulse 2.5s infinite ease-in-out;
+}
+
+/* Tactile feedback when pressed */
+.btn-end-workout:active {
+    transform: scale(0.97);
+    background: rgba(255, 59, 48, 0.25) !important;
+    animation-play-state: paused;
+}
+
+/* Keyframes for the soft glowing pulse */
+@keyframes red-glass-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(255, 59, 48, 0);
+        background: rgba(255, 59, 48, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 59, 48, 0.2); /* Outer glow */
+        background: rgba(255, 59, 48, 0.15);         /* Inner brighten */
+    }
+}
