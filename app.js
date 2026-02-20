@@ -1,4 +1,32 @@
 // =====================================================
+// NATIVE AUTHENTICATION BRIDGE
+// =====================================================
+window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken) => {
+    try {
+        let credential;
+        if (provider === 'apple') {
+            const oauthProvider = new firebase.auth.OAuthProvider('apple.com');
+            credential = oauthProvider.credential({
+                idToken: idToken,
+                rawNonce: rawNonce // Required for Apple Firebase Auth
+            });
+        } else if (provider === 'google') {
+            credential = firebase.auth.GoogleAuthProvider.credential(idToken, accessToken);
+        }
+        
+        // Instantly logs the user in on the Web side using the native tokens
+        await auth.signInWithCredential(credential);
+        
+    } catch (err) {
+        console.error("Native Auth Sync Error:", err);
+        alert("Authentication sync failed: " + err.message);
+        document.getElementById('modalLoginBtn').innerHTML = "Continue with Google";
+        document.getElementById('modalAppleBtn').innerHTML = "Continue with Apple";
+    }
+};
+
+
+// =====================================================
 // DATA OPTIMIZATION & COMPRESSION HELPERS
 // =====================================================
 
@@ -890,22 +918,23 @@ auth.getRedirectResult().then((result) => {
   }
 });
 
-// [app.js] Revert to Popup (Now safe for iOS)
-// [app.js] Standard Popup Login
-modalLoginBtn.onclick = async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-   // provider.setCustomParameters({ prompt: 'select_account' });
-    
-    // We use standard Popup. The iOS App will now handle this 
-    // by opening a temporary "Modal Layer" WebView.
-    await auth.signInWithPopup(provider);
-    
-  } catch (err) {
-    console.error("Login Error:", err);
-    alert("Login failed: " + err.message);
-  }
-};
+// --- NEW GOOGLE LOGIN LOGIC ---
+if (modalLoginBtn) {
+    modalLoginBtn.onclick = async () => {
+        modalLoginBtn.innerHTML = "Opening Secure Browser...";
+        
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeAuth) {
+            // Trigger Swift
+            window.webkit.messageHandlers.nativeAuth.postMessage("google");
+        } else {
+            // Fallback for Desktop/Web testing
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (err) { console.error(err); modalLoginBtn.innerHTML = "Continue with Google"; }
+        }
+    };
+}
 if (logoutBtn) {
     logoutBtn.onclick = async () => { 
         try {
@@ -917,35 +946,24 @@ if (logoutBtn) {
     };
 }
 
-// [app.js] Apple Sign In Logic
+// --- NEW APPLE LOGIN LOGIC ---
 if (modalAppleBtn) {
-  modalAppleBtn.onclick = async () => {
-    try {
-      // 1. Setup the provider
-      const provider = new firebase.auth.OAuthProvider('apple.com');
-      
-      // 2. Request name and email scopes (Apple only returns these on the very first login)
-      provider.addScope('email');
-      provider.addScope('name');
-      
-      // 3. Optional: Localize the flow to the user's browser language
-      provider.setCustomParameters({
-        locale: navigator.language || 'en'
-      });
-
-      // 4. Trigger the popup (handles iOS modal automatically via Firebase SDK)
-      await auth.signInWithPopup(provider);
-      
-    } catch (err) {
-      console.error("Apple Login Error:", err);
-      // Friendly error handling
-      if (err.code === 'auth/popup-closed-by-user') {
-        // User just closed the popup, no need to alert
-        return;
-      }
-      alert("Sign In with Apple failed: " + err.message);
-    }
-  };
+    modalAppleBtn.onclick = async () => {
+        modalAppleBtn.innerHTML = "Authenticating with Face ID...";
+        
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeAuth) {
+            // Trigger Swift
+            window.webkit.messageHandlers.nativeAuth.postMessage("apple");
+        } else {
+            // Fallback for Desktop/Web testing
+            try {
+                const provider = new firebase.auth.OAuthProvider('apple.com');
+                provider.addScope('email');
+                provider.addScope('name');
+                await auth.signInWithPopup(provider);
+            } catch (err) { console.error(err); modalAppleBtn.innerHTML = "Continue with Apple"; }
+        }
+    };
 }
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
