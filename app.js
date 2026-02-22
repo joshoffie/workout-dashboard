@@ -1,7 +1,7 @@
 // =====================================================
 // NATIVE AUTHENTICATION BRIDGE
 // =====================================================
-window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken) => {
+window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken, firstName) => {
     try {
         let credential;
         if (provider === 'apple') {
@@ -14,8 +14,28 @@ window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken) => {
             credential = firebase.auth.GoogleAuthProvider.credential(idToken, accessToken);
         }
         
-        // Instantly logs the user in on the Web side using the native tokens
-        await auth.signInWithCredential(credential);
+        // 1. Sign in the user (This instantly triggers onAuthStateChanged)
+        const result = await auth.signInWithCredential(credential);
+        
+        // 2. UPDATE PROFILE WITH APPLE NAME
+        if (firstName && firstName.trim() !== "" && !result.user.displayName) {
+            
+            // Wait for the name to officially attach to the account...
+            await result.user.updateProfile({
+                displayName: firstName
+            });
+            
+            // Force the UI label to update immediately
+            const userLabel = document.getElementById("userLabel");
+            if (userLabel) userLabel.textContent = `Logged in as ${firstName}`;
+            
+            // --- THE RACE CONDITION FIX ---
+            // Now that we guarantee the name is saved, force the data loader 
+            // to run one more time so it catches the name and builds the profile!
+            if (typeof loadUserJson === 'function') {
+                await loadUserJson();
+            }
+        }
         
     } catch (err) {
         console.error("Native Auth Sync Error:", err);
