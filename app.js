@@ -6266,11 +6266,13 @@ function renderGoalStats() {
 
     const banner = document.getElementById('goalResultBanner');
     const chartWrapper = document.getElementById('goalChartWrapper');
+    const breakdownBox = document.getElementById('current1rmBreakdown');
     
     // Safety check - Can't calculate percentages without sets
     if (!selectedExercise.goal || !selectedExercise.sets || selectedExercise.sets.length === 0) {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
+        if (breakdownBox) breakdownBox.style.display = 'none';
         return;
     }
 
@@ -6282,7 +6284,8 @@ function renderGoalStats() {
         const d = new Date(s.timestamp).toDateString();
         const rm = calculate1RM(s.weight, s.reps);
         if (!dayMap[d] || rm > dayMap[d].max1RM) {
-            dayMap[d] = { timestamp: new Date(s.timestamp).getTime(), max1RM: rm };
+            // UPDATED: Now we store the entire 's' object so we know exactly which set caused this max
+            dayMap[d] = { timestamp: new Date(s.timestamp).getTime(), max1RM: rm, bestSet: s };
         }
     });
 
@@ -6290,11 +6293,14 @@ function renderGoalStats() {
     if (points.length === 0) {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
+        if (breakdownBox) breakdownBox.style.display = 'none';
         return;
     }
 
     // 3. Current Progress Engine
-    const mostRecent1RM = points[points.length - 1].max1RM;
+    const mostRecentData = points[points.length - 1];
+    const mostRecent1RM = mostRecentData.max1RM;
+    const bestSet = mostRecentData.bestSet;
     let percentage = (mostRecent1RM / goal1RM) * 100;
     
     banner.classList.remove('hidden');
@@ -6312,6 +6318,20 @@ function renderGoalStats() {
         textDisp.textContent = `You are approx. ${formatNum(dispDiff)} ${unitLabel} (1RM) away.`;
         document.getElementById('goalPercentageDisplay').style.color = "var(--color-primary)";
     }
+
+    // --- NEW: POPULATE THE BREAKDOWN BOX ---
+    if (breakdownBox) {
+        const displayRM = UNIT_mode.toDisplay(mostRecent1RM);
+        const displayWeight = UNIT_mode.toDisplay(bestSet.weight);
+        const dateStr = new Date(bestSet.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        document.getElementById('current1rmDisplay').textContent = `${Math.round(displayRM)} ${unitLabel}`;
+        document.getElementById('current1rmSetDetails').textContent = `${displayWeight} ${unitLabel} for ${bestSet.reps} rep${bestSet.reps > 1 ? 's' : ''}`;
+        document.getElementById('current1rmDate').textContent = dateStr;
+        
+        breakdownBox.style.display = 'block';
+    }
+    // ---------------------------------------
 
     chartWrapper.style.display = 'block';
     
