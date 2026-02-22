@@ -282,6 +282,7 @@ function showTutorialTip(targetId, text, ignoredOffset = 0, ignoredAlign = 'cent
 }
 
 // 3. THE RENDERER (The "Sticky" Logic)
+// 3. THE RENDERER (The "Sticky" Logic)
 function renderStickyBubble(target, text) {
     // Double-check existence (in case user navigated away during the 600ms wait)
     if (!document.body.contains(target)) return;
@@ -290,21 +291,30 @@ function renderStickyBubble(target, text) {
     const tip = document.createElement('div');
     tip.className = 'tutorial-tooltip';
     tip.textContent = text;
+    
+    // --- THE FIX: BULLETPROOF POSITIONING ---
+    // 1. Force fixed position so it matches getBoundingClientRect() exactly (ignores background scroll bugs)
+    tip.style.position = 'fixed';
+    // 2. Kill the CSS transition for movement so the 60fps loop doesn't rubber-band or lag
+    tip.style.transition = 'opacity 0.3s ease'; 
+    tip.style.zIndex = '10000';
     tip.style.opacity = '0'; // Start hidden
+    
     document.body.appendChild(tip);
 
     // Start the 60fps Tracking Loop
     const updatePosition = () => {
         if (!document.body.contains(tip) || !document.body.contains(target)) {
-            cancelAnimationFrame(tutorialRafId);
+            if (typeof tutorialRafId !== 'undefined' && tutorialRafId) {
+                cancelAnimationFrame(tutorialRafId);
+            }
             return;
         }
 
         const targetRect = target.getBoundingClientRect();
         const tipRect = tip.getBoundingClientRect();
         const screenW = window.innerWidth;
-        const scrollY = window.scrollY || window.pageYOffset;
-
+        
         // --- HORIZONTAL ---
         const targetCenterX = targetRect.left + (targetRect.width / 2);
         let left = targetCenterX - (tipRect.width / 2);
@@ -321,15 +331,17 @@ function renderStickyBubble(target, text) {
 
         // --- VERTICAL ---
         const gap = 15;
-        // If button is too high (covered by header), flip to bottom
+        
+        // Because we use position: fixed, we NO LONGER ADD window.scrollY.
+        // targetRect.top is exactly where it is on the screen right now.
         const forceBelow = (targetRect.top < tipRect.height + gap + 80);
         
         let top;
         if (forceBelow) {
-            top = scrollY + targetRect.bottom + gap;
+            top = targetRect.bottom + gap;
             tip.classList.add('tooltip-below');
         } else {
-            top = scrollY + targetRect.top - tipRect.height - gap;
+            top = targetRect.top - tipRect.height - gap;
             tip.classList.remove('tooltip-below');
         }
 
