@@ -918,6 +918,17 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
+          
+          // --- THE FIX: GLOBALLY FORCE FIRST NAME ONLY ---
+          let currentName = user.displayName || "";
+          
+          // If the name has a space (like "Joshua Hoffman" from Google), split it and update Firebase
+          if (currentName.includes(' ')) {
+              currentName = currentName.split(' ')[0].trim();
+              await user.updateProfile({ displayName: currentName });
+          }
+          // -----------------------------------------------
+
           // LOGGED IN
           if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
           if (typeof modal !== 'undefined') modal.classList.add("hidden");
@@ -928,7 +939,8 @@ function initAuthListener() {
           if (settingsBtn) settingsBtn.classList.remove("hidden");
           if (editToggleBtn) editToggleBtn.classList.remove("hidden");
         
-          if (userLabel) userLabel.textContent = `Logged in as ${user.displayName}`;
+          // Now this will ALWAYS say "Logged in as Joshua"
+          if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
         
           hideAllDetails(); 
 
