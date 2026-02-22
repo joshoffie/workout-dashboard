@@ -2039,7 +2039,11 @@ function updateSpiralData(sets) {
         spiralState.workoutVisualPoints = [];
         spiralState.hitPathLookup = [];
         spiralState.totalLen = 0;
-        if (spiralState.slider) spiralState.slider.value = 0;
+        
+        if (spiralState.slider) {
+            spiralState.slider.value = 100; // Move ball to far right
+            spiralState.slider.style.setProperty('--thumb-color', 'var(--color-yellow)'); // Reset color to neutral
+        }
         // ----------------------------------------------------
 
         // 1. Reset Text Stats (Banner)
