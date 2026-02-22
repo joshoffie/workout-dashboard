@@ -4722,6 +4722,11 @@ const RECAP_TEMPLATES = {
     ],
     // 2. VOLUME GAIN (Total Volume Increased)
     volume: [
+        ["Human forklift.", "You moved {vol} {unit} total, which is heavier than {vehicle}."],
+        ["Massive tonnage.", "You moved {vol} {unit}! That's more than the average {vehicle} weighs."],
+        ["Heavy hauling.", "Moving {vol} {unit} is equivalent to lifting {vehicle}."],
+        ["Incredible capacity.", "You lifted the equivalent weight of {vehicle} today."],
+        ["Unreal volume.", "Your total volume ({vol} {unit}) easily outweighs {vehicle}."],
         ["High capacity session.", "Total volume was up {diff}% from last time."],
         ["Workhorse mentality.", "You logged {vol} {unit} of total volume here."],
         ["The tank was full.", "You moved significantly more total load than before."],
@@ -5005,6 +5010,24 @@ function generateSmartRecap() {
     const templateIdx = Math.floor(Math.random() * templates.length);
     const rawTemplate = templates[templateIdx];
 
+    // --- NEW: VEHICLE COMPARISON LOGIC ---
+    // Calculate the closest vehicle weight to their total volume (in base Lbs)
+    let vehicle = "a heavy scooter";
+    const vLbs = currStats.volume; 
+    
+    if (vLbs >= 120000) vehicle = "an M1 Abrams tank";
+    else if (vLbs >= 80000) vehicle = "a fully loaded semi-truck";
+    else if (vLbs >= 30000) vehicle = "a commercial dump truck";
+    else if (vLbs >= 15000) vehicle = "a city bus";
+    else if (vLbs >= 10000) vehicle = "a delivery box truck";
+    else if (vLbs >= 7000) vehicle = "a heavy-duty pickup truck";
+    else if (vLbs >= 5000) vehicle = "a large SUV";
+    else if (vLbs >= 3500) vehicle = "a standard car";
+    else if (vLbs >= 2000) vehicle = "a Smart car";
+    else if (vLbs >= 1500) vehicle = "a Formula 1 race car";
+    else if (vLbs >= 800) vehicle = "a grand touring motorcycle";
+    else if (vLbs >= 400) vehicle = "a standard motorcycle";
+
     // 6. Fill Variables (Safe Replace)
     let sentence1 = rawTemplate[0];
     let sentence2 = rawTemplate[1]
@@ -5012,7 +5035,8 @@ function generateSmartRecap() {
         .replace('{weight}', maxWeightStr)
         .replace('{vol}', totalVolStr)
         .replace('{sets}', currStats.sets)
-        .replace('{unit}', unit);
+        .replace('{unit}', unit)
+        .replace('{vehicle}', vehicle); // <--- NEW PLACEHOLDER
 
     // 7. Render
     textEl.innerHTML = `${sentence1} <span style="opacity:0.7">${sentence2}</span>`;
