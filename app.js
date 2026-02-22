@@ -3435,7 +3435,6 @@ function openAddSetModal() {
   updateCalcUI();
   updatePlateBadges(); // Ensure badges appear immediately
   if(addSetModal) addSetModal.classList.remove('hidden');
-}
 
 // --- NEW TUTORIAL LOGIC FOR CALCULATOR ---
   if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
