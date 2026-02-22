@@ -194,6 +194,15 @@
                 <input type="range" id="spiralSlider" min="0" max="100" value="100" step="0.1">
             </div>
         </div>
+        <div class="goal-preview-container" style="padding: 0 1rem 1rem 1rem;">
+            <button id="openGoalStatsBtn" class="btn btn-secondary" style="width: 100%; border-color: var(--color-primary); display: flex; justify-content: space-between; align-items: center; background-color: var(--color-primary-light);">
+                <span style="display: flex; align-items: center; gap: 8px; color: var(--color-text);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                    Goal Progress
+                </span>
+                <span id="goalProgressPreview" style="color: var(--color-primary); font-weight: 700;">Set a Goal &rarr;</span>
+            </button>
+        </div>
         <div class="sets-list-wrapper" style="padding: 0 1rem 6rem 1rem;">
           <ul id="setsList" class="set-list">
           </ul>
@@ -246,6 +255,47 @@
              <button class="toggle-text" data-metric="sets" style="--accent: var(--color-primary)">Sets</button>
            </div>
         </div>
+      </div>
+    </section>
+    <section class="screen hidden" id="goalStatsDiv">
+      <div class="card-header">
+        <button id="backToSetsFromGoalBtn" class="btn-back"><svg class="back-arrow-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg></button>
+        <h2 class="animated-title">Goal Stats</h2>
+        <span></span>
+      </div>
+      
+      <div class="action-header" style="flex-direction: column; gap: 1rem; padding-bottom: 1rem;">
+          <div style="display: flex; gap: 0.75rem; width: 100%; max-width: 500px;">
+              <div style="flex: 1; background: var(--color-bg); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); text-align: center;">
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 4px;" id="goalWeightLabel">GOAL WEIGHT</label>
+                  <input type="number" id="goalWeightInput" inputmode="decimal" style="width: 100%; background: transparent; border: none; color: var(--color-text); font-size: 1.5rem; font-weight: 700; text-align: center; outline: none;" placeholder="0">
+              </div>
+              <div style="flex: 1; background: var(--color-bg); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); text-align: center;">
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 4px;">GOAL REPS</label>
+                  <input type="number" id="goalRepsInput" inputmode="numeric" style="width: 100%; background: transparent; border: none; color: var(--color-text); font-size: 1.5rem; font-weight: 700; text-align: center; outline: none;" placeholder="0">
+              </div>
+          </div>
+          <button id="saveGoalBtn" class="btn btn-primary" style="width: 100%; max-width: 500px;">Update Goal</button>
+      </div>
+
+      <div class="sets-content-wrapper" style="padding: 1rem;">
+          <div id="goalResultBanner" class="comparison-banner hidden" style="text-align: center; margin: 0 0 1rem 0; align-items: center; justify-content: center; gap: 0.5rem;">
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">Current 1RM vs Goal 1RM</span>
+              <div style="font-size: 3.5rem; font-weight: 800; color: var(--color-primary); font-family: 'Fredoka', sans-serif; line-height: 1;" id="goalPercentageDisplay">--%</div>
+              <div style="font-size: 1rem; color: var(--color-text-muted); margin-top: 0.5rem;" id="goalTextDisplay">--</div>
+          </div>
+          
+          <div class="chart-wrapper" id="goalChartWrapper" style="background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem 0 1rem 0; margin-top: 1rem; display: none;">
+              <h4 style="text-align: center; color: var(--color-text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 1rem;">1RM Progress Over Time</h4>
+              <div class="svg-stage" id="goalChartStage" style="height: 220px; padding: 0 15px;">
+                  <svg id="goalChartSvg" width="100%" height="100%" preserveAspectRatio="none" style="overflow: visible;">
+                      <g id="goalChartGrid"></g>
+                      <path id="goalPath1RM" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="" style="transition: all 0.3s ease;" />
+                      <path id="goalTargetLine" fill="none" stroke="var(--color-green)" stroke-width="2" stroke-dasharray="6 6" d="" />
+                      <g id="goalChartPoints"></g>
+                  </svg>
+              </div>
+          </div>
       </div>
     </section>
 
