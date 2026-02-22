@@ -514,7 +514,8 @@ const SCREENS = {
   SETS: 'setsDiv',
   GRAPH: 'graphContainer',
   SETTINGS: 'settingsDiv',
-  CALENDAR: 'calendarDiv'
+  CALENDAR: 'calendarDiv',
+  GOAL_STATS: 'goalStatsDiv' // <--- ADD THIS
 };
 let currentScreen = SCREENS.CLIENTS;
 let lastActiveScreen = SCREENS.CLIENTS; // <--- NEW: Memory State
@@ -549,6 +550,10 @@ switch (targetScreenId) {
         if(typeof initChart === 'function') setTimeout(initChart, 50);
         break;
     // ---------------------------------------------------
+        // ---> ADD THIS NEW CASE HERE <---
+    case SCREENS.GOAL_STATS: 
+        if(typeof renderGoalStats === 'function') setTimeout(renderGoalStats, 50);
+        break;
   } 
 
   // 3. Handle Animations
@@ -2449,6 +2454,32 @@ function renderSets() {
     }
   });
 
+    // --- NEW HOOK FOR GOALS PREVIEW ---
+  const goalPreview = document.getElementById('goalProgressPreview');
+  if (goalPreview && selectedExercise) {
+      if (selectedExercise.goal && selectedExercise.sets && selectedExercise.sets.length > 0) {
+          const goal1RM = calculate1RM(selectedExercise.goal.weight, selectedExercise.goal.reps);
+          
+          // Get max 1RM of the most recent day
+          const sortedSets = selectedExercise.sets.slice().sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+          const mostRecentDate = new Date(sortedSets[0].timestamp).toDateString();
+          const recentSets = sortedSets.filter(s => new Date(s.timestamp).toDateString() === mostRecentDate);
+          
+          let maxRecentRM = 0;
+          recentSets.forEach(s => {
+              const rm = calculate1RM(s.weight, s.reps);
+              if (rm > maxRecentRM) maxRecentRM = rm;
+          });
+          
+          let percentage = (maxRecentRM / goal1RM) * 100;
+          goalPreview.textContent = `${Math.min(percentage, 999).toFixed(1)}% / 100%`;
+          goalPreview.style.color = percentage >= 100 ? "var(--color-green)" : "var(--color-primary)";
+      } else {
+          goalPreview.textContent = "Set a Goal \u2192";
+          goalPreview.style.color = "var(--color-primary)";
+      }
+  }
+
   runTitleOnlyLogic();
   startRestTimer(false);
 
@@ -2991,6 +3022,7 @@ document.body.addEventListener('touchend', () => {
         case SCREENS.SETS: document.getElementById('backToExercisesBtn').click(); break;
     
         case SCREENS.GRAPH: document.getElementById('backToSetsFromGraphBtn').click(); break;
+        case SCREENS.GOAL_STATS: document.getElementById('backToSetsFromGoalBtn').click(); break;
     }
     touchStartX = 0; touchStartY = 0;
 });
@@ -6155,4 +6187,211 @@ if (endWorkoutBtnItem) {
             endWorkoutBtnItem.style.marginBottom = '';
         }, 300);
     };
+}
+
+// =====================================================
+// GOAL STATS ENGINE
+// =====================================================
+
+// Standard Brzycki Formula for accurate 1RM estimation
+function calculate1RM(weight, reps) {
+    if (reps <= 0) return 0;
+    if (reps === 1) return weight;
+    // Cap at 36 reps to avoid infinity/negatives
+    const effectiveReps = Math.min(reps, 36);
+    return weight * (36 / (37 - effectiveReps));
+}
+
+const openGoalStatsBtn = document.getElementById('openGoalStatsBtn');
+const backToSetsFromGoalBtn = document.getElementById('backToSetsFromGoalBtn');
+const saveGoalBtn = document.getElementById('saveGoalBtn');
+const goalWeightInput = document.getElementById('goalWeightInput');
+const goalRepsInput = document.getElementById('goalRepsInput');
+
+if (openGoalStatsBtn) {
+    openGoalStatsBtn.onclick = () => {
+        if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-2);
+        renderGoalStats();
+        navigateTo(SCREENS.GOAL_STATS, 'forward');
+    };
+}
+
+if (backToSetsFromGoalBtn) {
+    backToSetsFromGoalBtn.onclick = () => {
+        if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-2);
+        renderSets(); // Refreshes the button preview on Sets screen
+        navigateTo(SCREENS.SETS, 'back');
+    };
+}
+
+if (saveGoalBtn) {
+    saveGoalBtn.onclick = () => {
+        if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4); // Success Buzz
+        const wVal = parseFloat(goalWeightInput.value);
+        const rVal = parseInt(goalRepsInput.value);
+        
+        if (!isNaN(wVal) && !isNaN(rVal) && wVal > 0 && rVal > 0) {
+            // Force storage as base lbs regardless of UI display unit
+            const storageWeight = UNIT_mode.toStorage(wVal);
+            selectedExercise.goal = { weight: storageWeight, reps: rVal };
+            saveUserJson();
+            renderGoalStats();
+            
+            // Visual confirm animation
+            saveGoalBtn.textContent = "Saved!";
+            saveGoalBtn.classList.add('btn-save-anim');
+            setTimeout(() => {
+                saveGoalBtn.textContent = "Update Goal";
+                saveGoalBtn.classList.remove('btn-save-anim');
+            }, 1000);
+        } else {
+            alert("Please enter a valid weight and reps number.");
+        }
+    };
+}
+
+function renderGoalStats() {
+    // 1. Maintain dynamic Unit Label updates
+    const wLabel = document.getElementById('goalWeightLabel');
+    if (wLabel) wLabel.textContent = `GOAL WEIGHT (${UNIT_mode.getLabel().toUpperCase()})`;
+
+    // 2. Load Existing Goal from Memory
+    if (selectedExercise.goal) {
+        goalWeightInput.value = UNIT_mode.toDisplay(selectedExercise.goal.weight);
+        goalRepsInput.value = selectedExercise.goal.reps;
+    } else {
+        goalWeightInput.value = '';
+        goalRepsInput.value = '';
+    }
+
+    const banner = document.getElementById('goalResultBanner');
+    const chartWrapper = document.getElementById('goalChartWrapper');
+    
+    // Safety check - Can't calculate percentages without sets
+    if (!selectedExercise.goal || !selectedExercise.sets || selectedExercise.sets.length === 0) {
+        banner.classList.add('hidden');
+        chartWrapper.style.display = 'none';
+        return;
+    }
+
+    const goal1RM = calculate1RM(selectedExercise.goal.weight, selectedExercise.goal.reps);
+    
+    // Group sets by Day and extract the max 1RM achieved that day
+    const dayMap = {};
+    selectedExercise.sets.forEach(s => {
+        const d = new Date(s.timestamp).toDateString();
+        const rm = calculate1RM(s.weight, s.reps);
+        if (!dayMap[d] || rm > dayMap[d].max1RM) {
+            dayMap[d] = { timestamp: new Date(s.timestamp).getTime(), max1RM: rm };
+        }
+    });
+
+    const points = Object.values(dayMap).sort((a,b) => a.timestamp - b.timestamp);
+    if (points.length === 0) {
+        banner.classList.add('hidden');
+        chartWrapper.style.display = 'none';
+        return;
+    }
+
+    // 3. Current Progress Engine
+    const mostRecent1RM = points[points.length - 1].max1RM;
+    let percentage = (mostRecent1RM / goal1RM) * 100;
+    
+    banner.classList.remove('hidden');
+    document.getElementById('goalPercentageDisplay').textContent = `${Math.min(percentage, 999).toFixed(1)}%`;
+    
+    const diff = goal1RM - mostRecent1RM;
+    const dispDiff = UNIT_mode.toDisplay(Math.abs(diff));
+    const unitLabel = UNIT_mode.getLabel();
+    
+    const textDisp = document.getElementById('goalTextDisplay');
+    if (diff <= 0) {
+        textDisp.textContent = "🎉 You have achieved your goal!";
+        document.getElementById('goalPercentageDisplay').style.color = "var(--color-green)";
+    } else {
+        textDisp.textContent = `You are approx. ${formatNum(dispDiff)} ${unitLabel} (1RM) away.`;
+        document.getElementById('goalPercentageDisplay').style.color = "var(--color-primary)";
+    }
+
+    chartWrapper.style.display = 'block';
+    
+    // 4. Custom Graph Engine (Deferred slightly to allow UI transition to calculate true width)
+    setTimeout(() => {
+        const stage = document.getElementById('goalChartStage');
+        const width = stage.clientWidth || 300;
+        const height = stage.clientHeight || 220;
+        
+        let maxRM = goal1RM;
+        let minRM = goal1RM;
+        points.forEach(p => {
+            if (p.max1RM > maxRM) maxRM = p.max1RM;
+            if (p.max1RM < minRM) minRM = p.max1RM;
+        });
+        
+        // Setup scaling and offsets
+        const range = maxRM - minRM;
+        const yMax = maxRM + (range > 0 ? range * 0.1 : 50);
+        const yMin = Math.max(0, minRM - (range > 0 ? range * 0.1 : 50));
+        const yRange = yMax - yMin || 1;
+
+        const startTime = points[0].timestamp;
+        const endTime = points[points.length-1].timestamp;
+        const timeSpan = endTime - startTime || 1;
+        const paddingX = 15;
+        const usableWidth = width - (paddingX * 2);
+
+        // Map coordinates
+        const mappedPoints = points.map(p => {
+            const xNorm = timeSpan === 0 ? 0 : (p.timestamp - startTime) / timeSpan;
+            const x = paddingX + (xNorm * usableWidth);
+            const yNorm = (p.max1RM - yMin) / yRange;
+            const y = height - (yNorm * height);
+            return { x, y };
+        });
+
+        // Background Grid
+        const gridGroup = document.getElementById('goalChartGrid');
+        gridGroup.innerHTML = '';
+        for(let i=1; i<5; i++) {
+            const x = (width / 5) * i;
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x); line.setAttribute("y1", 0);
+            line.setAttribute("x2", x); line.setAttribute("y2", height);
+            line.setAttribute("class", "chart-grid-line");
+            gridGroup.appendChild(line);
+        }
+
+        // Draw Reference Goal Line (Dashed Green)
+        const goalYNorm = (goal1RM - yMin) / yRange;
+        const goalY = height - (goalYNorm * height);
+        const targetLine = document.getElementById('goalTargetLine');
+        targetLine.setAttribute("d", `M 0,${goalY} L ${width},${goalY}`);
+
+        // Draw Primary Path
+        const path = document.getElementById('goalPath1RM');
+        const d = mappedPoints.map((p, i) => (i===0 ? 'M' : 'L') + ` ${p.x},${p.y}`).join(' ');
+        path.setAttribute('d', d);
+
+        // Draw Nodes
+        const pointsGroup = document.getElementById('goalChartPoints');
+        pointsGroup.innerHTML = '';
+        mappedPoints.forEach((p) => {
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
+            circle.setAttribute("r", "5");
+            circle.setAttribute("fill", "var(--color-bg)");
+            circle.setAttribute("stroke", "var(--color-primary)");
+            circle.setAttribute("stroke-width", "2");
+            pointsGroup.appendChild(circle);
+        });
+
+        // Trigger Path Animation
+        const pathLen = path.getTotalLength() || 1000;
+        path.style.strokeDasharray = pathLen;
+        path.style.strokeDashoffset = pathLen;
+        path.animate([
+            { strokeDashoffset: pathLen },
+            { strokeDashoffset: 0 }
+        ], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
+    }, 50);
 }
