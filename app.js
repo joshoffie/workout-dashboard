@@ -6193,13 +6193,15 @@ if (endWorkoutBtnItem) {
 // GOAL STATS ENGINE
 // =====================================================
 
-// Standard Brzycki Formula for accurate 1RM estimation
+// The Lombardi Formula: W * R^0.10
+// Organically flattens the curve for high-rep sets so endurance lifting 
+// never artificially inflates the user's max strength score.
 function calculate1RM(weight, reps) {
     if (reps <= 0) return 0;
     if (reps === 1) return weight;
-    // Cap at 36 reps to avoid infinity/negatives
-    const effectiveReps = Math.min(reps, 36);
-    return weight * (36 / (37 - effectiveReps));
+    
+    // Math.pow(reps, 0.10) safely handles infinite reps without breaking
+    return weight * Math.pow(reps, 0.10);
 }
 
 const openGoalStatsBtn = document.getElementById('openGoalStatsBtn');
