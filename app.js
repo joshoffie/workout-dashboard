@@ -1015,10 +1015,9 @@ async function loadUserJson() {
   try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      
       // We rely on the default behavior: if offline, this pulls from cache automatically.
       const newSnap = await newCollectionRef.get();
-
+      
       if (!newSnap.empty) {
           console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
           newSnap.forEach(doc => {
@@ -1046,6 +1045,23 @@ async function loadUserJson() {
               });
           } else {
               console.log("No data found.");
+              
+              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
+              const firstName = auth.currentUser.displayName;
+              
+              // If we have a name and the database is completely empty, make their first profile automatically
+              if (firstName && firstName.trim() !== "") {
+                  console.log("Auto-creating initial profile for:", firstName);
+                  clientsData[firstName] = { 
+                      client_name: firstName, 
+                      sessions: [], 
+                      order: 0 
+                  };
+                  
+                  // Immediately save this new default profile to the database so it's there next time
+                  saveUserJson();
+              }
+              // ------------------------------------------
           }
       }
       renderClients();
