@@ -699,25 +699,36 @@ function syncTutorialUI(screenId) {
              if (stage === 'home-returned' || stage === 'settings-start' || !stage) {
                  document.body.dataset.tutorialStage = 'settings-start';
                  
-                 // STEP 1: Unit Toggle
-                 showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                 // --- NEW: Check if End Workout button is visible ---
+                 const endBtnItem = document.getElementById('endWorkoutBtnItem');
+                 const hasEndWorkout = endBtnItem && !endBtnItem.classList.contains('hidden');
+                 let delay = 0;
+                 
+                 if (hasEndWorkout) {
+                     showTutorialTip('endWorkoutBtnItem', 'Tap here to kill active rest timers and finish your workout.', 20);
+                     delay = 3500;
+                 }
                  
                  tutorialTimer = setTimeout(() => {
                      if (!isTutorialMode) return;
                      
-                     // --- NEW STEP: Color Toggle ---
-                     showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
+                     // STEP 1: Unit Toggle
+                     showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                      
-                     // Chain the next step inside another timeout
-                     tutorialTimer = setTimeout(() => { 
-                        if (!isTutorialMode) return;
-
-                        // STEP 3: Timer Settings
-                        showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
-                        
-                     }, 3000); // Wait 3 seconds before showing Timer tip
-
-                 }, 3000); // Wait 3 seconds before showing Color tip
+                     tutorialTimer = setTimeout(() => {
+                         if (!isTutorialMode) return;
+                         
+                         // --- NEW STEP: Color Toggle ---
+                         showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
+                         
+                         tutorialTimer = setTimeout(() => { 
+                            if (!isTutorialMode) return;
+                            
+                            // STEP 3: Timer Settings
+                            showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+                         }, 3000);
+                     }, 3000);
+                 }, delay);
              }
              // B. If we finished the Timer Settings logic
              else if (stage === 'timer-settings-done') {
@@ -802,38 +813,48 @@ if (settingsBtn) {
                 endBtn.classList.add('flash-active');
             }
 
-            // --- THE UPDATED SEQUENCE ---
+        // --- THE UPDATED SEQUENCE ---
             setTimeout(() => {
                 if(typeof showTutorialTip === 'function') {
-                    // STEP 1: Unit Toggle
-                    showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
                     
-                    // Wait 3 seconds...
-                    setTimeout(() => {
+                    // --- NEW: Check if End Workout button is visible ---
+                    const endBtnItem = document.getElementById('endWorkoutBtnItem');
+                    const hasEndWorkout = endBtnItem && !endBtnItem.classList.contains('hidden');
+                    let delay = 0;
+                    
+                    if (hasEndWorkout) {
+                        showTutorialTip('endWorkoutBtnItem', 'Tap here to kill active rest timers and finish your workout.', 20);
+                        delay = 3500; // Wait 3.5s before continuing
+                    }
+                    
+                    // The rest of the sequence dynamically waits for the delay
+                    tutorialTimer = setTimeout(() => {
                        if (!isTutorialMode) return;
                        
-                       // STEP 2: Color Toggle (NEW)
-                       showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
-
-                       // Wait 3 seconds...
-                       setTimeout(() => {
-                           if (!isTutorialMode) return;
-
-                           // STEP 3: Timer Settings (NEW)
-                           showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
-
-                           // Wait 3 seconds...
-                           setTimeout(() => {
-                               if (!isTutorialMode) return;
-                               
-                               // STEP 4: End Tutorial
-                               showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
-                               
-                           }, 3000); // End of Step 3 wait
-
-                       }, 3000); // End of Step 2 wait
-
-                    }, 3000); // End of Step 1 wait
+                       // STEP 1: Unit Toggle
+                       showTutorialTip('settingUnitToggle', 'Toggle between Lbs and Kg here.', 40);
+                       
+                       tutorialTimer = setTimeout(() => {
+                          if (!isTutorialMode) return;
+                          
+                          // STEP 2: Color Toggle
+                          showTutorialTip('settingColorToggle', 'Tap here to toggle color themes.', 40);
+                          
+                          tutorialTimer = setTimeout(() => {
+                              if (!isTutorialMode) return;
+                              
+                              // STEP 3: Timer Settings
+                              showTutorialTip('openTimerSettingsBtn', 'Tap here to customize timers.', 30);
+                              
+                              tutorialTimer = setTimeout(() => {
+                                  if (!isTutorialMode) return;
+                                  
+                                  // STEP 4: End Tutorial
+                                  showTutorialTip('endTutorialBtn', 'You are all set! Tap here to finish.', 40, 'right');
+                              }, 3000); 
+                          }, 3000); 
+                       }, 3000); 
+                    }, delay);
                 }
             }, 500); // Initial delay
         }
@@ -3414,6 +3435,19 @@ function openAddSetModal() {
   updateCalcUI();
   updatePlateBadges(); // Ensure badges appear immediately
   if(addSetModal) addSetModal.classList.remove('hidden');
+}
+
+// --- NEW TUTORIAL LOGIC FOR CALCULATOR ---
+  if (typeof isTutorialMode !== 'undefined' && isTutorialMode) {
+      // Update the stage so the app knows where the user is
+      document.body.dataset.tutorialStage = 'calc-opened';
+      
+      // Wait 400ms for the modal to finish animating upwards, then attach the bubble
+      setTimeout(() => {
+          if (!isTutorialMode) return; // Failsafe in case they exit early
+          showTutorialTip('calcActionBtn', 'Tap "Save Set."', 20);
+      }, 400); 
+  }
 }
 
 // NEW HELPER: Centralized Badge Updater
