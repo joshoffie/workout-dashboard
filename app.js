@@ -2895,6 +2895,37 @@ document.body.addEventListener('touchend', () => {
     }
     touchStartX = 0; touchStartY = 0;
 });
+
+// ==========================================
+// TUTORIAL SCROLL LOCK FIX
+// Prevent manual scrolling on the Stats/Sets screen during tutorial
+// ==========================================
+const preventTutorialScroll = (e) => {
+    // Only lock scroll if tutorial is active AND we are on the Sets screen
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode && currentScreen === SCREENS.SETS) {
+        
+        // EXCEPTION: Allow the range slider to still be dragged
+        if (e.target && typeof e.target.closest === 'function' && e.target.closest('input[type=range]')) {
+            return;
+        }
+        
+        // Prevent manual scrolling (touch dragging and mouse wheel)
+        e.preventDefault();
+    }
+};
+
+// Use passive: false so we have permission to call e.preventDefault()
+window.addEventListener('touchmove', preventTutorialScroll, { passive: false });
+window.addEventListener('wheel', preventTutorialScroll, { passive: false });
+
+// Optional completeness: Block keyboard scrolling (Arrow keys, Spacebar)
+window.addEventListener('keydown', (e) => {
+    if (typeof isTutorialMode !== 'undefined' && isTutorialMode && currentScreen === SCREENS.SETS) {
+        if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+            e.preventDefault();
+        }
+    }
+}, { passive: false });
 // ==========================================
 // ORGANIC LEAF ANIMATION SYSTEM (FINAL)
 // ==========================================
