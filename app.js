@@ -2457,14 +2457,19 @@ function getChartData() {
         if(p.wpr > maxWpr) maxWpr = p.wpr;
         if(p.sets > maxSets) maxSets = p.sets;
     });
-    maxReps *= 1.1; maxVol *= 1.1; maxWpr *= 1.1; maxSets *= 1.1;
+maxReps *= 1.1; maxVol *= 1.1; maxWpr *= 1.1; maxSets *= 1.1;
     const startTime = points[0].timestamp;
     const endTime = points[points.length-1].timestamp;
     const timeSpan = endTime - startTime || 1; 
 
+    // --- THE FIX: ADD HORIZONTAL PADDING ---
+    const paddingX = 12; // 12 pixels of buffer to prevent clipping
+
     return points.map(p => {
         const xNorm = (p.timestamp - startTime) / timeSpan;
-        const x = xNorm * chartState.width;
+        // Shift the X coordinate right by the padding, and compress the total width
+        const x = paddingX + (xNorm * (chartState.width - (paddingX * 2)));
+        
         return {
             x: x,
             yReps: maxReps ? chartState.height - ((p.reps / maxReps) * chartState.height) : chartState.height,
