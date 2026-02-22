@@ -2033,6 +2033,15 @@ function updateSpiralData(sets) {
 
     // --- NEW: Check for empty history and reset UI to zeros ---
     if (spiralState.fullHistory.length === 0) {
+        
+        // --- THE FIX: WIPE THE OLD ARRAYS & SLIDER MEMORY ---
+        spiralState.visibleHistory = [];
+        spiralState.workoutVisualPoints = [];
+        spiralState.hitPathLookup = [];
+        spiralState.totalLen = 0;
+        if (spiralState.slider) spiralState.slider.value = 0;
+        // ----------------------------------------------------
+
         // 1. Reset Text Stats (Banner)
         const stats = ['sets', 'reps', 'volume', 'wpr'];
         stats.forEach(stat => {
