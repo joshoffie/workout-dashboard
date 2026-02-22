@@ -6267,12 +6267,14 @@ function renderGoalStats() {
     const banner = document.getElementById('goalResultBanner');
     const chartWrapper = document.getElementById('goalChartWrapper');
     const breakdownBox = document.getElementById('current1rmBreakdown');
+    const heaviestBox = document.getElementById('allTimeHeaviestBreakdown'); // <--- NEW
     
     // Safety check - Can't calculate percentages without sets
     if (!selectedExercise.goal || !selectedExercise.sets || selectedExercise.sets.length === 0) {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
         if (breakdownBox) breakdownBox.style.display = 'none';
+        if (heaviestBox) heaviestBox.style.display = 'none';
         return;
     }
 
@@ -6284,7 +6286,6 @@ function renderGoalStats() {
         const d = new Date(s.timestamp).toDateString();
         const rm = calculate1RM(s.weight, s.reps);
         if (!dayMap[d] || rm > dayMap[d].max1RM) {
-            // UPDATED: Now we store the entire 's' object so we know exactly which set caused this max
             dayMap[d] = { timestamp: new Date(s.timestamp).getTime(), max1RM: rm, bestSet: s };
         }
     });
@@ -6294,6 +6295,7 @@ function renderGoalStats() {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
         if (breakdownBox) breakdownBox.style.display = 'none';
+        if (heaviestBox) heaviestBox.style.display = 'none';
         return;
     }
 
@@ -6319,7 +6321,7 @@ function renderGoalStats() {
         document.getElementById('goalPercentageDisplay').style.color = "var(--color-primary)";
     }
 
-    // --- NEW: POPULATE THE BREAKDOWN BOX ---
+    // --- POPULATE THE ESTIMATED 1RM BOX ---
     if (breakdownBox) {
         const displayRM = UNIT_mode.toDisplay(mostRecent1RM);
         const displayWeight = UNIT_mode.toDisplay(bestSet.weight);
@@ -6330,6 +6332,32 @@ function renderGoalStats() {
         document.getElementById('current1rmDate').textContent = dateStr;
         
         breakdownBox.style.display = 'block';
+    }
+
+    // --- NEW: POPULATE THE ALL-TIME HEAVIEST BOX ---
+    if (heaviestBox) {
+        // Find the absolute heaviest set
+        let heaviestSet = selectedExercise.sets[0];
+        selectedExercise.sets.forEach(s => {
+            // Check weight first, if weight is tied, give it to the one with more reps
+            if (s.weight > heaviestSet.weight) {
+                heaviestSet = s;
+            } else if (s.weight === heaviestSet.weight && s.reps > heaviestSet.reps) {
+                heaviestSet = s;
+            }
+        });
+
+        const heavyDisplayWeight = UNIT_mode.toDisplay(heaviestSet.weight);
+        
+        // Format date and time
+        const heavyDateObj = new Date(heaviestSet.timestamp);
+        const heavyDateStr = heavyDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        const heavyTimeStr = heavyDateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+        document.getElementById('allTimeHeaviestDisplay').textContent = `${heavyDisplayWeight} ${unitLabel} × ${heaviestSet.reps} rep${heaviestSet.reps > 1 ? 's' : ''}`;
+        document.getElementById('allTimeHeaviestDate').textContent = `${heavyDateStr} at ${heavyTimeStr}`;
+        
+        heaviestBox.style.display = 'block';
     }
     // ---------------------------------------
 
