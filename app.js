@@ -4797,7 +4797,7 @@ const RECAP_TEMPLATES = {
         ["Incrementing up.", "Max load increased by {diff}%."],
         ["Quality strength.", "That top set of {weight} {unit} counts."],
         ["Built different.", "You moved {diff}% more weight than last time."],
-        ["Standard raised.", "Your new target to beat is {weight} {unit}."],
+        ["Standard raised.", "Your current all-time max is now {weight} {unit}."],
         ["Pure power.", "You topped out at {weight} {unit}."],
         ["Strength verified.", "Metrics show a {diff}% increase in max load."],
         ["Heavy duty.", "You controlled {weight} {unit} today."]
@@ -4988,7 +4988,7 @@ const RECAP_TEMPLATES = {
         ["Opening entry.", "Your tracking journey begins here."],
         ["First step.", "Consistency starts with this log."],
         ["New chapter.", "Let's see where you take this."],
-        ["Benchmark set.", "Next time, we try to beat this."],
+        ["Benchmark set.", "Your baseline is now established."],
         ["Data point one.", "Building your history starts now."],
         ["Fresh start.", "This is the baseline to grow from."],
         ["Welcome aboard.", "Great first session logged."],
