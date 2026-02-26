@@ -3004,6 +3004,8 @@ function hookEditables(sortedSets = []) {
   // REMOVED THE SETS TABLE LOOP HERE
   // Because renderSets() now handles its own edit logic internally (lines 142-160 in the code above).
 }
+
+/*
 let touchStartX = 0; let touchStartY = 0; let touchMoveX = 0; let touchMoveY = 0;
 const MIN_SWIPE_DISTANCE = 85;
 const MAX_START_EDGE = 150;
@@ -3026,7 +3028,7 @@ document.body.addEventListener('touchend', () => {
     }
     touchStartX = 0; touchStartY = 0;
 });
-
+*/
 // ==========================================
 // TUTORIAL SCROLL LOCK FIX
 // Prevent manual scrolling on the Stats/Sets screen during tutorial
