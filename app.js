@@ -408,6 +408,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// --- MASTER TOS VERSION CONTROL ---
+// Change this to 2.0, 3.0, etc., when you make major legal/pricing changes
+const CURRENT_TOS_VERSION = 1.0;
+
 // 1. ENABLE PERSISTENCE (Runs in the background)
 db.enablePersistence({ synchronizeTabs: true })
   .catch((err) => {
@@ -924,34 +928,48 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-          // --- THE FIX: GLOBALLY FORCE FIRST NAME ONLY ---
+          // --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
-          
-          // If the name has a space (like "Joshua Hoffman" from Google), split it and update Firebase
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
               await user.updateProfile({ displayName: currentName });
           }
           // -----------------------------------------------
 
-          // LOGGED IN
-          if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
-          if (typeof modal !== 'undefined') modal.classList.add("hidden");
-        
-          const settingsBtn = document.getElementById('settingsBtn'); 
-          const editToggleBtn = document.getElementById('editToggleBtn');
-        
-          if (settingsBtn) settingsBtn.classList.remove("hidden");
-          if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-        
-          // Now this will ALWAYS say "Logged in as Joshua"
-          if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
-        
-          hideAllDetails(); 
+          // --- STRICT TOS VERSION CHECK ---
+          const userDocRef = db.collection("users").doc(user.uid);
+          const userDocSnap = await userDocRef.get();
+          
+          let needsToAccept = false;
+          if (userDocSnap.exists) {
+              const data = userDocSnap.data();
+              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
+                  needsToAccept = true;
+              }
+          } else {
+              // Brand new user document
+              needsToAccept = true;
+          }
 
-          // 3. LOAD DATA
-          await loadUserJson();
-          renderClients();
+          if (needsToAccept) {
+              // Show the forced update modal and STOP loading the app data until they click
+              const tosModal = document.getElementById('tosUpdateModal');
+              if (tosModal) tosModal.classList.remove('hidden');
+              
+              document.getElementById('acceptNewTosBtn').onclick = async () => {
+                  // Save their signature to the database
+                  await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
+                  tosModal.classList.add('hidden');
+                  
+                  // Now resume loading the app
+                  finishLoginProcess(user, currentName);
+              };
+              return; // Halt execution here
+          }
+          // ------------------------------------
+
+          // If they already accepted the current version, proceed normally
+          finishLoginProcess(user, currentName);
 
       } else {
         // LOGGED OUT
@@ -971,6 +989,25 @@ function initAuthListener() {
         hideAllDetails();
       }
     });
+}
+
+// Helper function to continue loading the app after ToS check
+async function finishLoginProcess(user, currentName) {
+    if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
+    if (typeof modal !== 'undefined') modal.classList.add("hidden");
+
+    const settingsBtn = document.getElementById('settingsBtn'); 
+    const editToggleBtn = document.getElementById('editToggleBtn');
+
+    if (settingsBtn) settingsBtn.classList.remove("hidden");
+    if (editToggleBtn) editToggleBtn.classList.remove("hidden");
+
+    if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
+    hideAllDetails(); 
+
+    // LOAD DATA
+    await loadUserJson();
+    renderClients();
 }
 
 // [app.js] Add this AFTER auth.onAuthStateChanged closes
