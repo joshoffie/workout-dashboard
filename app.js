@@ -927,17 +927,6 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          
-// --- GLOBALLY FORCE FIRST NAME ONLY ---
-          let currentName = user.displayName || "";
-          if (currentName.includes(' ')) {
-              currentName = currentName.split(' ')[0].trim();
-              
-              // FIX: Remove 'await'. Let Firebase update the name on the server 
-              // quietly in the background without freezing the app!
-              user.updateProfile({ displayName: currentName }).catch(e => console.log("Name update delayed by network."));
-          }
-          // -----------------------------------------------
 
           // --- STRICT TOS VERSION CHECK ---
           const userDocRef = db.collection("users").doc(user.uid);
@@ -1148,12 +1137,23 @@ async function loadUserJson() {
                   if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
-          } else {
+            } else {
               console.log("No data found. Auto-creating profile...");
-              const firstName = auth.currentUser.displayName;
+              
+              // Grab the name from Google/Apple
+              let firstName = auth.currentUser.displayName || "Lifter"; 
+              
+              // Only split it if it has a space, and only do it right here on day one
+              if (firstName.includes(' ')) {
+                  firstName = firstName.split(' ')[0].trim();
+                  // Silently update their Firebase profile so it's clean for the future
+                  auth.currentUser.updateProfile({ displayName: firstName }).catch(e => {});
+              }
+
               if (firstName && firstName.trim() !== "") {
                   clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-                  saveUserJson();
+                  // Push this brand new profile to the server instantly
+                  saveUserJson(); 
               }
           }
       }
