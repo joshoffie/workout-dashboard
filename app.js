@@ -1085,12 +1085,22 @@ async function loadUserJson() {
   
   const uid = auth.currentUser.uid;
   clientsData = {}; // Clear memory
-
-  try {
+try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      // We rely on the default behavior: if offline, this pulls from cache automatically.
-      const newSnap = await newCollectionRef.get();
+      
+      // FIX: Force Firebase to load from local cache INSTANTLY first
+      let newSnap;
+      try {
+          newSnap = await newCollectionRef.get({ source: 'cache' });
+      } catch (cacheErr) {
+          // If cache is totally empty (first time user), fallback to default
+          newSnap = await newCollectionRef.get();
+      }
+      
+      // Background sync: Let Firebase fetch the latest from the server silently
+      // so the next time they open the app, the cache is fresh.
+      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
       
       if (!newSnap.empty) {
           console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
