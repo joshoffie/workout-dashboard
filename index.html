@@ -572,14 +572,17 @@
     </div>
   </div>
   <script>
+<script>
+  // KILL THE SERVICE WORKER TO ALLOW INSTANT OTA UPDATES
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('✅ Service Worker registered', reg))
-        .catch((err) => console.log('❌ Service Worker failed', err));
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) {
+        registration.unregister();
+        console.log('✅ Service Worker Unregistered');
+      }
     });
   }
-</script>
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
