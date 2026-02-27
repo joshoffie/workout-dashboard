@@ -928,11 +928,14 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-          // --- GLOBALLY FORCE FIRST NAME ONLY ---
+// --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              await user.updateProfile({ displayName: currentName });
+              
+              // FIX: Remove 'await'. Let Firebase update the name on the server 
+              // quietly in the background without freezing the app!
+              user.updateProfile({ displayName: currentName }).catch(e => console.log("Name update delayed by network."));
           }
           // -----------------------------------------------
 
