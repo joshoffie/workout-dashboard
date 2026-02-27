@@ -928,14 +928,11 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-// --- GLOBALLY FORCE FIRST NAME ONLY ---
+          // --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              
-              // FIX: Remove 'await'. Let Firebase update the name on the server 
-              // quietly in the background without freezing the app!
-              user.updateProfile({ displayName: currentName }).catch(e => console.log("Name update delayed by network."));
+              await user.updateProfile({ displayName: currentName });
           }
           // -----------------------------------------------
 
@@ -1088,85 +1085,73 @@ async function loadUserJson() {
   
   const uid = auth.currentUser.uid;
   clientsData = {}; // Clear memory
-
-  try {
-      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      const oldDocRef = db.collection("clients").doc(uid);
-
-      // --- THE KILL SWITCH: 2-Second Network Timeout ---
-      // This forces Firebase to give up if the network is "Very Bad" 
-      // instead of hanging the app for 15 seconds.
-      const fetchWithTimeout = (queryRef) => {
-          return Promise.race([
-              queryRef.get(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Network Timeout")), 2000))
-          ]);
-      };
-
+try {
       // 1. CHECK NEW SYSTEM
+      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+      
+      // FIX: Force Firebase to load from local cache INSTANTLY first
       let newSnap;
       try {
           newSnap = await newCollectionRef.get({ source: 'cache' });
-          if (newSnap.empty) throw new Error("Cache empty"); // Force network check if cache is completely empty
       } catch (cacheErr) {
-          try {
-              // Try network, but kill it after 2 seconds
-              newSnap = await fetchWithTimeout(newCollectionRef);
-          } catch (timeoutErr) {
-              // Network is terrible. Fake an empty response to unfreeze the app immediately.
-              newSnap = { empty: true, forEach: () => {} };
-          }
+          // If cache is totally empty (first time user), fallback to default
+          newSnap = await newCollectionRef.get();
       }
-
+      
+      // Background sync: Let Firebase fetch the latest from the server silently
+      // so the next time they open the app, the cache is fresh.
+      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
+      
       if (!newSnap.empty) {
-          console.log("Loaded New Data System");
+          console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
+              if (typeof expandClientData === "function") {
+                  clientObj = expandClientData(clientObj);
+              }
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
       } 
       else { 
-          // 2. CHECK LEGACY SYSTEM (Also protected by the Kill Switch)
-          console.log("Checking legacy system...");
-          let oldDocSnap;
-          try {
-              oldDocSnap = await oldDocRef.get({ source: 'cache' });
-              if (!oldDocSnap.exists) throw new Error("Legacy Cache empty");
-          } catch (cacheErr) {
-              try {
-                  oldDocSnap = await fetchWithTimeout(oldDocRef);
-              } catch (timeoutErr) {
-                  oldDocSnap = { exists: false };
-              }
-          }
+          // 2. CHECK LEGACY SYSTEM
+          console.log("New system empty. Checking legacy...");
+          const oldDocRef = db.collection("clients").doc(uid);
+          const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
               Object.keys(clientsData).forEach(key => {
-                  if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
+                  if (typeof expandClientData === "function") {
+                      clientsData[key] = expandClientData(clientsData[key]);
+                  }
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
           } else {
-              console.log("No data found. Auto-creating profile...");
+              console.log("No data found.");
+              
+              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
               const firstName = auth.currentUser.displayName;
+              
+              // If we have a name and the database is completely empty, make their first profile automatically
               if (firstName && firstName.trim() !== "") {
-                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+                  console.log("Auto-creating initial profile for:", firstName);
+                  clientsData[firstName] = { 
+                      client_name: firstName, 
+                      sessions: [], 
+                      order: 0 
+                  };
+                  
+                  // Immediately save this new default profile to the database so it's there next time
                   saveUserJson();
               }
+              // ------------------------------------------
           }
       }
-      
-      // Instantly draw the UI
       renderClients();
-      
-      // 3. SILENT BACKGROUND SYNC
-      // Let Firebase securely update its cache in the background. The user never waits for this.
-      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent sync paused (offline)"));
-
   } catch (err) {
       console.error("Error loading user data:", err);
+      // Optional: Alert the user if it's a real error and not just "offline"
       if (navigator.onLine) alert("Error loading data. Check console.");
   }
 }
