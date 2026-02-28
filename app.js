@@ -114,8 +114,8 @@ function expandClientData(clientObj) {
 
 // Helper to delete a specific client doc (used during rename/delete)
 async function deleteClientFromFirestore(clientName) {
-    const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
-    if (!uid) return;
+    if (!auth.currentUser) return;
+    const uid = auth.currentUser.uid;
     try {
         await db.collection("users").doc(uid).collection("clients").doc(clientName).delete();
     } catch (err) {
@@ -925,76 +925,63 @@ const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 function initAuthListener() {
-    // --- ⚡️ INSTANT BOOT (LOCAL FIRST ARCHITECTURE) ⚡️ ---
-    const cachedUid = localStorage.getItem("trunk_uid");
-    const cachedBackup = localStorage.getItem("trunk_offline_backup");
-    
-    if (cachedUid && cachedBackup) {
-        console.log("⚡️ Instant Boot: Loading from LocalStorage in 0ms");
-        window.OFFLINE_UID = cachedUid; // Store globally so you can save sets while offline
-        
-        try {
-            // 1. Instantly load data into memory
-            clientsData = JSON.parse(cachedBackup);
-            
-            // 2. Hide Login Modal & Show UI
-            if (typeof modal !== 'undefined') modal.classList.add("hidden");
-            const settingsBtn = document.getElementById('settingsBtn'); 
-            const editToggleBtn = document.getElementById('editToggleBtn');
-            if (settingsBtn) settingsBtn.classList.remove("hidden");
-            if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-            
-            // 3. Set Name
-            const savedName = localStorage.getItem("trunk_first_name") || "My Profile";
-            if (userLabel) userLabel.textContent = `Logged in as ${savedName}`;
-            
-            // 4. Render instantly
-            hideAllDetails();
-            renderClients();
-        } catch(e) { console.error("Instant boot failed", e); }
-    }
-
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          // Save credentials for the NEXT time they open the app
-          localStorage.setItem("trunk_uid", user.uid);
-          let currentName = user.displayName || localStorage.getItem("trunk_first_name") || "";
-          if (currentName.includes(' ')) currentName = currentName.split(' ')[0].trim();
-          localStorage.setItem("trunk_first_name", currentName);
-          user.updateProfile({ displayName: currentName }).catch(()=>{});
+          
+          // --- GLOBALLY FORCE FIRST NAME ONLY ---
+          let currentName = user.displayName || "";
+          if (currentName.includes(' ')) {
+              currentName = currentName.split(' ')[0].trim();
+              await user.updateProfile({ displayName: currentName });
+          }
+          // -----------------------------------------------
 
-          // BACKGROUND TOS CHECK
+          // --- STRICT TOS VERSION CHECK ---
           const userDocRef = db.collection("users").doc(user.uid);
-          userDocRef.get({ source: 'cache' }).catch(() => userDocRef.get()).then(snap => {
-              if (snap && snap.exists) {
-                  const data = snap.data();
-                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
-                      const tosModal = document.getElementById('tosUpdateModal');
-                      if (tosModal) tosModal.classList.remove('hidden');
-                      document.getElementById('acceptNewTosBtn').onclick = async () => {
-                          await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
-                          tosModal.classList.add('hidden');
-                      };
-                  }
+          const userDocSnap = await userDocRef.get();
+          
+          let needsToAccept = false;
+          if (userDocSnap.exists) {
+              const data = userDocSnap.data();
+              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
+                  needsToAccept = true;
               }
-          }).catch(()=>{});
+          } else {
+              // Brand new user document
+              needsToAccept = true;
+          }
 
-          // Load data silently
+          if (needsToAccept) {
+              // Show the forced update modal and STOP loading the app data until they click
+              const tosModal = document.getElementById('tosUpdateModal');
+              if (tosModal) tosModal.classList.remove('hidden');
+              
+              document.getElementById('acceptNewTosBtn').onclick = async () => {
+                  // Save their signature to the database
+                  await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
+                  tosModal.classList.add('hidden');
+                  
+                  // Now resume loading the app
+                  finishLoginProcess(user, currentName);
+              };
+              return; // Halt execution here
+          }
+          // ------------------------------------
+
+          // If they already accepted the current version, proceed normally
           finishLoginProcess(user, currentName);
 
       } else {
         // LOGGED OUT
-        localStorage.removeItem("trunk_uid");
-        localStorage.removeItem("trunk_offline_backup");
-        localStorage.removeItem("trunk_first_name");
-        
         if (!isTutorialMode) {
             if (typeof modal !== 'undefined') modal.classList.remove("hidden");
             const settingsBtn = document.getElementById('settingsBtn');
             if (settingsBtn) settingsBtn.classList.add("hidden");
+            
             const editToggleBtn = document.getElementById('editToggleBtn');
             if (editToggleBtn) editToggleBtn.classList.add("hidden");
         }
+        
         if (userLabel) userLabel.textContent = "";
         clientsData = {};
         selectedClient = null;
@@ -1003,6 +990,8 @@ function initAuthListener() {
       }
     });
 }
+
+// Helper function to continue loading the app after ToS check
 async function finishLoginProcess(user, currentName) {
     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
     if (typeof modal !== 'undefined') modal.classList.add("hidden");
@@ -1012,12 +1001,12 @@ async function finishLoginProcess(user, currentName) {
 
     if (settingsBtn) settingsBtn.classList.remove("hidden");
     if (editToggleBtn) editToggleBtn.classList.remove("hidden");
+
     if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
     hideAllDetails(); 
 
     // LOAD DATA
     await loadUserJson();
-    // (We also re-render here as a failsafe to ensure cloud data matches UI)
     renderClients();
 }
 
@@ -1092,99 +1081,100 @@ function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
-  const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
-  if (!uid) return;
+  if (!auth.currentUser) return;
   
-  const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-
-  // --- 1. ALWAYS LOAD FROM CACHE FIRST (0ms wait) ---
-  try {
-      const cacheSnap = await newCollectionRef.get({ source: 'cache' });
+  const uid = auth.currentUser.uid;
+  clientsData = {}; // Clear memory
+try {
+      // 1. CHECK NEW SYSTEM
+      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       
-      if (!cacheSnap.empty) {
-          console.log("Loaded directly from Cache");
-          clientsData = {};
-          cacheSnap.forEach(doc => {
+      // FIX: Force Firebase to load from local cache INSTANTLY first
+      let newSnap;
+      try {
+          newSnap = await newCollectionRef.get({ source: 'cache' });
+      } catch (cacheErr) {
+          // If cache is totally empty (first time user), fallback to default
+          newSnap = await newCollectionRef.get();
+      }
+      
+      // Background sync: Let Firebase fetch the latest from the server silently
+      // so the next time they open the app, the cache is fresh.
+      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
+      
+      if (!newSnap.empty) {
+          console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
+          newSnap.forEach(doc => {
               let clientObj = doc.data();
-              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
+              if (typeof expandClientData === "function") {
+                  clientObj = expandClientData(clientObj);
+              }
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-      } else { 
-          // Check legacy cache if new system is empty
+      } 
+      else { 
+          // 2. CHECK LEGACY SYSTEM
+          console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
-          const oldDocSnap = await oldDocRef.get({ source: 'cache' });
+          const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
               Object.keys(clientsData).forEach(key => {
-                  if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
+                  if (typeof expandClientData === "function") {
+                      clientsData[key] = expandClientData(clientsData[key]);
+                  }
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
-          } else if (Object.keys(clientsData).length === 0) {
-              // Cache is entirely empty
-              const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
+          } else {
+              console.log("No data found.");
+              
+              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
+              const firstName = auth.currentUser.displayName;
+              
+              // If we have a name and the database is completely empty, make their first profile automatically
               if (firstName && firstName.trim() !== "") {
-                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+                  console.log("Auto-creating initial profile for:", firstName);
+                  clientsData[firstName] = { 
+                      client_name: firstName, 
+                      sessions: [], 
+                      order: 0 
+                  };
+                  
+                  // Immediately save this new default profile to the database so it's there next time
                   saveUserJson();
               }
+              // ------------------------------------------
           }
       }
       renderClients();
   } catch (err) {
-      console.log("Cache empty/unavailable. Auto-generating base profile.");
-      if (Object.keys(clientsData).length === 0) {
-          const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
-          clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-          saveUserJson();
-          renderClients();
-      }
+      console.error("Error loading user data:", err);
+      // Optional: Alert the user if it's a real error and not just "offline"
+      if (navigator.onLine) alert("Error loading data. Check console.");
   }
-
-  // --- 2. SILENT BACKGROUND SERVER SYNC ---
-  // Because there is no "await" here, the app will never freeze, even if this hangs for 15 seconds!
-  newCollectionRef.get({ source: 'server' }).then(serverSnap => {
-      // Safety lock: Abort cloud overwrite if user started lifting during the network hang
-      if (localStorage.getItem('trunk_workout_active') === 'true') {
-          console.log("🛡️ Workout active! Aborting cloud sync to protect local data.");
-          return; 
-      }
-      
-      if (!serverSnap.empty) {
-          console.log("Background Sync Complete - Data Fresh");
-          clientsData = {}; 
-          serverSnap.forEach(doc => {
-              let clientObj = doc.data();
-              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
-              if (clientObj.order === undefined) clientObj.order = 999;
-              clientsData[clientObj.client_name] = clientObj;
-          });
-          localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
-          renderClients();
-      }
-  }).catch(e => {
-      console.log("Background sync paused (Offline). Data will upload automatically when connection returns.");
-  });
 }
 
 async function saveUserJson() {
   if (isTutorialMode) return;
+  if (!auth.currentUser) return;
   
-  const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
-  if (!uid) return;
-  
-  // ⚡️ ALWAYS BACKUP TO LOCAL STORAGE FOR INSTANT BOOT ⚡️
-  localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
-
+  const uid = auth.currentUser.uid;
   const batch = db.batch();
   const profilesRef = db.collection("users").doc(uid).collection("clients");
-  
+
+  // Loop through all clients in memory
   Object.values(clientsData).forEach(clientObj => {
+      // 1. Optimize (Strip ColorData, Compress Sets)
       const optimizedData = cleanAndMinifyClient(clientObj);
+      
+      // 2. Queue Update
       const docRef = profilesRef.doc(clientObj.client_name);
       batch.set(docRef, optimizedData);
   });
 
+  // 3. Commit all writes at once
   try {
       await batch.commit();
   } catch (err) {
