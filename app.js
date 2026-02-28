@@ -953,25 +953,29 @@ function initAuthListener() {
           let needsToAccept = false;
           
           try {
-              // We still check cache first for speed
               const cachedSnap = await userDocRef.get({ source: 'cache' });
               if (cachedSnap.exists) {
                   const data = cachedSnap.data();
                   if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
               } else {
-                  // If not in cache, try server. If 3 seconds pass, the kill switch above triggers,
-                  // network dies, and this throws an error instantly!
-                  const serverSnap = await userDocRef.get();
+                  throw new Error("not_in_cache");
+              }
+          } catch (e) {
+              try {
+                  // THE FIX: Do not wait for Firebase to timeout. Force JS to abandon the request after 2.5s!
+                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
+                  const serverSnap = await Promise.race([userDocRef.get(), timeout]);
+                  
                   if (serverSnap.exists) {
                       const data = serverSnap.data();
                       if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
                   } else {
-                      needsToAccept = true;
+                      needsToAccept = true; 
                   }
+              } catch (err) {
+                  console.log("Offline mode: Bypassing TOS check due to slow connection.");
+                  needsToAccept = false; 
               }
-          } catch (err) {
-              console.log("Offline mode: Bypassing TOS check.");
-              needsToAccept = false; 
           }
 
           if (needsToAccept) {
@@ -1107,33 +1111,30 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
   if (!auth.currentUser) return;
-  
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Clear memory
-try {
+  clientsData = {};
+
+  try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      
-      // FIX: Force Firebase to load from local cache INSTANTLY first
       let newSnap;
+      
       try {
           newSnap = await newCollectionRef.get({ source: 'cache' });
       } catch (cacheErr) {
-          // If cache is totally empty (first time user), fallback to default
-          newSnap = await newCollectionRef.get();
+          // THE FIX: Force JS to abandon the server check if it hangs longer than 2.5s
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
+          newSnap = await Promise.race([newCollectionRef.get(), timeout]);
       }
       
-      // Background sync: Let Firebase fetch the latest from the server silently
-      // so the next time they open the app, the cache is fresh.
-      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
+      // Background sync: Let Firebase fetch the latest silently
+      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed."));
       
       if (!newSnap.empty) {
           console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
           newSnap.forEach(doc => {
               let clientObj = doc.data();
-              if (typeof expandClientData === "function") {
-                  clientObj = expandClientData(clientObj);
-              }
+              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
@@ -1142,48 +1143,36 @@ try {
           // 2. CHECK LEGACY SYSTEM
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
-          const oldDocSnap = await oldDocRef.get();
+          
+          // THE FIX: Race the legacy server check too
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
+          const oldDocSnap = await Promise.race([oldDocRef.get(), timeout]);
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
               Object.keys(clientsData).forEach(key => {
-                  if (typeof expandClientData === "function") {
-                      clientsData[key] = expandClientData(clientsData[key]);
-                  }
+                  if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
           } else {
               console.log("No data found.");
-              
-              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
-              const firstName = auth.currentUser.displayName;
-              
-              // If we have a name and the database is completely empty, make their first profile automatically
+              const firstName = auth.currentUser.displayName || "My Profile";
               if (firstName && firstName.trim() !== "") {
-                  console.log("Auto-creating initial profile for:", firstName);
-                  clientsData[firstName] = { 
-                      client_name: firstName, 
-                      sessions: [], 
-                      order: 0 
-                  };
-                  
-                  // Immediately save this new default profile to the database so it's there next time
+                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
                   saveUserJson();
               }
-              // ------------------------------------------
           }
       }
       renderClients();
-} catch (err) {
-          console.error("Error loading user data:", err);
-          
-          // --- 5. SAFETY FALLBACK FOR KILLED NETWORK ---
-          if (Object.keys(clientsData).length === 0) {
-              const firstName = auth.currentUser.displayName || "My Profile";
-              clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-          }
-          renderClients();
+  } catch (err) {
+      console.error("Error loading user data:", err);
+      // --- 5. SAFETY FALLBACK FOR KILLED NETWORK ---
+      if (Object.keys(clientsData).length === 0) {
+          const firstName = auth.currentUser.displayName || "My Profile";
+          clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
       }
+      renderClients();
+  }
 }
 
 async function saveUserJson() {
