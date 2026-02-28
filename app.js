@@ -951,24 +951,11 @@ function initAuthListener() {
             // 4. Render instantly
             hideAllDetails();
             renderClients();
-            
-            // 5. Start a 3-second bad connection indicator
-            window.firebaseHangTimer = setTimeout(() => {
-                console.log("⚠️ Firebase is hanging. Visually switching to offline mode.");
-                if (typeof db !== 'undefined') db.disableNetwork();
-                if (settingsBtn) settingsBtn.style.color = '#ff3b30';
-            }, 3000);
         } catch(e) { console.error("Instant boot failed", e); }
     }
-    // --------------------------------------------------------
 
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          // Firebase is officially awake! Cancel the hang timer.
-          if (window.firebaseHangTimer) clearTimeout(window.firebaseHangTimer);
-          const gear = document.getElementById('settingsBtn');
-          if (gear && gear.style.color === 'rgb(255, 59, 48)') gear.style.color = '';
-
           // Save credentials for the NEXT time they open the app
           localStorage.setItem("trunk_uid", user.uid);
           let currentName = user.displayName || localStorage.getItem("trunk_first_name") || "";
@@ -976,7 +963,7 @@ function initAuthListener() {
           localStorage.setItem("trunk_first_name", currentName);
           user.updateProfile({ displayName: currentName }).catch(()=>{});
 
-          // --- BACKGROUND TOS CHECK (No Await, No Freezing) ---
+          // BACKGROUND TOS CHECK
           const userDocRef = db.collection("users").doc(user.uid);
           userDocRef.get({ source: 'cache' }).catch(() => userDocRef.get()).then(snap => {
               if (snap && snap.exists) {
@@ -992,7 +979,7 @@ function initAuthListener() {
               }
           }).catch(()=>{});
 
-          // Sync cloud data silently in the background
+          // Load data silently
           finishLoginProcess(user, currentName);
 
       } else {
@@ -1016,7 +1003,6 @@ function initAuthListener() {
       }
     });
 }
-// Helper function to continue loading the app after ToS check
 async function finishLoginProcess(user, currentName) {
     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
     if (typeof modal !== 'undefined') modal.classList.add("hidden");
@@ -1031,13 +1017,8 @@ async function finishLoginProcess(user, currentName) {
 
     // LOAD DATA
     await loadUserJson();
+    // (We also re-render here as a failsafe to ensure cloud data matches UI)
     renderClients();
-    
-    // --- 4. SUCCESS! CANCEL THE KILL SWITCH ---
-    if (window.appLoadTimer) {
-        clearTimeout(window.appLoadTimer);
-        window.appLoadTimer = null;
-    }
 }
 
 // [app.js] Add this AFTER auth.onAuthStateChanged closes
@@ -1114,42 +1095,25 @@ async function loadUserJson() {
   const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
   if (!uid) return;
   
+  const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+
+  // --- 1. ALWAYS LOAD FROM CACHE FIRST (0ms wait) ---
   try {
-      // 1. CHECK NEW SYSTEM
-      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+      const cacheSnap = await newCollectionRef.get({ source: 'cache' });
       
-      let newSnap;
-      try {
-          newSnap = await newCollectionRef.get({ source: 'cache' });
-      } catch (cacheErr) {
-          newSnap = await newCollectionRef.get();
-      }
-      
-      // Background sync
-      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed."));
-      
-      if (!newSnap.empty) {
-          // --- NEW: THE "FAST TYPER" SAFETY LOCK ---
-          // If the user started a workout during the 2 seconds it took Firebase to fetch this data,
-          // we ABORT the overwrite to protect the sets they just logged locally.
-          if (localStorage.getItem('trunk_workout_active') === 'true') {
-              console.log("🛡️ Workout active! Aborting cloud sync to protect local data.");
-              return; 
-          }
-          clientsData = {}; // Clear memory only if we successfully found data
-          newSnap.forEach(doc => {
+      if (!cacheSnap.empty) {
+          console.log("Loaded directly from Cache");
+          clientsData = {};
+          cacheSnap.forEach(doc => {
               let clientObj = doc.data();
               if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-          // ⚡️ UPDATE INSTANT BOOT BACKUP ⚡️
-          localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
-      } 
-      else { 
-          // 2. CHECK LEGACY SYSTEM
+      } else { 
+          // Check legacy cache if new system is empty
           const oldDocRef = db.collection("clients").doc(uid);
-          const oldDocSnap = await oldDocRef.get();
+          const oldDocSnap = await oldDocRef.get({ source: 'cache' });
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
@@ -1157,22 +1121,50 @@ async function loadUserJson() {
                   if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
-              localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
-          } else {
-              // Only auto-create if memory is truly empty
-              if (Object.keys(clientsData).length === 0) {
-                  const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
-                  if (firstName && firstName.trim() !== "") {
-                      clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-                      saveUserJson();
-                  }
+          } else if (Object.keys(clientsData).length === 0) {
+              // Cache is entirely empty
+              const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
+              if (firstName && firstName.trim() !== "") {
+                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+                  saveUserJson();
               }
           }
       }
       renderClients();
   } catch (err) {
-      console.error("Error loading user data:", err);
+      console.log("Cache empty/unavailable. Auto-generating base profile.");
+      if (Object.keys(clientsData).length === 0) {
+          const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
+          clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+          saveUserJson();
+          renderClients();
+      }
   }
+
+  // --- 2. SILENT BACKGROUND SERVER SYNC ---
+  // Because there is no "await" here, the app will never freeze, even if this hangs for 15 seconds!
+  newCollectionRef.get({ source: 'server' }).then(serverSnap => {
+      // Safety lock: Abort cloud overwrite if user started lifting during the network hang
+      if (localStorage.getItem('trunk_workout_active') === 'true') {
+          console.log("🛡️ Workout active! Aborting cloud sync to protect local data.");
+          return; 
+      }
+      
+      if (!serverSnap.empty) {
+          console.log("Background Sync Complete - Data Fresh");
+          clientsData = {}; 
+          serverSnap.forEach(doc => {
+              let clientObj = doc.data();
+              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
+              if (clientObj.order === undefined) clientObj.order = 999;
+              clientsData[clientObj.client_name] = clientObj;
+          });
+          localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
+          renderClients();
+      }
+  }).catch(e => {
+      console.log("Background sync paused (Offline). Data will upload automatically when connection returns.");
+  });
 }
 
 async function saveUserJson() {
@@ -6496,18 +6488,3 @@ function renderGoalStats() {
         ], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
     }, 50);
 }
-
-// ==========================================
-// BACKGROUND SYNC RECOVERY
-// ==========================================
-document.addEventListener("visibilitychange", () => {
-    // When the app is pulled back up from the background
-    if (!document.hidden && typeof db !== 'undefined') {
-        console.log("App reopened: Attempting to reconnect Firebase...");
-        db.enableNetwork().then(() => {
-            // Restore normal gear color when internet returns
-            const gear = document.getElementById('settingsBtn');
-            if (gear && gear.style.color === 'rgb(255, 59, 48)') gear.style.color = '';
-        }).catch(e => console.log("Still offline."));
-    }
-});
