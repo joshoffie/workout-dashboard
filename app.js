@@ -928,48 +928,27 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-        // 1. GLOBALLY FORCE FIRST NAME ONLY (NO AWAIT)
+          // --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              // THE 11-SECOND FIX: We removed 'await'. Firebase does this silently in the background now!
-              user.updateProfile({ displayName: currentName }).catch(() => {});
+              await user.updateProfile({ displayName: currentName });
           }
           // -----------------------------------------------
 
-          // 2. THE BAD CONNECTION TIMEOUT (3 SECONDS)
+          // --- STRICT TOS VERSION CHECK ---
           const userDocRef = db.collection("users").doc(user.uid);
-          let needsToAccept = false;
+          const userDocSnap = await userDocRef.get();
           
-          try {
-              // Try the instant cache first (Takes 0 milliseconds)
-              const cachedSnap = await userDocRef.get({ source: 'cache' });
-              if (cachedSnap.exists) {
-                  const data = cachedSnap.data();
-                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
-              } else {
-                  throw new Error("not_in_cache");
+          let needsToAccept = false;
+          if (userDocSnap.exists) {
+              const data = userDocSnap.data();
+              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
+                  needsToAccept = true;
               }
-          } catch (e) {
-              // If not in cache, try the server, but kill it after 3 seconds
-              try {
-                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("bad_connection")), 3000));
-                  const serverSnap = await Promise.race([userDocRef.get(), timeout]);
-                  
-                  if (serverSnap.exists) {
-                      const data = serverSnap.data();
-                      if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
-                  } else {
-                      needsToAccept = true; // Brand new user
-                  }
-              } catch (err) {
-                  console.log("⚠️ Bad connection. Bypassing TOS and forcing offline mode.");
-                  needsToAccept = false;
-                  
-                  // Trigger red gear immediately
-                  const gear = document.getElementById('settingsBtn');
-                  if (gear) gear.style.color = '#ff3b30';
-              }
+          } else {
+              // Brand new user document
+              needsToAccept = true;
           }
 
           if (needsToAccept) {
@@ -1105,27 +1084,22 @@ async function loadUserJson() {
   if (!auth.currentUser) return;
   
   const uid = auth.currentUser.uid;
-  clientsData = {};
-
-  // Clear gear color at start of load (in case connection improved)
-  const gear = document.getElementById('settingsBtn');
-  if (gear) gear.style.color = ''; 
-
-  try {
+  clientsData = {}; // Clear memory
+try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       
+      // FIX: Force Firebase to load from local cache INSTANTLY first
       let newSnap;
       try {
-          // Try Instant Cache first
           newSnap = await newCollectionRef.get({ source: 'cache' });
       } catch (cacheErr) {
-          // THE 3-SECOND RULE: Race the server fetch against a 3-second timer
-          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("firebase_timeout")), 3000));
-          newSnap = await Promise.race([newCollectionRef.get(), timeout]);
+          // If cache is totally empty (first time user), fallback to default
+          newSnap = await newCollectionRef.get();
       }
       
-      // Background sync: Let Firebase fetch latest silently
+      // Background sync: Let Firebase fetch the latest from the server silently
+      // so the next time they open the app, the cache is fresh.
       newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
       
       if (!newSnap.empty) {
@@ -1143,10 +1117,7 @@ async function loadUserJson() {
           // 2. CHECK LEGACY SYSTEM
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
-          
-          // THE 3-SECOND RULE (For legacy data)
-          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("firebase_timeout")), 3000));
-          const oldDocSnap = await Promise.race([oldDocRef.get(), timeout]);
+          const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
@@ -1157,37 +1128,31 @@ async function loadUserJson() {
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
           } else {
-              // Auto-create first profile if database is entirely empty
+              console.log("No data found.");
+              
+              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
               const firstName = auth.currentUser.displayName;
+              
+              // If we have a name and the database is completely empty, make their first profile automatically
               if (firstName && firstName.trim() !== "") {
-                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+                  console.log("Auto-creating initial profile for:", firstName);
+                  clientsData[firstName] = { 
+                      client_name: firstName, 
+                      sessions: [], 
+                      order: 0 
+                  };
+                  
+                  // Immediately save this new default profile to the database so it's there next time
                   saveUserJson();
               }
+              // ------------------------------------------
           }
       }
       renderClients();
-      
   } catch (err) {
       console.error("Error loading user data:", err);
-      
-      // --- THE BAD CONNECTION FALLBACK ---
-      if (err.message === "firebase_timeout" || err.message.includes("offline")) {
-          console.log("⚠️ Bad connection detected. Forcing offline mode.");
-          
-          // Visually indicate bad connection (Red Gear)
-          if (gear) gear.style.color = '#ff3b30';
-          
-          // Failsafe: If the cache was totally empty and we timed out, auto-generate a 
-          // local profile so the app isn't blank and they can still log their workout.
-          if (Object.keys(clientsData).length === 0) {
-              const firstName = auth.currentUser.displayName || "My Profile";
-              clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-          }
-          renderClients();
-      } else {
-          // Only alert for real errors if we actually have internet
-          if (navigator.onLine) alert("Error loading data. Check console.");
-      }
+      // Optional: Alert the user if it's a real error and not just "offline"
+      if (navigator.onLine) alert("Error loading data. Check console.");
   }
 }
 
