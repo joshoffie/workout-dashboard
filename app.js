@@ -1129,6 +1129,13 @@ async function loadUserJson() {
       newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed."));
       
       if (!newSnap.empty) {
+          // --- NEW: THE "FAST TYPER" SAFETY LOCK ---
+          // If the user started a workout during the 2 seconds it took Firebase to fetch this data,
+          // we ABORT the overwrite to protect the sets they just logged locally.
+          if (localStorage.getItem('trunk_workout_active') === 'true') {
+              console.log("🛡️ Workout active! Aborting cloud sync to protect local data.");
+              return; 
+          }
           clientsData = {}; // Clear memory only if we successfully found data
           newSnap.forEach(doc => {
               let clientObj = doc.data();
