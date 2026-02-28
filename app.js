@@ -114,8 +114,8 @@ function expandClientData(clientObj) {
 
 // Helper to delete a specific client doc (used during rename/delete)
 async function deleteClientFromFirestore(clientName) {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
+    const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
+    if (!uid) return;
     try {
         await db.collection("users").doc(uid).collection("clients").doc(clientName).delete();
     } catch (err) {
@@ -925,88 +925,89 @@ const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 function initAuthListener() {
+    // --- ⚡️ INSTANT BOOT (LOCAL FIRST ARCHITECTURE) ⚡️ ---
+    const cachedUid = localStorage.getItem("trunk_uid");
+    const cachedBackup = localStorage.getItem("trunk_offline_backup");
+    
+    if (cachedUid && cachedBackup) {
+        console.log("⚡️ Instant Boot: Loading from LocalStorage in 0ms");
+        window.OFFLINE_UID = cachedUid; // Store globally so you can save sets while offline
+        
+        try {
+            // 1. Instantly load data into memory
+            clientsData = JSON.parse(cachedBackup);
+            
+            // 2. Hide Login Modal & Show UI
+            if (typeof modal !== 'undefined') modal.classList.add("hidden");
+            const settingsBtn = document.getElementById('settingsBtn'); 
+            const editToggleBtn = document.getElementById('editToggleBtn');
+            if (settingsBtn) settingsBtn.classList.remove("hidden");
+            if (editToggleBtn) editToggleBtn.classList.remove("hidden");
+            
+            // 3. Set Name
+            const savedName = localStorage.getItem("trunk_first_name") || "My Profile";
+            if (userLabel) userLabel.textContent = `Logged in as ${savedName}`;
+            
+            // 4. Render instantly
+            hideAllDetails();
+            renderClients();
+            
+            // 5. Start a 3-second bad connection indicator
+            window.firebaseHangTimer = setTimeout(() => {
+                console.log("⚠️ Firebase is hanging. Visually switching to offline mode.");
+                if (typeof db !== 'undefined') db.disableNetwork();
+                if (settingsBtn) settingsBtn.style.color = '#ff3b30';
+            }, 3000);
+        } catch(e) { console.error("Instant boot failed", e); }
+    }
+    // --------------------------------------------------------
+
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          
-// --- 1. THE 3-SECOND KILL SWITCH ---
-          // If Firebase hangs, we literally sever its internet connection.
-          // This forces ALL pending requests to instantly drop to the local cache.
-          window.appLoadTimer = setTimeout(() => {
-              console.log("⚠️ Network too slow. Severing Firebase connection.");
-              db.disableNetwork(); 
-              
-              const gear = document.getElementById('settingsBtn');
-              if (gear) gear.style.color = '#ff3b30';
-          }, 3000);
-          // -----------------------------------
+          // Firebase is officially awake! Cancel the hang timer.
+          if (window.firebaseHangTimer) clearTimeout(window.firebaseHangTimer);
+          const gear = document.getElementById('settingsBtn');
+          if (gear && gear.style.color === 'rgb(255, 59, 48)') gear.style.color = '';
 
-          // --- 2. GLOBALLY FORCE FIRST NAME ONLY (NO AWAIT) ---
-          let currentName = user.displayName || "";
-          if (currentName.includes(' ')) {
-              currentName = currentName.split(' ')[0].trim();
-              user.updateProfile({ displayName: currentName }).catch(()=>{});
-          }
-          // -----------------------------------------------
+          // Save credentials for the NEXT time they open the app
+          localStorage.setItem("trunk_uid", user.uid);
+          let currentName = user.displayName || localStorage.getItem("trunk_first_name") || "";
+          if (currentName.includes(' ')) currentName = currentName.split(' ')[0].trim();
+          localStorage.setItem("trunk_first_name", currentName);
+          user.updateProfile({ displayName: currentName }).catch(()=>{});
 
-          // --- 3. STRICT TOS VERSION CHECK (Wrapped in Try/Catch) ---
+          // --- BACKGROUND TOS CHECK (No Await, No Freezing) ---
           const userDocRef = db.collection("users").doc(user.uid);
-          let needsToAccept = false;
-          
-          try {
-              const cachedSnap = await userDocRef.get({ source: 'cache' });
-              if (cachedSnap.exists) {
-                  const data = cachedSnap.data();
-                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
-              } else {
-                  throw new Error("not_in_cache");
-              }
-          } catch (e) {
-              try {
-                  // THE FIX: Do not wait for Firebase to timeout. Force JS to abandon the request after 2.5s!
-                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
-                  const serverSnap = await Promise.race([userDocRef.get(), timeout]);
-                  
-                  if (serverSnap.exists) {
-                      const data = serverSnap.data();
-                      if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
-                  } else {
-                      needsToAccept = true; 
+          userDocRef.get({ source: 'cache' }).catch(() => userDocRef.get()).then(snap => {
+              if (snap && snap.exists) {
+                  const data = snap.data();
+                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
+                      const tosModal = document.getElementById('tosUpdateModal');
+                      if (tosModal) tosModal.classList.remove('hidden');
+                      document.getElementById('acceptNewTosBtn').onclick = async () => {
+                          await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
+                          tosModal.classList.add('hidden');
+                      };
                   }
-              } catch (err) {
-                  console.log("Offline mode: Bypassing TOS check due to slow connection.");
-                  needsToAccept = false; 
               }
-          }
+          }).catch(()=>{});
 
-          if (needsToAccept) {
-              if (window.appLoadTimer) clearTimeout(window.appLoadTimer);
-              const tosModal = document.getElementById('tosUpdateModal');
-              if (tosModal) tosModal.classList.remove('hidden');
-              
-              document.getElementById('acceptNewTosBtn').onclick = async () => {
-                  await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
-                  tosModal.classList.add('hidden');
-                  
-                  // Restart the kill switch for the data load phase
-                  window.appLoadTimer = setTimeout(() => { db.disableNetwork(); }, 3000);
-                  finishLoginProcess(user, currentName);
-              };
-              return;
-          }
-
+          // Sync cloud data silently in the background
           finishLoginProcess(user, currentName);
 
       } else {
         // LOGGED OUT
+        localStorage.removeItem("trunk_uid");
+        localStorage.removeItem("trunk_offline_backup");
+        localStorage.removeItem("trunk_first_name");
+        
         if (!isTutorialMode) {
             if (typeof modal !== 'undefined') modal.classList.remove("hidden");
             const settingsBtn = document.getElementById('settingsBtn');
             if (settingsBtn) settingsBtn.classList.add("hidden");
-            
             const editToggleBtn = document.getElementById('editToggleBtn');
             if (editToggleBtn) editToggleBtn.classList.add("hidden");
         }
-        
         if (userLabel) userLabel.textContent = "";
         clientsData = {};
         selectedClient = null;
@@ -1110,43 +1111,38 @@ function hideDeleteConfirm() { deleteModal.classList.add('hidden'); }
 deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
-  if (!auth.currentUser) return;
-  const uid = auth.currentUser.uid;
-  clientsData = {};
-
+  const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
+  if (!uid) return;
+  
   try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      let newSnap;
       
+      let newSnap;
       try {
           newSnap = await newCollectionRef.get({ source: 'cache' });
       } catch (cacheErr) {
-          // THE FIX: Force JS to abandon the server check if it hangs longer than 2.5s
-          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
-          newSnap = await Promise.race([newCollectionRef.get(), timeout]);
+          newSnap = await newCollectionRef.get();
       }
       
-      // Background sync: Let Firebase fetch the latest silently
+      // Background sync
       newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed."));
       
       if (!newSnap.empty) {
-          console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
+          clientsData = {}; // Clear memory only if we successfully found data
           newSnap.forEach(doc => {
               let clientObj = doc.data();
               if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
+          // ⚡️ UPDATE INSTANT BOOT BACKUP ⚡️
+          localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
       } 
       else { 
           // 2. CHECK LEGACY SYSTEM
-          console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
-          
-          // THE FIX: Race the legacy server check too
-          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
-          const oldDocSnap = await Promise.race([oldDocRef.get(), timeout]);
+          const oldDocSnap = await oldDocRef.get();
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
@@ -1154,46 +1150,42 @@ async function loadUserJson() {
                   if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
+              localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
           } else {
-              console.log("No data found.");
-              const firstName = auth.currentUser.displayName || "My Profile";
-              if (firstName && firstName.trim() !== "") {
-                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-                  saveUserJson();
+              // Only auto-create if memory is truly empty
+              if (Object.keys(clientsData).length === 0) {
+                  const firstName = (auth.currentUser && auth.currentUser.displayName) ? auth.currentUser.displayName : "My Profile";
+                  if (firstName && firstName.trim() !== "") {
+                      clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+                      saveUserJson();
+                  }
               }
           }
       }
       renderClients();
   } catch (err) {
       console.error("Error loading user data:", err);
-      // --- 5. SAFETY FALLBACK FOR KILLED NETWORK ---
-      if (Object.keys(clientsData).length === 0) {
-          const firstName = auth.currentUser.displayName || "My Profile";
-          clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
-      }
-      renderClients();
   }
 }
 
 async function saveUserJson() {
   if (isTutorialMode) return;
-  if (!auth.currentUser) return;
   
-  const uid = auth.currentUser.uid;
+  const uid = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : window.OFFLINE_UID;
+  if (!uid) return;
+  
+  // ⚡️ ALWAYS BACKUP TO LOCAL STORAGE FOR INSTANT BOOT ⚡️
+  localStorage.setItem("trunk_offline_backup", JSON.stringify(clientsData));
+
   const batch = db.batch();
   const profilesRef = db.collection("users").doc(uid).collection("clients");
-
-  // Loop through all clients in memory
+  
   Object.values(clientsData).forEach(clientObj => {
-      // 1. Optimize (Strip ColorData, Compress Sets)
       const optimizedData = cleanAndMinifyClient(clientObj);
-      
-      // 2. Queue Update
       const docRef = profilesRef.doc(clientObj.client_name);
       batch.set(docRef, optimizedData);
   });
 
-  // 3. Commit all writes at once
   try {
       await batch.commit();
   } catch (err) {
