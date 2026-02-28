@@ -1084,22 +1084,27 @@ async function loadUserJson() {
   if (!auth.currentUser) return;
   
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Clear memory
-try {
+  clientsData = {};
+
+  // Clear gear color at start of load (in case connection improved)
+  const gear = document.getElementById('settingsBtn');
+  if (gear) gear.style.color = ''; 
+
+  try {
       // 1. CHECK NEW SYSTEM
       const newCollectionRef = db.collection("users").doc(uid).collection("clients");
       
-      // FIX: Force Firebase to load from local cache INSTANTLY first
       let newSnap;
       try {
+          // Try Instant Cache first
           newSnap = await newCollectionRef.get({ source: 'cache' });
       } catch (cacheErr) {
-          // If cache is totally empty (first time user), fallback to default
-          newSnap = await newCollectionRef.get();
+          // THE 3-SECOND RULE: Race the server fetch against a 3-second timer
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("firebase_timeout")), 3000));
+          newSnap = await Promise.race([newCollectionRef.get(), timeout]);
       }
       
-      // Background sync: Let Firebase fetch the latest from the server silently
-      // so the next time they open the app, the cache is fresh.
+      // Background sync: Let Firebase fetch latest silently
       newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
       
       if (!newSnap.empty) {
@@ -1117,7 +1122,10 @@ try {
           // 2. CHECK LEGACY SYSTEM
           console.log("New system empty. Checking legacy...");
           const oldDocRef = db.collection("clients").doc(uid);
-          const oldDocSnap = await oldDocRef.get();
+          
+          // THE 3-SECOND RULE (For legacy data)
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("firebase_timeout")), 3000));
+          const oldDocSnap = await Promise.race([oldDocRef.get(), timeout]);
 
           if (oldDocSnap.exists) {
               clientsData = oldDocSnap.data();
@@ -1128,31 +1136,37 @@ try {
                   if (clientsData[key].order === undefined) clientsData[key].order = 999;
               });
           } else {
-              console.log("No data found.");
-              
-              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
+              // Auto-create first profile if database is entirely empty
               const firstName = auth.currentUser.displayName;
-              
-              // If we have a name and the database is completely empty, make their first profile automatically
               if (firstName && firstName.trim() !== "") {
-                  console.log("Auto-creating initial profile for:", firstName);
-                  clientsData[firstName] = { 
-                      client_name: firstName, 
-                      sessions: [], 
-                      order: 0 
-                  };
-                  
-                  // Immediately save this new default profile to the database so it's there next time
+                  clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
                   saveUserJson();
               }
-              // ------------------------------------------
           }
       }
       renderClients();
+      
   } catch (err) {
       console.error("Error loading user data:", err);
-      // Optional: Alert the user if it's a real error and not just "offline"
-      if (navigator.onLine) alert("Error loading data. Check console.");
+      
+      // --- THE BAD CONNECTION FALLBACK ---
+      if (err.message === "firebase_timeout" || err.message.includes("offline")) {
+          console.log("⚠️ Bad connection detected. Forcing offline mode.");
+          
+          // Visually indicate bad connection (Red Gear)
+          if (gear) gear.style.color = '#ff3b30';
+          
+          // Failsafe: If the cache was totally empty and we timed out, auto-generate a 
+          // local profile so the app isn't blank and they can still log their workout.
+          if (Object.keys(clientsData).length === 0) {
+              const firstName = auth.currentUser.displayName || "My Profile";
+              clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+          }
+          renderClients();
+      } else {
+          // Only alert for real errors if we actually have internet
+          if (navigator.onLine) alert("Error loading data. Check console.");
+      }
   }
 }
 
