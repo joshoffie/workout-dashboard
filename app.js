@@ -928,21 +928,21 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-        // --- GLOBALLY FORCE FIRST NAME ONLY ---
+        // 1. GLOBALLY FORCE FIRST NAME ONLY (NO AWAIT)
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              // FIX 1: Removed 'await'. Fire this in the background so it doesn't freeze the app!
-              user.updateProfile({ displayName: currentName }).catch(e => console.log("Profile update delayed"));
+              // THE 11-SECOND FIX: We removed 'await'. Firebase does this silently in the background now!
+              user.updateProfile({ displayName: currentName }).catch(() => {});
           }
           // -----------------------------------------------
 
-          // --- STRICT TOS VERSION CHECK (WITH TIMEOUT) ---
+          // 2. THE BAD CONNECTION TIMEOUT (3 SECONDS)
           const userDocRef = db.collection("users").doc(user.uid);
           let needsToAccept = false;
           
           try {
-              // FIX 2: Try Cache First (Evaluates in 0 milliseconds)
+              // Try the instant cache first (Takes 0 milliseconds)
               const cachedSnap = await userDocRef.get({ source: 'cache' });
               if (cachedSnap.exists) {
                   const data = cachedSnap.data();
@@ -951,21 +951,24 @@ function initAuthListener() {
                   throw new Error("not_in_cache");
               }
           } catch (e) {
-              // If not in cache, race the server check against a 2.5-second timer!
+              // If not in cache, try the server, but kill it after 3 seconds
               try {
-                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("tos_timeout")), 2500));
+                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("bad_connection")), 3000));
                   const serverSnap = await Promise.race([userDocRef.get(), timeout]);
                   
                   if (serverSnap.exists) {
                       const data = serverSnap.data();
                       if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
                   } else {
-                      needsToAccept = true; // New user
+                      needsToAccept = true; // Brand new user
                   }
-              } catch (timeoutErr) {
-                  console.log("⚠️ TOS Check timed out. Bypassing to allow offline access.");
-                  // If the network is dead, we bypass the TOS screen to allow them to log their workout offline.
-                  needsToAccept = false; 
+              } catch (err) {
+                  console.log("⚠️ Bad connection. Bypassing TOS and forcing offline mode.");
+                  needsToAccept = false;
+                  
+                  // Trigger red gear immediately
+                  const gear = document.getElementById('settingsBtn');
+                  if (gear) gear.style.color = '#ff3b30';
               }
           }
 
