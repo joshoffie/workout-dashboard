@@ -928,47 +928,68 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-          // --- GLOBALLY FORCE FIRST NAME ONLY ---
+// --- 1. THE 3-SECOND KILL SWITCH ---
+          // If Firebase hangs, we literally sever its internet connection.
+          // This forces ALL pending requests to instantly drop to the local cache.
+          window.appLoadTimer = setTimeout(() => {
+              console.log("⚠️ Network too slow. Severing Firebase connection.");
+              db.disableNetwork(); 
+              
+              const gear = document.getElementById('settingsBtn');
+              if (gear) gear.style.color = '#ff3b30';
+          }, 3000);
+          // -----------------------------------
+
+          // --- 2. GLOBALLY FORCE FIRST NAME ONLY (NO AWAIT) ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              await user.updateProfile({ displayName: currentName });
+              user.updateProfile({ displayName: currentName }).catch(()=>{});
           }
           // -----------------------------------------------
 
-          // --- STRICT TOS VERSION CHECK ---
+          // --- 3. STRICT TOS VERSION CHECK (Wrapped in Try/Catch) ---
           const userDocRef = db.collection("users").doc(user.uid);
-          const userDocSnap = await userDocRef.get();
-          
           let needsToAccept = false;
-          if (userDocSnap.exists) {
-              const data = userDocSnap.data();
-              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
-                  needsToAccept = true;
+          
+          try {
+              // We still check cache first for speed
+              const cachedSnap = await userDocRef.get({ source: 'cache' });
+              if (cachedSnap.exists) {
+                  const data = cachedSnap.data();
+                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+              } else {
+                  // If not in cache, try server. If 3 seconds pass, the kill switch above triggers,
+                  // network dies, and this throws an error instantly!
+                  const serverSnap = await userDocRef.get();
+                  if (serverSnap.exists) {
+                      const data = serverSnap.data();
+                      if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+                  } else {
+                      needsToAccept = true;
+                  }
               }
-          } else {
-              // Brand new user document
-              needsToAccept = true;
+          } catch (err) {
+              console.log("Offline mode: Bypassing TOS check.");
+              needsToAccept = false; 
           }
 
           if (needsToAccept) {
-              // Show the forced update modal and STOP loading the app data until they click
+              if (window.appLoadTimer) clearTimeout(window.appLoadTimer);
               const tosModal = document.getElementById('tosUpdateModal');
               if (tosModal) tosModal.classList.remove('hidden');
               
               document.getElementById('acceptNewTosBtn').onclick = async () => {
-                  // Save their signature to the database
                   await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
                   tosModal.classList.add('hidden');
                   
-                  // Now resume loading the app
+                  // Restart the kill switch for the data load phase
+                  window.appLoadTimer = setTimeout(() => { db.disableNetwork(); }, 3000);
                   finishLoginProcess(user, currentName);
               };
-              return; // Halt execution here
+              return;
           }
-          // ------------------------------------
 
-          // If they already accepted the current version, proceed normally
           finishLoginProcess(user, currentName);
 
       } else {
@@ -990,7 +1011,6 @@ function initAuthListener() {
       }
     });
 }
-
 // Helper function to continue loading the app after ToS check
 async function finishLoginProcess(user, currentName) {
     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
@@ -1001,13 +1021,18 @@ async function finishLoginProcess(user, currentName) {
 
     if (settingsBtn) settingsBtn.classList.remove("hidden");
     if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-
     if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
     hideAllDetails(); 
 
     // LOAD DATA
     await loadUserJson();
     renderClients();
+    
+    // --- 4. SUCCESS! CANCEL THE KILL SWITCH ---
+    if (window.appLoadTimer) {
+        clearTimeout(window.appLoadTimer);
+        window.appLoadTimer = null;
+    }
 }
 
 // [app.js] Add this AFTER auth.onAuthStateChanged closes
@@ -1149,11 +1174,16 @@ try {
           }
       }
       renderClients();
-  } catch (err) {
-      console.error("Error loading user data:", err);
-      // Optional: Alert the user if it's a real error and not just "offline"
-      if (navigator.onLine) alert("Error loading data. Check console.");
-  }
+} catch (err) {
+          console.error("Error loading user data:", err);
+          
+          // --- 5. SAFETY FALLBACK FOR KILLED NETWORK ---
+          if (Object.keys(clientsData).length === 0) {
+              const firstName = auth.currentUser.displayName || "My Profile";
+              clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+          }
+          renderClients();
+      }
 }
 
 async function saveUserJson() {
@@ -6478,3 +6508,18 @@ function renderGoalStats() {
         ], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
     }, 50);
 }
+
+// ==========================================
+// BACKGROUND SYNC RECOVERY
+// ==========================================
+document.addEventListener("visibilitychange", () => {
+    // When the app is pulled back up from the background
+    if (!document.hidden && typeof db !== 'undefined') {
+        console.log("App reopened: Attempting to reconnect Firebase...");
+        db.enableNetwork().then(() => {
+            // Restore normal gear color when internet returns
+            const gear = document.getElementById('settingsBtn');
+            if (gear && gear.style.color === 'rgb(255, 59, 48)') gear.style.color = '';
+        }).catch(e => console.log("Still offline."));
+    }
+});
