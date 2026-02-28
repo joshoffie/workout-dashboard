@@ -6317,14 +6317,12 @@ function renderGoalStats() {
 
     const banner = document.getElementById('goalResultBanner');
     const chartWrapper = document.getElementById('goalChartWrapper');
-    const breakdownBox = document.getElementById('current1rmBreakdown');
     const heaviestBox = document.getElementById('allTimeHeaviestBreakdown'); // <--- NEW
     
     // Safety check - Can't calculate percentages without sets
     if (!selectedExercise.goal || !selectedExercise.sets || selectedExercise.sets.length === 0) {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
-        if (breakdownBox) breakdownBox.style.display = 'none';
         if (heaviestBox) heaviestBox.style.display = 'none';
         return;
     }
@@ -6345,7 +6343,6 @@ function renderGoalStats() {
     if (points.length === 0) {
         banner.classList.add('hidden');
         chartWrapper.style.display = 'none';
-        if (breakdownBox) breakdownBox.style.display = 'none';
         if (heaviestBox) heaviestBox.style.display = 'none';
         return;
     }
@@ -6370,19 +6367,6 @@ function renderGoalStats() {
     } else {
         textDisp.textContent = `You are approx. ${formatNum(dispDiff)} ${unitLabel} (1RM) away.`;
         document.getElementById('goalPercentageDisplay').style.color = "var(--color-primary)";
-    }
-
-    // --- POPULATE THE ESTIMATED 1RM BOX ---
-    if (breakdownBox) {
-        const displayRM = UNIT_mode.toDisplay(mostRecent1RM);
-        const displayWeight = UNIT_mode.toDisplay(bestSet.weight);
-        const dateStr = new Date(bestSet.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-        
-        document.getElementById('current1rmDisplay').textContent = `${Math.round(displayRM)} ${unitLabel}`;
-        document.getElementById('current1rmSetDetails').textContent = `${displayWeight} ${unitLabel} for ${bestSet.reps} rep${bestSet.reps > 1 ? 's' : ''}`;
-        document.getElementById('current1rmDate').textContent = dateStr;
-        
-        breakdownBox.style.display = 'block';
     }
 
     // --- NEW: POPULATE THE ALL-TIME HEAVIEST BOX ---
