@@ -928,27 +928,45 @@ function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
           
-          // --- GLOBALLY FORCE FIRST NAME ONLY ---
+        // --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              await user.updateProfile({ displayName: currentName });
+              // FIX 1: Removed 'await'. Fire this in the background so it doesn't freeze the app!
+              user.updateProfile({ displayName: currentName }).catch(e => console.log("Profile update delayed"));
           }
           // -----------------------------------------------
 
-          // --- STRICT TOS VERSION CHECK ---
+          // --- STRICT TOS VERSION CHECK (WITH TIMEOUT) ---
           const userDocRef = db.collection("users").doc(user.uid);
-          const userDocSnap = await userDocRef.get();
-          
           let needsToAccept = false;
-          if (userDocSnap.exists) {
-              const data = userDocSnap.data();
-              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
-                  needsToAccept = true;
+          
+          try {
+              // FIX 2: Try Cache First (Evaluates in 0 milliseconds)
+              const cachedSnap = await userDocRef.get({ source: 'cache' });
+              if (cachedSnap.exists) {
+                  const data = cachedSnap.data();
+                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+              } else {
+                  throw new Error("not_in_cache");
               }
-          } else {
-              // Brand new user document
-              needsToAccept = true;
+          } catch (e) {
+              // If not in cache, race the server check against a 2.5-second timer!
+              try {
+                  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("tos_timeout")), 2500));
+                  const serverSnap = await Promise.race([userDocRef.get(), timeout]);
+                  
+                  if (serverSnap.exists) {
+                      const data = serverSnap.data();
+                      if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+                  } else {
+                      needsToAccept = true; // New user
+                  }
+              } catch (timeoutErr) {
+                  console.log("⚠️ TOS Check timed out. Bypassing to allow offline access.");
+                  // If the network is dead, we bypass the TOS screen to allow them to log their workout offline.
+                  needsToAccept = false; 
+              }
           }
 
           if (needsToAccept) {
