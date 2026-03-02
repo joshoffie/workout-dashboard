@@ -1023,9 +1023,11 @@ function initAuthListener() {
               } else {
                   needsToAccept = true; // Brand new or cache cleared
               }
-          } catch (cacheErr) {
+         } catch (cacheErr) {
               // 2. Cache miss. Try server, but ENFORCE 3-SECOND TIMEOUT
-              showUpdateBar("Authenticating...");
+              // FIX: Replaced broken function with the new tracking engine
+              updateProgressText("Checking account..."); 
+              
               try {
                   const serverSnap = await withTimeout(userDocRef.get({ source: 'server' }), 3000);
                   if (serverSnap.exists) {
@@ -1034,14 +1036,13 @@ function initAuthListener() {
                   } else {
                       needsToAccept = true;
                   }
-                  hideUpdateBar('success', 1000);
+                  // FIX: Removed old hideUpdateBar. The engine will handle success smoothly.
               } catch (serverErr) {
                   console.log("Network timeout. Bypassing TOS to allow offline usage.");
-                  hideUpdateBar('error', 2000);
+                  // FIX: Removed old hideUpdateBar. 
                   needsToAccept = false; // Bypass to let them into the app offline
               }
           }
-
           if (needsToAccept) {
               // ---> HIDE BAR IF THEY NEED TO READ THE TOS <---
               finishUpdateProgress("Terms Required", "success", 500);
@@ -1216,7 +1217,6 @@ try {
           renderClients();
           // ---> SNAP TO 100% AND FINISH <---
           finishUpdateProgress("Synced Successfully", "success");
-          hideUpdateBar('success', 1500);
       } else if (!loadedFromCache) {
           await handleLegacyOrNew(uid);
         // ---> SNAP TO 100% AND FINISH <---
