@@ -395,6 +395,40 @@ function clearTutorialTips() {
   document.querySelectorAll('.tutorial-tooltip').forEach(el => el.remove());
 }
 
+// =====================================================
+// OFFLINE TIMEOUT & UPDATE BAR ENGINE
+// =====================================================
+const withTimeout = (promise, ms) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+};
+
+function showUpdateBar(message) {
+  const bar = document.getElementById('updateBar');
+  const text = document.getElementById('updateBarText');
+  if (!bar || !text) return;
+  bar.classList.remove('hidden', 'error', 'success');
+  text.textContent = message;
+}
+
+function hideUpdateBar(statusStr, delay = 2000) {
+  const bar = document.getElementById('updateBar');
+  const text = document.getElementById('updateBarText');
+  if (!bar || !text) return;
+  
+  if (statusStr === 'error') {
+      bar.classList.add('error');
+      text.textContent = "Offline Mode (Using Cache)";
+  } else if (statusStr === 'success') {
+      bar.classList.add('success');
+      text.textContent = "Synced Successfully";
+  }
+  
+  setTimeout(() => bar.classList.add('hidden'), delay);
+}
+
 // ------------------ Firebase Config ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
@@ -927,53 +961,62 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          
           // --- GLOBALLY FORCE FIRST NAME ONLY ---
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              await user.updateProfile({ displayName: currentName });
+              // FIX: Do NOT 'await' this. Let it sync in background.
+              user.updateProfile({ displayName: currentName }).catch(e => console.log("Profile update deferred"));
           }
-          // -----------------------------------------------
 
-          // --- STRICT TOS VERSION CHECK ---
+          // --- STRICT TOS VERSION CHECK (NON-BLOCKING) ---
           const userDocRef = db.collection("users").doc(user.uid);
-          const userDocSnap = await userDocRef.get();
-          
           let needsToAccept = false;
-          if (userDocSnap.exists) {
-              const data = userDocSnap.data();
-              if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) {
-                  needsToAccept = true;
+          
+          try {
+              // 1. Try cache first instantly
+              const cacheSnap = await userDocRef.get({ source: 'cache' });
+              if (cacheSnap.exists) {
+                  const data = cacheSnap.data();
+                  if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+              } else {
+                  needsToAccept = true; // Brand new or cache cleared
               }
-          } else {
-              // Brand new user document
-              needsToAccept = true;
+          } catch (cacheErr) {
+              // 2. Cache miss. Try server, but ENFORCE 3-SECOND TIMEOUT
+              showUpdateBar("Authenticating...");
+              try {
+                  const serverSnap = await withTimeout(userDocRef.get({ source: 'server' }), 3000);
+                  if (serverSnap.exists) {
+                      const data = serverSnap.data();
+                      if (!data.tosVersion || data.tosVersion < CURRENT_TOS_VERSION) needsToAccept = true;
+                  } else {
+                      needsToAccept = true;
+                  }
+                  hideUpdateBar('success', 1000);
+              } catch (serverErr) {
+                  console.log("Network timeout. Bypassing TOS to allow offline usage.");
+                  hideUpdateBar('error', 2000);
+                  needsToAccept = false; // Bypass to let them into the app offline
+              }
           }
 
           if (needsToAccept) {
-              // Show the forced update modal and STOP loading the app data until they click
               const tosModal = document.getElementById('tosUpdateModal');
               if (tosModal) tosModal.classList.remove('hidden');
               
               document.getElementById('acceptNewTosBtn').onclick = async () => {
-                  // Save their signature to the database
-                  await userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true });
-                  tosModal.classList.add('hidden');
-                  
-                  // Now resume loading the app
+                  userDocRef.set({ tosVersion: CURRENT_TOS_VERSION }, { merge: true }).catch(e => console.log(e));
+                  if(tosModal) tosModal.classList.add('hidden');
                   finishLoginProcess(user, currentName);
               };
-              return; // Halt execution here
+              return; 
           }
-          // ------------------------------------
 
-          // If they already accepted the current version, proceed normally
           finishLoginProcess(user, currentName);
-
       } else {
-        // LOGGED OUT
-        if (!isTutorialMode) {
+          // ... (Keep your existing 'else' logic here exactly as it was) ...
+          if (!isTutorialMode) {
             if (typeof modal !== 'undefined') modal.classList.remove("hidden");
             const settingsBtn = document.getElementById('settingsBtn');
             if (settingsBtn) settingsBtn.classList.add("hidden");
@@ -1082,78 +1125,97 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 // ------------------ FIRESTORE DATA ------------------
 async function loadUserJson() {
   if (!auth.currentUser) return;
-  
   const uid = auth.currentUser.uid;
   clientsData = {}; // Clear memory
-try {
-      // 1. CHECK NEW SYSTEM
-      const newCollectionRef = db.collection("users").doc(uid).collection("clients");
-      
-      // FIX: Force Firebase to load from local cache INSTANTLY first
-      let newSnap;
-      try {
-          newSnap = await newCollectionRef.get({ source: 'cache' });
-      } catch (cacheErr) {
-          // If cache is totally empty (first time user), fallback to default
-          newSnap = await newCollectionRef.get();
-      }
-      
-      // Background sync: Let Firebase fetch the latest from the server silently
-      // so the next time they open the app, the cache is fresh.
-      newCollectionRef.get({ source: 'server' }).catch(e => console.log("Silent server sync failed (offline)."));
-      
-      if (!newSnap.empty) {
-          console.log("Loaded data (Source: " + (newSnap.metadata.fromCache ? 'Cache' : 'Server') + ")");
-          newSnap.forEach(doc => {
+  const newCollectionRef = db.collection("users").doc(uid).collection("clients");
+
+  let loadedFromCache = false;
+
+  // 1. ATTEMPT INSTANT CACHE LOAD
+  try {
+      const cacheSnap = await newCollectionRef.get({ source: 'cache' });
+      if (!cacheSnap.empty) {
+          console.log("Loaded instantly from Cache.");
+          cacheSnap.forEach(doc => {
               let clientObj = doc.data();
-              if (typeof expandClientData === "function") {
-                  clientObj = expandClientData(clientObj);
-              }
+              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-      } 
-      else { 
-          // 2. CHECK LEGACY SYSTEM
-          console.log("New system empty. Checking legacy...");
-          const oldDocRef = db.collection("clients").doc(uid);
-          const oldDocSnap = await oldDocRef.get();
-
-          if (oldDocSnap.exists) {
-              clientsData = oldDocSnap.data();
-              Object.keys(clientsData).forEach(key => {
-                  if (typeof expandClientData === "function") {
-                      clientsData[key] = expandClientData(clientsData[key]);
-                  }
-                  if (clientsData[key].order === undefined) clientsData[key].order = 999;
-              });
-          } else {
-              console.log("No data found.");
-              
-              // --- THE FIX: AUTO-CREATE FIRST PROFILE ---
-              const firstName = auth.currentUser.displayName;
-              
-              // If we have a name and the database is completely empty, make their first profile automatically
-              if (firstName && firstName.trim() !== "") {
-                  console.log("Auto-creating initial profile for:", firstName);
-                  clientsData[firstName] = { 
-                      client_name: firstName, 
-                      sessions: [], 
-                      order: 0 
-                  };
-                  
-                  // Immediately save this new default profile to the database so it's there next time
-                  saveUserJson();
-              }
-              // ------------------------------------------
-          }
+          loadedFromCache = true;
+          renderClients(); // Render UI instantly
       }
-      renderClients();
-  } catch (err) {
-      console.error("Error loading user data:", err);
-      // Optional: Alert the user if it's a real error and not just "offline"
-      if (navigator.onLine) alert("Error loading data. Check console.");
+  } catch (cacheErr) {
+      console.log("Cache miss or empty.");
   }
+
+  // 2. BACKGROUND SERVER SYNC WITH TIMEOUT
+  showUpdateBar("Syncing data...");
+  try {
+      const fetchPromise = newCollectionRef.get({ source: 'server' });
+      
+      // If we have UI from cache, let the background sync take its time. 
+      // If no UI exists (blank app), force a 3s timeout so it doesn't freeze forever.
+      const serverSnap = loadedFromCache 
+          ? await fetchPromise 
+          : await withTimeout(fetchPromise, 3000);
+
+      if (!serverSnap.empty) {
+          console.log("Server data synced.");
+          clientsData = {}; // Clear to prevent duplicates
+          serverSnap.forEach(doc => {
+              let clientObj = doc.data();
+              if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
+              if (clientObj.order === undefined) clientObj.order = 999;
+              clientsData[clientObj.client_name] = clientObj;
+          });
+          renderClients();
+          hideUpdateBar('success', 1500);
+      } else if (!loadedFromCache) {
+          await handleLegacyOrNew(uid);
+          hideUpdateBar('success', 1500);
+      } else {
+          hideUpdateBar('success', 1500);
+      }
+  } catch (err) {
+      console.error("Server sync failed or timed out:", err);
+      hideUpdateBar('error', 3000);
+      if (!loadedFromCache) {
+          await handleLegacyOrNew(uid); // Ensure app functions offline
+      }
+  }
+}
+
+// Helper to check old DB structure or auto-create first profile offline
+async function handleLegacyOrNew(uid) {
+    console.log("Checking legacy system...");
+    const oldDocRef = db.collection("clients").doc(uid);
+    try {
+        const oldDocSnap = await oldDocRef.get({ source: 'cache' })
+                           .catch(() => withTimeout(oldDocRef.get({ source: 'server' }), 3000));
+        
+        if (oldDocSnap && oldDocSnap.exists) {
+            clientsData = oldDocSnap.data();
+            Object.keys(clientsData).forEach(key => {
+                if (typeof expandClientData === "function") clientsData[key] = expandClientData(clientsData[key]);
+                if (clientsData[key].order === undefined) clientsData[key].order = 999;
+            });
+        } else {
+            createInitialProfile();
+        }
+    } catch (e) {
+        createInitialProfile();
+    }
+    renderClients();
+}
+
+function createInitialProfile() {
+    const firstName = auth.currentUser.displayName;
+    if (firstName && firstName.trim() !== "") {
+        console.log("Auto-creating initial profile for:", firstName);
+        clientsData[firstName] = { client_name: firstName, sessions: [], order: 0 };
+        saveUserJson();
+    }
 }
 
 async function saveUserJson() {
@@ -1166,19 +1228,17 @@ async function saveUserJson() {
 
   // Loop through all clients in memory
   Object.values(clientsData).forEach(clientObj => {
-      // 1. Optimize (Strip ColorData, Compress Sets)
       const optimizedData = cleanAndMinifyClient(clientObj);
-      
-      // 2. Queue Update
       const docRef = profilesRef.doc(clientObj.client_name);
       batch.set(docRef, optimizedData);
   });
-
-  // 3. Commit all writes at once
+  
   try {
-      await batch.commit();
+      // FIX: Remove 'await'. Fire and forget. 
+      // Firestore will automatically push to the server when connection returns.
+      batch.commit().catch(err => console.log("Save queued for background sync.", err));
   } catch (err) {
-      console.error("Save failed:", err);
+      console.error("Save setup failed:", err);
   }
 }
 
