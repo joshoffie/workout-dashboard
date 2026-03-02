@@ -154,16 +154,16 @@ html, body {
   display: flex !important; /* Keep flex active for the transition */
 }
 
-/* Subtle, sleek loading line at the bottom edge */
+/* Sleek progress line at the bottom edge */
 .update-bar-progress {
   position: absolute;
   bottom: 0;
   left: 0;
   height: 2px;
-  width: 40%;
+  width: 0%; /* JS will control this */
   background: var(--color-primary);
   border-radius: 2px;
-  animation: pill-sweep 1.2s infinite ease-in-out;
+  transition: width 0.3s ease-out; /* Smoothly animates percentage changes */
 }
 
 @keyframes pill-sweep {
