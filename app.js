@@ -396,16 +396,6 @@ function clearTutorialTips() {
 }
 
 // =====================================================
-// OFFLINE TIMEOUT & UPDATE BAR ENGINE
-// =====================================================
-const withTimeout = (promise, ms) => {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-  ]);
-};
-
-// =====================================================
 // OFFLINE TIMEOUT & PROGRESS ENGINE
 // =====================================================
 const withTimeout = (promise, ms) => {
@@ -1244,7 +1234,7 @@ try {
       finishUpdateProgress("Offline Mode", "error", 3000);
   }
 }
-}
+
 
 // Helper to check old DB structure or auto-create first profile offline
 async function handleLegacyOrNew(uid) {
