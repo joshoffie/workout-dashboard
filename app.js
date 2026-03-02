@@ -405,28 +405,76 @@ const withTimeout = (promise, ms) => {
   ]);
 };
 
-function showUpdateBar(message) {
+// =====================================================
+// OFFLINE TIMEOUT & PROGRESS ENGINE
+// =====================================================
+const withTimeout = (promise, ms) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+};
+
+let simulatedProgress = 0;
+let progressInterval = null;
+
+function startUpdateProgress(message) {
   const bar = document.getElementById('updateBar');
   const text = document.getElementById('updateBarText');
-  if (!bar || !text) return;
+  const progressLine = document.querySelector('.update-bar-progress');
+  
+  if (!bar || !text || !progressLine) return;
+  
+  // Reset states
   bar.classList.remove('hidden', 'error', 'success');
   text.textContent = message;
+  progressLine.style.display = 'block';
+  progressLine.style.width = '0%';
+  simulatedProgress = 0;
+  
+  clearInterval(progressInterval);
+  
+  // Asymptotic trickle: Starts fast, slows down infinitely as it approaches 90%
+  progressInterval = setInterval(() => {
+    let increment = (90 - simulatedProgress) * 0.08; 
+    simulatedProgress += increment;
+    progressLine.style.width = `${simulatedProgress}%`;
+  }, 200);
 }
 
-function hideUpdateBar(statusStr, delay = 2000) {
+function updateProgressText(message) {
+  const text = document.getElementById('updateBarText');
+  if (text) text.textContent = message;
+}
+
+function finishUpdateProgress(message, statusStr, delay = 1500) {
   const bar = document.getElementById('updateBar');
   const text = document.getElementById('updateBarText');
+  const progressLine = document.querySelector('.update-bar-progress');
+  
+  clearInterval(progressInterval);
   if (!bar || !text) return;
+
+  // Snap to 100%
+  if (progressLine) progressLine.style.width = '100%';
+  text.textContent = message;
   
   if (statusStr === 'error') {
       bar.classList.add('error');
-      text.textContent = "Offline Mode (Using Cache)";
+      if (progressLine) setTimeout(() => progressLine.style.display = 'none', 300);
   } else if (statusStr === 'success') {
       bar.classList.add('success');
-      text.textContent = "Synced Successfully";
+      if (progressLine) setTimeout(() => progressLine.style.display = 'none', 300);
   }
   
-  setTimeout(() => bar.classList.add('hidden'), delay);
+  // Slide away and reset
+  setTimeout(() => {
+      bar.classList.add('hidden');
+      setTimeout(() => {
+          if (progressLine) progressLine.style.width = '0%';
+          bar.classList.remove('error', 'success');
+      }, 400); 
+  }, delay);
 }
 
 // ------------------ Firebase Config ------------------
@@ -455,6 +503,8 @@ db.enablePersistence({ synchronizeTabs: true })
       console.log("❌ Offline mode not supported in this browser.");
     }
   });
+
+startUpdateProgress("Connecting to Server...");
 
 // 2. CRITICAL: Start checking Auth immediately so the UI draws instantly!
 initAuthListener();
@@ -961,11 +1011,12 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-          // --- GLOBALLY FORCE FIRST NAME ONLY ---
+        // ---> WE SURVIVED THE HANG! UPDATE THE TEXT <---
+          updateProgressText("Authenticating...");
+
           let currentName = user.displayName || "";
           if (currentName.includes(' ')) {
               currentName = currentName.split(' ')[0].trim();
-              // FIX: Do NOT 'await' this. Let it sync in background.
               user.updateProfile({ displayName: currentName }).catch(e => console.log("Profile update deferred"));
           }
 
@@ -1002,6 +1053,8 @@ function initAuthListener() {
           }
 
           if (needsToAccept) {
+              // ---> HIDE BAR IF THEY NEED TO READ THE TOS <---
+              finishUpdateProgress("Terms Required", "success", 500);
               const tosModal = document.getElementById('tosUpdateModal');
               if (tosModal) tosModal.classList.remove('hidden');
               
@@ -1015,6 +1068,8 @@ function initAuthListener() {
 
           finishLoginProcess(user, currentName);
       } else {
+          // ---> LOGGED OUT: HIDE BAR INSTANTLY <---
+          finishUpdateProgress("Ready", "success", 500);
           // ... (Keep your existing 'else' logic here exactly as it was) ...
           if (!isTutorialMode) {
             if (typeof modal !== 'undefined') modal.classList.remove("hidden");
@@ -1131,6 +1186,9 @@ async function loadUserJson() {
 
   let loadedFromCache = false;
 
+    // ---> UPDATE TEXT FOR DATA PULL <---
+  updateProgressText("Syncing data...");
+
   // 1. ATTEMPT INSTANT CACHE LOAD
   try {
       const cacheSnap = await newCollectionRef.get({ source: 'cache' });
@@ -1149,13 +1207,9 @@ async function loadUserJson() {
       console.log("Cache miss or empty.");
   }
 
-  // 2. BACKGROUND SERVER SYNC WITH TIMEOUT
-  showUpdateBar("Syncing data...");
-  try {
+  // 2. BACKGROUND SERVER SYNC WITH TIMEOUT    
+try {
       const fetchPromise = newCollectionRef.get({ source: 'server' });
-      
-      // If we have UI from cache, let the background sync take its time. 
-      // If no UI exists (blank app), force a 3s timeout so it doesn't freeze forever.
       const serverSnap = loadedFromCache 
           ? await fetchPromise 
           : await withTimeout(fetchPromise, 3000);
@@ -1170,20 +1224,26 @@ async function loadUserJson() {
               clientsData[clientObj.client_name] = clientObj;
           });
           renderClients();
+          // ---> SNAP TO 100% AND FINISH <---
+          finishUpdateProgress("Synced Successfully", "success");
           hideUpdateBar('success', 1500);
       } else if (!loadedFromCache) {
           await handleLegacyOrNew(uid);
-          hideUpdateBar('success', 1500);
+        // ---> SNAP TO 100% AND FINISH <---
+          finishUpdateProgress("Synced Successfully", "success");
       } else {
-          hideUpdateBar('success', 1500);
+          // ---> SNAP TO 100% AND FINISH <---
+          finishUpdateProgress("Up to Date", "success");
       }
-  } catch (err) {
+    } catch (err) {
       console.error("Server sync failed or timed out:", err);
-      hideUpdateBar('error', 3000);
       if (!loadedFromCache) {
-          await handleLegacyOrNew(uid); // Ensure app functions offline
+          await handleLegacyOrNew(uid); 
       }
+      // ---> SNAP TO 100%, TURN RED, SAY OFFLINE <---
+      finishUpdateProgress("Offline Mode", "error", 3000);
   }
+}
 }
 
 // Helper to check old DB structure or auto-create first profile offline
