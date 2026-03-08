@@ -520,6 +520,27 @@ let selectedExercise = null;
 let lastPlateAdded = null;
 
 // =====================================================
+// ⚡ INSTANT APP SHELL RENDER
+// =====================================================
+const cachedData = localStorage.getItem('trunk_local_data');
+const loginModalEl = document.getElementById("loginModal"); // ⚡ FIX: Safely grab the element locally
+
+if (cachedData) {
+    try {
+        clientsData = JSON.parse(cachedData);
+        if (loginModalEl) loginModalEl.classList.add("hidden");
+        if (typeof renderClients === 'function') renderClients();
+        console.log("⚡ Instant Render Complete");
+    } catch (e) { 
+        console.error("Local mirror parse failed", e); 
+    }
+} else {
+    // ⚡ FIX: No local data found (New User or Logged Out) -> safely un-hide the login screen
+    if (loginModalEl) loginModalEl.classList.remove("hidden");
+    console.log("No local data found. Showing login screen.");
+}
+
+// =====================================================
 // UNIT CONVERSION ENGINE (Base Unit = LBS)
 // =====================================================
 const UNIT_mode = {
@@ -1017,21 +1038,6 @@ const deleteModalMessage = document.getElementById('deleteModalMessage');
 const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
-// =====================================================
-// ⚡ INSTANT APP SHELL RENDER
-// =====================================================
-const cachedData = localStorage.getItem('trunk_local_data');
-if (cachedData) {
-    try {
-        clientsData = JSON.parse(cachedData);
-        if (modal) modal.classList.add("hidden");
-        if (typeof renderClients === 'function') renderClients();
-        console.log("⚡ Instant Render Complete");
-    } catch (e) { console.error("Local mirror parse failed", e); }
-} else {
-    // NEW USER: No local data found, un-hide the login screen instantly
-    if (modal) modal.classList.remove("hidden");
-}
 
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
