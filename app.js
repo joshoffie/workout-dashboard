@@ -1097,6 +1097,10 @@ function initAuthListener() {
     });
 }
 
+// =====================================================
+// DATA SYNC & REHYDRATION ENGINE
+// =====================================================
+
 // Helper function to continue loading the app after ToS check
 async function finishLoginProcess(user, currentName) {
     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
@@ -1107,15 +1111,33 @@ async function finishLoginProcess(user, currentName) {
 
     if (settingsBtn) settingsBtn.classList.remove("hidden");
     if (editToggleBtn) editToggleBtn.classList.remove("hidden");
-
     if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
-    hideAllDetails(); 
+    
+    // ⚡ FIX: Removed hideAllDetails() and renderClients() from here
+    // so the user is not yanked back to the Home Screen.
 
     // LOAD DATA
     await loadUserJson();
-    renderClients();
 }
 
+// ⚡ NEW HELPER: Re-attaches pointers and silently updates the screen the user is looking at
+function rehydrateStateAndUI() {
+    // 1. Re-hook memory pointers if user navigated deep into the app before Firebase finished
+    if (selectedClient && clientsData[selectedClient]) {
+        if (selectedSession && clientsData[selectedClient].sessions) {
+            selectedSession = clientsData[selectedClient].sessions.find(s => s.session_name === selectedSession.session_name) || selectedSession;
+        }
+        if (selectedSession && selectedExercise && selectedSession.exercises) {
+            selectedExercise = selectedSession.exercises.find(e => e.exercise === selectedExercise.exercise) || selectedExercise;
+        }
+    }
+
+    // 2. Silently re-render only the screen they are currently looking at
+    if (currentScreen === SCREENS.CLIENTS) renderClients();
+    else if (currentScreen === SCREENS.SESSIONS) renderSessions();
+    else if (currentScreen === SCREENS.EXERCISES) renderExercises();
+    else if (currentScreen === SCREENS.SETS) renderSets();
+}
 // [app.js] Add this AFTER auth.onAuthStateChanged closes
 auth.getRedirectResult().then((result) => {
   if (result.user) {
@@ -1199,12 +1221,12 @@ deleteCancelBtn.onclick = hideDeleteConfirm;
 async function loadUserJson() {
   if (!auth.currentUser) return;
   const uid = auth.currentUser.uid;
-  clientsData = {}; // Clear memory
+  
+  // Do NOT clear clientsData = {} here. We wait until we actually have new data.
   const newCollectionRef = db.collection("users").doc(uid).collection("clients");
 
   let loadedFromCache = false;
-
-    // ---> UPDATE TEXT FOR DATA PULL <---
+  // ---> UPDATE TEXT FOR DATA PULL <---
   updateProgressText("Syncing data...");
 
   // 1. ATTEMPT INSTANT CACHE LOAD
@@ -1212,6 +1234,7 @@ async function loadUserJson() {
       const cacheSnap = await newCollectionRef.get({ source: 'cache' });
       if (!cacheSnap.empty) {
           console.log("Loaded instantly from Cache.");
+          clientsData = {}; // Clear memory right before parsing
           cacheSnap.forEach(doc => {
               let clientObj = doc.data();
               if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
@@ -1219,14 +1242,14 @@ async function loadUserJson() {
               clientsData[clientObj.client_name] = clientObj;
           });
           loadedFromCache = true;
-          renderClients(); // Render UI instantly
+          rehydrateStateAndUI(); // ⚡ FIX: Update UI seamlessly
       }
   } catch (cacheErr) {
       console.log("Cache miss or empty.");
   }
 
   // 2. BACKGROUND SERVER SYNC WITH TIMEOUT    
-try {
+  try {
       const fetchPromise = newCollectionRef.get({ source: 'server' });
       const serverSnap = loadedFromCache 
           ? await fetchPromise 
@@ -1234,19 +1257,19 @@ try {
 
       if (!serverSnap.empty) {
           console.log("Server data synced.");
-          clientsData = {}; // Clear to prevent duplicates
+          clientsData = {}; // Clear memory right before parsing
           serverSnap.forEach(doc => {
               let clientObj = doc.data();
               if (typeof expandClientData === "function") clientObj = expandClientData(clientObj);
               if (clientObj.order === undefined) clientObj.order = 999;
               clientsData[clientObj.client_name] = clientObj;
           });
-          renderClients();
+          rehydrateStateAndUI(); // ⚡ FIX: Update UI seamlessly
           // ---> SNAP TO 100% AND FINISH <---
           finishUpdateProgress("Synced Successfully", "success");
       } else if (!loadedFromCache) {
           await handleLegacyOrNew(uid);
-        // ---> SNAP TO 100% AND FINISH <---
+          // ---> SNAP TO 100% AND FINISH <---
           finishUpdateProgress("Synced Successfully", "success");
       } else {
           // ---> SNAP TO 100% AND FINISH <---
@@ -1255,13 +1278,12 @@ try {
     } catch (err) {
       console.error("Server sync failed or timed out:", err);
       if (!loadedFromCache) {
-          await handleLegacyOrNew(uid); 
+          await handleLegacyOrNew(uid);
       }
       // ---> SNAP TO 100%, TURN RED, SAY OFFLINE <---
       finishUpdateProgress("Offline Mode", "error", 3000);
-  }
+    }
 }
-
 
 // Helper to check old DB structure or auto-create first profile offline
 async function handleLegacyOrNew(uid) {
@@ -1283,7 +1305,7 @@ async function handleLegacyOrNew(uid) {
     } catch (e) {
         createInitialProfile();
     }
-    renderClients();
+    rehydrateStateAndUI(); // ⚡ FIX: Update UI seamlessly
 }
 
 function createInitialProfile() {
