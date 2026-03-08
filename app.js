@@ -995,10 +995,15 @@ if (backFromSettingsBtn) {
 // 3. Logout Action (Inside Settings)
 document.getElementById('settingsLogoutBtn').onclick = async () => {
     try {
-        sendHapticScoreToNative(-2); // <--- ADD THIS (Switch Off)
-        // Just Sign Out. The auth.onAuthStateChanged listener will handle 
-        // hiding Settings and showing the Login Modal/Home screen.
+        sendHapticScoreToNative(-2); 
+        
+        // ⚡ NEW: Wipe the local offline mirror
+        localStorage.removeItem('trunk_local_data');
+        
         await auth.signOut();
+        
+        // ⚡ NEW: Force a clean reload to purge memory
+        window.location.reload();
     } catch (err) {
         console.error("Logout failed", err);
     }
@@ -1149,12 +1154,18 @@ if (modalLoginBtn) {
             } catch (err) { console.error(err); modalLoginBtn.innerHTML = "Continue with Google"; }
         }
     };
-}
 if (logoutBtn) {
     logoutBtn.onclick = async () => { 
         try {
-            sendHapticScoreToNative(-2); // <--- ADD THIS (Switch Off)
-            await auth.signOut(); 
+            sendHapticScoreToNative(-2);
+            
+            // ⚡ NEW: Wipe the local offline mirror
+            localStorage.removeItem('trunk_local_data');
+            
+            await auth.signOut();
+            
+            // ⚡ NEW: Force a clean reload to purge memory
+            window.location.reload();
         } catch(err) {
             console.error("Logout error:", err);
         }
