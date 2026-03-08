@@ -488,42 +488,51 @@ function finishUpdateProgress(message, statusStr, delay = 1500) {
 }
 
 // ------------------ Firebase Config ------------------
-const firebaseConfig = {
-  apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
-  authDomain: "trunk-tracker.web.app", // <--- Updated to your custom domain
-  projectId: "free-workout-tracker",
-  storageBucket: "free-workout-tracker.firebasestorage.app",
-  messagingSenderId: "797968203224",
-  appId: "1:797968203224:web:0409faf864741f9e5c86ad",
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+if (typeof firebase !== 'undefined') {
+    const firebaseConfig = {
+      apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
+      authDomain: "trunk-tracker.web.app",
+      projectId: "free-workout-tracker",
+      storageBucket: "free-workout-tracker.firebasestorage.app",
+      messagingSenderId: "797968203224",
+      appId: "1:797968203224:web:0409faf864741f9e5c86ad",
+    };
+    firebase.initializeApp(firebaseConfig);
+    
+    // We must attach these to window so they are globally available
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
 
-// --- MASTER TOS VERSION CONTROL ---
-// Change this to 2.0, 3.0, etc., when you make major legal/pricing changes
-const CURRENT_TOS_VERSION = 1.0;
+    const CURRENT_TOS_VERSION = 1.0;
 
-// 1. ENABLE PERSISTENCE (Runs in the background)
-db.enablePersistence({ synchronizeTabs: true })
-  .catch((err) => {
-    if (err.code == 'failed-precondition') {
-      console.log("❌ Offline mode failed: Multiple tabs open.");
-    } else if (err.code == 'unimplemented') {
-      console.log("❌ Offline mode not supported in this browser.");
+    // 1. ENABLE PERSISTENCE (Runs in the background)
+    db.enablePersistence({ synchronizeTabs: true })
+      .catch((err) => {
+        if (err.code == 'failed-precondition') {
+          console.log("❌ Offline mode failed: Multiple tabs open.");
+        } else if (err.code == 'unimplemented') {
+          console.log("❌ Offline mode not supported.");
+        }
+      });
+
+    startUpdateProgress("Connecting to Server...");
+    initAuthListener();
+} else {
+    // FATAL OFFLINE FALLBACK (First-time open with no internet)
+    console.error("Firebase SDK failed to load. App is completely offline.");
+    const modal = document.getElementById("loginModal");
+    if (modal) {
+        modal.classList.remove("hidden"); // Ensure they see the login screen
+        document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
+        document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
     }
-  });
-
-startUpdateProgress("Connecting to Server...");
-
-// 2. CRITICAL: Start checking Auth immediately so the UI draws instantly!
-initAuthListener();
+}
 
 let clientsData = {};
 let selectedClient = null;
 let selectedSession = null;
 let selectedExercise = null;
-let lastPlateAdded = null; // Tracks the weight of the last plate clicked
+let lastPlateAdded = null;
 
 // =====================================================
 // UNIT CONVERSION ENGINE (Base Unit = LBS)
@@ -5485,7 +5494,7 @@ window.addEventListener('load', () => {
         );
         if (!secondConfirm) return;
 
-        // --- EXECUTE DELETION ---
+// --- EXECUTE DELETION ---
         try {
             // UI Feedback: Show loading state
             const originalText = btnDeleteAccount.innerHTML; // Save icon/text
@@ -5493,10 +5502,7 @@ window.addEventListener('load', () => {
             btnDeleteAccount.disabled = true;
 
             // 1. Delete User Data from Firestore
-            const db = firebase.firestore();
-            // Note: This only deletes the main document. 
-            // If you have subcollections, they are usually orphaned but inaccessible. 
-            // For a simple app, this satisfies requirements.
+            // It automatically uses the global 'db' variable we set at the top
             await db.collection('users').doc(user.uid).delete();
             console.log("✅ User data deleted from Firestore");
 
@@ -5504,7 +5510,10 @@ window.addEventListener('load', () => {
             await user.delete();
             console.log("✅ User auth deleted");
 
-            // 3. Success & Redirect
+            // 3. ⚡ NEW: Purge the offline hardware mirror
+            localStorage.removeItem('trunk_local_data');
+
+            // 4. Success & Redirect
             alert("Your account has been deleted.");
             window.location.reload(); 
 
