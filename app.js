@@ -1,24 +1,4 @@
 // =====================================================
-// ⚡ INSTANT APP SHELL RENDER
-// =====================================================
-const cachedData = localStorage.getItem('trunk_local_data');
-if (cachedData) {
-    try {
-        // 1. Load the mirror into memory immediately
-        clientsData = JSON.parse(cachedData);
-        // 2. Hide the Login Modal so the UI is visible
-        const modal = document.getElementById("loginModal");
-        if (modal) modal.classList.add("hidden");
-        // 3. Draw the screen
-        if (typeof renderClients === 'function') renderClients();
-        console.log("⚡ Instant Render Complete");
-    } catch (e) { 
-        console.error("Local mirror parse failed", e); 
-    }
-}
-
-
-// =====================================================
 // NATIVE AUTHENTICATION BRIDGE
 // =====================================================
 window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken, firstName) => {
@@ -489,44 +469,34 @@ function finishUpdateProgress(message, statusStr, delay = 1500) {
 
 // ------------------ Firebase Config ------------------
 if (typeof firebase !== 'undefined') {
-    const firebaseConfig = {
-      apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
-      authDomain: "trunk-tracker.web.app",
-      projectId: "free-workout-tracker",
-      storageBucket: "free-workout-tracker.firebasestorage.app",
-      messagingSenderId: "797968203224",
-      appId: "1:797968203224:web:0409faf864741f9e5c86ad",
-    };
-    firebase.initializeApp(firebaseConfig);
-    
-    // We must attach these to window so they are globally available
-    window.auth = firebase.auth();
-    window.db = firebase.firestore();
+        const firebaseConfig = {
+          apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
+          authDomain: "trunk-tracker.web.app",
+          projectId: "free-workout-tracker",
+          storageBucket: "free-workout-tracker.firebasestorage.app",
+          messagingSenderId: "797968203224",
+          appId: "1:797968203224:web:0409faf864741f9e5c86ad",
+        };
+        firebase.initializeApp(firebaseConfig);
+        
+        window.auth = firebase.auth();
+        window.db = firebase.firestore();
 
-    const CURRENT_TOS_VERSION = 1.0;
+        const CURRENT_TOS_VERSION = 1.0;
 
-    // 1. ENABLE PERSISTENCE (Runs in the background)
-    db.enablePersistence({ synchronizeTabs: true })
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          console.log("❌ Offline mode failed: Multiple tabs open.");
-        } else if (err.code == 'unimplemented') {
-          console.log("❌ Offline mode not supported.");
+        db.enablePersistence({ synchronizeTabs: true }).catch((err) => { console.log("Offline mode error", err); });
+        
+        startUpdateProgress("Connecting to Server...");
+        initAuthListener();
+    } else {
+        console.error("Firebase SDK failed to load. App is completely offline.");
+        const loginModalEl = document.getElementById("loginModal");
+        if (loginModalEl) {
+            loginModalEl.classList.remove("hidden");
+            document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
+            document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
         }
-      });
-
-    startUpdateProgress("Connecting to Server...");
-    initAuthListener();
-} else {
-    // FATAL OFFLINE FALLBACK (First-time open with no internet)
-    console.error("Firebase SDK failed to load. App is completely offline.");
-    const modal = document.getElementById("loginModal");
-    if (modal) {
-        modal.classList.remove("hidden"); // Ensure they see the login screen
-        document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
-        document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
     }
-}
 
 let clientsData = {};
 let selectedClient = null;
@@ -1032,6 +1002,19 @@ const deleteModalMessage = document.getElementById('deleteModalMessage');
 const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
+// =====================================================
+// ⚡ INSTANT APP SHELL RENDER (MOVED DOWN HERE)
+// =====================================================
+const cachedData = localStorage.getItem('trunk_local_data');
+if (cachedData) {
+    try {
+        clientsData = JSON.parse(cachedData);
+        if (modal) modal.classList.add("hidden");
+        if (typeof renderClients === 'function') renderClients();
+        console.log("⚡ Instant Render Complete");
+    } catch (e) { console.error("Local mirror parse failed", e); }
+}
+
 function initAuthListener() {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -1151,7 +1134,6 @@ auth.getRedirectResult().then((result) => {
 if (modalLoginBtn) {
     modalLoginBtn.onclick = async () => {
         modalLoginBtn.innerHTML = "Opening Secure Browser...";
-        
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeAuth) {
             // Trigger Swift
             window.webkit.messageHandlers.nativeAuth.postMessage("google");
@@ -1160,19 +1142,21 @@ if (modalLoginBtn) {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 await auth.signInWithPopup(provider);
-            } catch (err) { console.error(err); modalLoginBtn.innerHTML = "Continue with Google"; }
+            } catch (err) { 
+                console.error(err); 
+                modalLoginBtn.innerHTML = "Continue with Google";
+            }
         }
     };
+} // <--- THIS WAS THE MISSING BRACKET!
+
 if (logoutBtn) {
     logoutBtn.onclick = async () => { 
         try {
             sendHapticScoreToNative(-2);
-            
             // ⚡ NEW: Wipe the local offline mirror
             localStorage.removeItem('trunk_local_data');
-            
             await auth.signOut();
-            
             // ⚡ NEW: Force a clean reload to purge memory
             window.location.reload();
         } catch(err) {
@@ -1185,7 +1169,6 @@ if (logoutBtn) {
 if (modalAppleBtn) {
     modalAppleBtn.onclick = async () => {
         modalAppleBtn.innerHTML = "Authenticating with Face ID...";
-        
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeAuth) {
             // Trigger Swift
             window.webkit.messageHandlers.nativeAuth.postMessage("apple");
@@ -1196,10 +1179,14 @@ if (modalAppleBtn) {
                 provider.addScope('email');
                 provider.addScope('name');
                 await auth.signInWithPopup(provider);
-            } catch (err) { console.error(err); modalAppleBtn.innerHTML = "Continue with Apple"; }
+            } catch (err) { 
+                console.error(err); 
+                modalAppleBtn.innerHTML = "Continue with Apple";
+            }
         }
     };
 }
+
 function showDeleteConfirm(message, onConfirm) {
   deleteModalMessage.textContent = message;
   deleteModal.classList.remove('hidden');
