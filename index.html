@@ -23,7 +23,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js" defer></script>
-  <script src="app.js" defer></script>
   
 </head>
 <body>
@@ -32,7 +31,7 @@
     <span id="updateBarText">Connecting...</span>
   </div>
 
-  <div id="loginModal" class="overlay">
+  <div id="loginModal" class="overlay hidden">
   <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
@@ -571,6 +570,7 @@
   </div>
   <script>
 <script>
+  <script src="app.js"></script> <script>
   // BOOTSTRAP THE OFFLINE VAULT
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
