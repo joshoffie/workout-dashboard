@@ -1,57 +1,58 @@
-const CACHE_NAME = 'trunk-tracker-v2';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'trunk-app-shell-v3';
+const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
   '/manifest.json',
-  '/icon-192.png',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-  'https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap',
-  // Firebase scripts are cached by browser usually, but good to explicit if needed. 
-  // For simplicity, we rely on browser caching for CDNs or network fallback.
+  '/icon-192.png'
 ];
 
-// 1. INSTALL: Cache resources
+// 1. INSTALL: Pre-cache the vault
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Force the new SW to activate immediately
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// 2. ACTIVATE: Cleanup old caches
+// 2. ACTIVATE: Clean up old vaults
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(keyList.map((key) => {
-        if (key !== CACHE_NAME) {
-          return caches.delete(key);
-        }
-      }));
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => {
+        if (key !== CACHE_NAME) return caches.delete(key);
+      })
+    ))
   );
+  self.clients.claim();
 });
 
-// 3. FETCH: Network first, fall back to Cache
+// 3. FETCH: Stale-While-Revalidate Strategy
 self.addEventListener('fetch', (event) => {
-  // Ignored non-GET requests (like Firestore writes)
+  // Only intercept GET requests for our assets
   if (event.request.method !== 'GET') return;
+  
+  // Don't intercept Firebase API calls
+  if (event.request.url.includes('firestore.googleapis.com')) return;
+  if (event.request.url.includes('identitytoolkit.googleapis.com')) return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // If network works, return response AND cache it for later
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
-        return response;
-      })
-      .catch(() => {
-        // Network failed? Return from cache!
-        return caches.match(event.request);
-      })
+    caches.match(event.request).then((cachedResponse) => {
+      // Background network fetch to update the cache for next time
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Silently fail if offline, the user already has the cached response
+      });
+
+      // INSTANTLY return the cached response if we have it, otherwise wait for the network
+      return cachedResponse || fetchPromise;
+    })
   );
 });
