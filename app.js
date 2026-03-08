@@ -1,4 +1,24 @@
 // =====================================================
+// ⚡ INSTANT APP SHELL RENDER
+// =====================================================
+const cachedData = localStorage.getItem('trunk_local_data');
+if (cachedData) {
+    try {
+        // 1. Load the mirror into memory immediately
+        clientsData = JSON.parse(cachedData);
+        // 2. Hide the Login Modal so the UI is visible
+        const modal = document.getElementById("loginModal");
+        if (modal) modal.classList.add("hidden");
+        // 3. Draw the screen
+        if (typeof renderClients === 'function') renderClients();
+        console.log("⚡ Instant Render Complete");
+    } catch (e) { 
+        console.error("Local mirror parse failed", e); 
+    }
+}
+
+
+// =====================================================
 // NATIVE AUTHENTICATION BRIDGE
 // =====================================================
 window.handleNativeAuth = async (provider, idToken, rawNonce, accessToken, firstName) => {
@@ -1283,10 +1303,12 @@ async function saveUserJson() {
       batch.set(docRef, optimizedData);
   });
   
-  try {
-      // FIX: Remove 'await'. Fire and forget. 
-      // Firestore will automatically push to the server when connection returns.
+try {
       batch.commit().catch(err => console.log("Save queued for background sync.", err));
+      
+      // ⚡ ADD THIS: Instant Local Mirror 
+      localStorage.setItem('trunk_local_data', JSON.stringify(clientsData));
+      
   } catch (err) {
       console.error("Save setup failed:", err);
   }
