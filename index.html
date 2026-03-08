@@ -19,10 +19,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
-
+  
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js" defer></script>
+  
 </head>
 <body>
   <div id="updateBar" class="update-bar hidden">
@@ -569,13 +570,14 @@
   </div>
   <script>
 <script>
-  // KILL THE SERVICE WORKER TO ALLOW INSTANT OTA UPDATES
+  // BOOTSTRAP THE OFFLINE VAULT
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for(let registration of registrations) {
-        registration.unregister();
-        console.log('✅ Service Worker Unregistered');
-      }
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('✅ ServiceWorker registration successful');
+      }).catch(err => {
+        console.log('❌ ServiceWorker registration failed: ', err);
+      });
     });
   }
   </script>
