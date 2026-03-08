@@ -467,8 +467,11 @@ function finishUpdateProgress(message, statusStr, delay = 1500) {
   }, delay);
 }
 
-// ------------------ Firebase Config ------------------
-if (typeof firebase !== 'undefined') {
+// ------------------ Firebase Async Loader ------------------
+let firebaseLoadAttempts = 0;
+function tryInitializeFirebase() {
+    if (typeof firebase !== 'undefined') {
+        console.log("✅ Firebase loaded, initializing...");
         const firebaseConfig = {
           apiKey: "AIzaSyAywTTfFa6K7heVmkOUQDKpGJbeAbJ_8a8",
           authDomain: "trunk-tracker.web.app",
@@ -489,14 +492,26 @@ if (typeof firebase !== 'undefined') {
         startUpdateProgress("Connecting to Server...");
         initAuthListener();
     } else {
-        console.error("Firebase SDK failed to load. App is completely offline.");
-        const loginModalEl = document.getElementById("loginModal");
-        if (loginModalEl) {
-            loginModalEl.classList.remove("hidden");
-            document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
-            document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
+        firebaseLoadAttempts++;
+        if (firebaseLoadAttempts < 50) { // Try for 5 seconds max (50 * 100ms)
+            setTimeout(tryInitializeFirebase, 100);
+        } else {
+            console.error("❌ Firebase SDK failed to load. App is running entirely offline.");
+            // If they have no local data, we MUST show the login screen
+            if (!localStorage.getItem('trunk_local_data')) {
+                const loginModalEl = document.getElementById("loginModal");
+                if (loginModalEl) {
+                    loginModalEl.classList.remove("hidden");
+                    document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
+                    document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
+                }
+            }
         }
     }
+}
+
+// Start polling immediately
+tryInitializeFirebase();
 
 let clientsData = {};
 let selectedClient = null;
@@ -1003,7 +1018,7 @@ const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
 const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 // =====================================================
-// ⚡ INSTANT APP SHELL RENDER (MOVED DOWN HERE)
+// ⚡ INSTANT APP SHELL RENDER
 // =====================================================
 const cachedData = localStorage.getItem('trunk_local_data');
 if (cachedData) {
@@ -1013,6 +1028,9 @@ if (cachedData) {
         if (typeof renderClients === 'function') renderClients();
         console.log("⚡ Instant Render Complete");
     } catch (e) { console.error("Local mirror parse failed", e); }
+} else {
+    // NEW USER: No local data found, un-hide the login screen instantly
+    if (modal) modal.classList.remove("hidden");
 }
 
 function initAuthListener() {
