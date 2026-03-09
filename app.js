@@ -485,7 +485,6 @@ function tryInitializeFirebase() {
         window.auth = firebase.auth();
         window.db = firebase.firestore();
 
-        const CURRENT_TOS_VERSION = 1.0;
         db.enablePersistence({ synchronizeTabs: true }).catch((err) => { console.log("Offline mode error", err); });
         
         startUpdateProgress("Connecting to Server...");
@@ -1051,6 +1050,9 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 
 function initAuthListener() {
+    // ⚡ FIX: Moved into the correct scope so the button can read it
+    const CURRENT_TOS_VERSION = 1.0;
+    
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         // ---> WE SURVIVED THE HANG! UPDATE THE TEXT <---
