@@ -1142,7 +1142,10 @@ function initAuthListener() {
 // Helper function to continue loading the app after ToS check
 async function finishLoginProcess(user, currentName) {
     if(typeof sendHapticScoreToNative === 'function') sendHapticScoreToNative(-4);
-    if (typeof modal !== 'undefined') modal.classList.add("hidden");
+    
+    // ⚡ FIX: Safely grab the modal by ID and force it hidden
+    const loginModalEl = document.getElementById("loginModal");
+    if (loginModalEl) loginModalEl.classList.add("hidden");
 
     const settingsBtn = document.getElementById('settingsBtn'); 
     const editToggleBtn = document.getElementById('editToggleBtn');
@@ -1151,9 +1154,6 @@ async function finishLoginProcess(user, currentName) {
     if (editToggleBtn) editToggleBtn.classList.remove("hidden");
     if (userLabel) userLabel.textContent = `Logged in as ${currentName}`;
     
-    // ⚡ FIX: Removed hideAllDetails() and renderClients() from here
-    // so the user is not yanked back to the Home Screen.
-
     // LOAD DATA
     await loadUserJson();
 }
@@ -1175,6 +1175,10 @@ function rehydrateStateAndUI() {
     else if (currentScreen === SCREENS.SESSIONS) renderSessions();
     else if (currentScreen === SCREENS.EXERCISES) renderExercises();
     else if (currentScreen === SCREENS.SETS) renderSets();
+
+    // 3. ⚡ FIX: BACKUP CLOUD DATA TO HARDWARE CACHE
+    // This guarantees the app never thinks you are logged out on the next open
+    localStorage.setItem('trunk_local_data', JSON.stringify(clientsData));
 }
 
 // --- NEW GOOGLE LOGIN LOGIC ---
