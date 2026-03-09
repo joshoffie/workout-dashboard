@@ -567,11 +567,11 @@
         I Accept
       </button>
     </div>
-  </div>
+</div>
+
+  <script src="app.js"></script> 
+
   <script>
-<script>
-  <script src="app.js"></script> <script>
-  // BOOTSTRAP THE OFFLINE VAULT
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').then(registration => {
