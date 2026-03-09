@@ -486,25 +486,29 @@ function tryInitializeFirebase() {
         window.db = firebase.firestore();
 
         const CURRENT_TOS_VERSION = 1.0;
-
         db.enablePersistence({ synchronizeTabs: true }).catch((err) => { console.log("Offline mode error", err); });
         
         startUpdateProgress("Connecting to Server...");
         initAuthListener();
+
+        // ⚡ FIX: Safe Redirect Check inside Firebase init
+        auth.getRedirectResult().then((result) => {
+            if (result && result.user) console.log("Redirect login successful");
+        }).catch(e => console.error("Redirect error", e));
+
     } else {
         firebaseLoadAttempts++;
-        if (firebaseLoadAttempts < 50) { // Try for 5 seconds max (50 * 100ms)
+        if (firebaseLoadAttempts < 50) { 
             setTimeout(tryInitializeFirebase, 100);
         } else {
             console.error("❌ Firebase SDK failed to load. App is running entirely offline.");
-            // If they have no local data, we MUST show the login screen
-            if (!localStorage.getItem('trunk_local_data')) {
-                const loginModalEl = document.getElementById("loginModal");
-                if (loginModalEl) {
-                    loginModalEl.classList.remove("hidden");
-                    document.getElementById("modalLoginBtn").innerText = "Requires Internet to Login";
-                    document.getElementById("modalAppleBtn").innerText = "Requires Internet to Login";
-                }
+            const safeModal = document.getElementById("loginModal");
+            if (safeModal && !localStorage.getItem('trunk_local_data')) {
+                safeModal.classList.remove("hidden");
+                const mLog = document.getElementById("modalLoginBtn");
+                const mApp = document.getElementById("modalAppleBtn");
+                if (mLog) mLog.innerText = "Requires Internet to Login";
+                if (mApp) mApp.innerText = "Requires Internet to Login";
             }
         }
     }
@@ -520,24 +524,32 @@ let selectedExercise = null;
 let lastPlateAdded = null;
 
 // =====================================================
-// ⚡ INSTANT APP SHELL RENDER
+// ⚡ INSTANT APP SHELL RENDER (BULLETPROOF V3)
 // =====================================================
-const cachedData = localStorage.getItem('trunk_local_data');
-const loginModalEl = document.getElementById("loginModal"); // ⚡ FIX: Safely grab the element locally
+function executeInstantRender() {
+    const cachedData = localStorage.getItem('trunk_local_data');
+    const loginModalEl = document.getElementById("loginModal");
 
-if (cachedData) {
-    try {
-        clientsData = JSON.parse(cachedData);
-        if (loginModalEl) loginModalEl.classList.add("hidden");
-        if (typeof renderClients === 'function') renderClients();
-        console.log("⚡ Instant Render Complete");
-    } catch (e) { 
-        console.error("Local mirror parse failed", e); 
+    if (cachedData) {
+        try {
+            clientsData = JSON.parse(cachedData);
+            if (loginModalEl) loginModalEl.classList.add("hidden");
+            if (typeof renderClients === 'function') renderClients();
+            console.log("⚡ Instant Render Complete");
+        } catch (e) { 
+            console.error("Local mirror parse failed", e); 
+        }
+    } else {
+        if (loginModalEl) loginModalEl.classList.remove("hidden");
+        console.log("No local data found. Showing login screen.");
     }
+}
+
+// ⚡ FIX: Wait for HTML to load if script is running early
+if (document.getElementById("loginModal")) {
+    executeInstantRender();
 } else {
-    // ⚡ FIX: No local data found (New User or Logged Out) -> safely un-hide the login screen
-    if (loginModalEl) loginModalEl.classList.remove("hidden");
-    console.log("No local data found. Showing login screen.");
+    window.addEventListener('DOMContentLoaded', executeInstantRender);
 }
 
 // =====================================================
@@ -1102,22 +1114,24 @@ function initAuthListener() {
       } else {
           // ---> LOGGED OUT: HIDE BAR INSTANTLY <---
           finishUpdateProgress("Ready", "success", 500);
-          // ... (Keep your existing 'else' logic here exactly as it was) ...
           if (!isTutorialMode) {
-            if (typeof modal !== 'undefined') modal.classList.remove("hidden");
+            // ⚡ FIX: Safely fetch the modal dynamically 
+            const safeModal = document.getElementById("loginModal");
+            if (safeModal) safeModal.classList.remove("hidden");
+            
             const settingsBtn = document.getElementById('settingsBtn');
             if (settingsBtn) settingsBtn.classList.add("hidden");
             
             const editToggleBtn = document.getElementById('editToggleBtn');
             if (editToggleBtn) editToggleBtn.classList.add("hidden");
-        }
+          }
         
-        if (userLabel) userLabel.textContent = "";
-        clientsData = {};
-        selectedClient = null;
-        renderClients();
-        hideAllDetails();
-      }
+          if (userLabel) userLabel.textContent = "";
+          clientsData = {};
+          selectedClient = null;
+          renderClients();
+          hideAllDetails();
+        }
     });
 }
 
@@ -1162,19 +1176,6 @@ function rehydrateStateAndUI() {
     else if (currentScreen === SCREENS.EXERCISES) renderExercises();
     else if (currentScreen === SCREENS.SETS) renderSets();
 }
-// [app.js] Add this AFTER auth.onAuthStateChanged closes
-auth.getRedirectResult().then((result) => {
-  if (result.user) {
-    console.log("Redirect login successful:", result.user);
-  }
-}).catch((error) => {
-  console.error("Redirect login failed:", error);
-  if (error.code === 'auth/unauthorized-domain') {
-      alert("Configuration Error: You must add 'trunktracker.app' to the Authorized Domains list in the Firebase Console.");
-  } else {
-      alert("Login Error: " + error.message);
-  }
-});
 
 // --- NEW GOOGLE LOGIN LOGIC ---
 if (modalLoginBtn) {
