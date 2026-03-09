@@ -1014,6 +1014,12 @@ if (backFromSettingsBtn) {
 
 // 3. Logout Action (Inside Settings)
 document.getElementById('settingsLogoutBtn').onclick = async () => {
+    // ⚡ FIX: Block offline logout to prevent WKWebView reload crash
+    if (!navigator.onLine) {
+        alert("You cannot log out while offline.");
+        return;
+    }
+    
     try {
         sendHapticScoreToNative(-2); 
         
@@ -1194,8 +1200,15 @@ if (modalLoginBtn) {
     };
 } // <--- THIS WAS THE MISSING BRACKET!
 
+// MAIN LOGOUT BUTTON
 if (logoutBtn) {
     logoutBtn.onclick = async () => { 
+        // ⚡ FIX: Block offline logout to prevent WKWebView reload crash
+        if (!navigator.onLine) {
+            alert("You cannot log out while offline.");
+            return;
+        }
+        
         try {
             sendHapticScoreToNative(-2);
             // ⚡ NEW: Wipe the local offline mirror
@@ -5502,6 +5515,12 @@ window.addEventListener('load', () => {
     console.log("✅ Delete Button connected successfully.");
 
     btnDeleteAccount.onclick = async () => {
+        // ⚡ FIX: Block offline deletion
+        if (!navigator.onLine) {
+            alert("Account deletion requires a secure connection to the server. Please connect to the internet and try again.");
+            return;
+        }
+        
         const user = auth.currentUser;
 
         if (!user) {
@@ -5851,6 +5870,7 @@ function updateOnlineStatus() {
   const appleBtn = document.getElementById("modalAppleBtn");
   const deleteBtn = document.getElementById("btnDeleteAccount");
   const logoutBtn = document.getElementById("settingsLogoutBtn");
+  const mainLogoutBtn = document.getElementById("logoutBtn");
 
   if (isOnline) {
       document.body.classList.remove('offline-mode');
@@ -5859,20 +5879,24 @@ function updateOnlineStatus() {
       // Re-enable Auth Buttons
       if(loginBtn) loginBtn.disabled = false;
       if(appleBtn) appleBtn.disabled = false;
-      if(deleteBtn) deleteBtn.style.opacity = "1";
-      if(logoutBtn) logoutBtn.style.opacity = "1";
+      
+      // ⚡ FIX: Fully re-enable the buttons
+      if(deleteBtn) { deleteBtn.style.opacity = "1"; deleteBtn.disabled = false; }
+      if(logoutBtn) { logoutBtn.style.opacity = "1"; logoutBtn.disabled = false; }
+      if(mainLogoutBtn) { mainLogoutBtn.style.opacity = "1"; mainLogoutBtn.disabled = false; }
       
   } else {
       document.body.classList.add('offline-mode');
       if(userLabel) userLabel.textContent = "Offline Mode (Changes saved locally)";
       
-      // Disable Auth Buttons (Auth cannot work offline)
+      // Disable Auth Buttons
       if(loginBtn) loginBtn.disabled = true;
       if(appleBtn) appleBtn.disabled = true;
       
-      // Visually gray out destructive account actions
-      if(deleteBtn) deleteBtn.style.opacity = "0.5";
-      if(logoutBtn) logoutBtn.style.opacity = "0.5";
+      // ⚡ FIX: Visually gray out AND physically disable destructive actions
+      if(deleteBtn) { deleteBtn.style.opacity = "0.5"; deleteBtn.disabled = true; }
+      if(logoutBtn) { logoutBtn.style.opacity = "0.5"; logoutBtn.disabled = true; }
+      if(mainLogoutBtn) { mainLogoutBtn.style.opacity = "0.5"; mainLogoutBtn.disabled = true; }
   }
 }
 
