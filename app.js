@@ -545,13 +545,6 @@ function executeInstantRender() {
     }
 }
 
-// ⚡ FIX: Wait for HTML to load if script is running early
-if (document.getElementById("loginModal")) {
-    executeInstantRender();
-} else {
-    window.addEventListener('DOMContentLoaded', executeInstantRender);
-}
-
 // =====================================================
 // UNIT CONVERSION ENGINE (Base Unit = LBS)
 // =====================================================
@@ -6667,4 +6660,14 @@ function renderGoalStats() {
             { strokeDashoffset: 0 }
         ], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
     }, 50);
+}
+
+// =====================================================
+// ⚡ FIRE INSTANT RENDER (SAFE ZONE)
+// =====================================================
+// Placed at the bottom so all variables (clientList, editMode) are fully loaded into memory first.
+if (document.getElementById("loginModal")) {
+    executeInstantRender();
+} else {
+    window.addEventListener('DOMContentLoaded', executeInstantRender);
 }
