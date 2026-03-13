@@ -70,6 +70,35 @@ html, body {
   color: var(--color-text);
 }
 /* --- 🛑 CSS SCROLL FIX END 🛑 --- */
+
+/* ⚡ SAFE NATIVE FEEL: Only disable text selection on specific UI elements ⚡ */
+.btn, 
+.btn-icon, 
+.btn-text,
+.plate-btn, 
+.num-btn, 
+.stepper-btn,
+.item-list li, 
+.set-summary, 
+.app-header, 
+.card-header, 
+.action-header,
+.cal-day, 
+.calc-field-box,
+.timer-time-display,
+.spiral-controls,
+svg {
+  /* Kills text highlighting */
+  -webkit-user-select: none; 
+  user-select: none;
+  
+  /* Kills the iOS long-press "Copy/Share" popup */
+  -webkit-touch-callout: none; 
+  
+  /* Prevents dragging ghost images of SVGs or buttons */
+  -webkit-user-drag: none; 
+}
+
 .hidden { display: none !important; }
 
 /* ===== LOGIN MODAL ===== */
