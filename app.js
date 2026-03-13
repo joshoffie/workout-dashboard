@@ -5008,7 +5008,7 @@ const RECAP_TEMPLATES = {
         ["Solid progression.", "You handled {weight} {unit} with authority."],
         ["Moving heavy loads.", "Max weight increased by {diff}% this workout."],
         ["Pushing the limit.", "You added weight to the bar and got the work done."],
-        ["New territory unlocked.", "That {weight} {unit} set was your heaviest yet."],
+        ["New territory unlocked.", "That {weight} {unit} set was your heaviest today."],
         ["Gravity lost this round.", "You lifted {diff}% heavier than before."],
         ["Leveling up.", "Strength numbers are looking higher this session."],
         ["Bar bending power.", "You topped out at {weight} {unit} today."],
