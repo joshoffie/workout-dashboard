@@ -87,6 +87,16 @@ html, body {
 .calc-field-box,
 .timer-time-display,
 .spiral-controls,
+
+/* 👇 NEW ADDITIONS: Graphs, Sets Stats, & Calendar 👇 */
+.chart-wrapper,         /* Protects the entire Graph screen, titles, and toggles */
+.smart-recap-container, /* Protects the AI Smart Recap text box on the Sets screen */
+.comparison-banner,     /* Protects the 4 Stats (Sets/Reps/Vol/WPR) on the Sets screen */
+.calendar-controls,     /* Protects the Month Title and arrows on the Calendar */
+.calendar-header-row,   /* Protects the S M T W T F S day labels */
+.cal-detail-date,       /* Protects the selected date text below the Calendar */
+/* 👆 END OF NEW ADDITIONS 👆 */
+
 svg {
   /* Kills text highlighting */
   -webkit-user-select: none; 
