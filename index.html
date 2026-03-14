@@ -35,38 +35,37 @@
   <div class="modal">
       <div class="modal-content">
         <div class="modal-logo">
-           <svg id="dynamicSpiralSvg" class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>
+           <svg id="dynamicSpiralSvg" class="tree-animation-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              </svg>
         </div>
+        <h2>Welcome</h2>
+        <p class="modal-subtitle">Sign in to track your workouts.</p>
+        <button id="startTutorialBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.75rem;">
+          <span>Try Tutorial</span>
+        </button>
+
+        <div style="font-size: 0.7rem; color: var(--color-text-muted); text-align: center; margin: 1rem 0 0.75rem 0; line-height: 1.4;">
+          By continuing, you acknowledge that lifting weights carries an inherent risk of injury. You agree to our 
+          <a href="https://www.trunktracker.app/terms.html" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Terms of Service</a> and 
+          <a href="https://www.trunktracker.app/privacy.html" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Privacy Policy</a>.<br><br>
+          &copy; 2026 Adventureland, Inc. All rights reserved.
+        </div>
+
+        <button id="modalLoginBtn" class="btn btn-google">
+          <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
         
-        <h2 id="modalTitle">Welcome</h2>
-        <p id="modalSubtitle" class="modal-subtitle">Sign in to track your workouts.</p>
-
-        <div id="offlineSetupWarning" class="hidden" style="margin-top: 1rem; margin-bottom: 2rem;">
-            <svg style="width: 40px; height: 40px; color: var(--color-text-muted); margin-bottom: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"></path></svg>
-            <p style="font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.5;">An internet connection is required for initial setup.</p>
-        </div>
-
-        <div id="modalActionButtons">
-            <button id="startTutorialBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.75rem;">
-              <span>Try Tutorial</span>
-            </button>
-
-            <div style="font-size: 0.7rem; color: var(--color-text-muted); text-align: center; margin: 1rem 0 0.75rem 0; line-height: 1.4;">
-              By continuing, you acknowledge that lifting weights carries an inherent risk of injury. You agree to our 
-              <a href="https://www.trunktracker.app/terms.html" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Terms of Service</a> and 
-              <a href="https://www.trunktracker.app/privacy.html" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Privacy Policy</a>.<br><br>
-              &copy; 2026 Adventureland, Inc. All rights reserved.
-            </div>
-
-            <button id="modalLoginBtn" class="btn btn-google">
-               <span>Continue with Google</span>
-            </button>
-            
-            <button id="modalAppleBtn" class="btn btn-apple">
-               <span>Continue with Apple</span>
-            </button>
-        </div>
+        <button id="modalAppleBtn" class="btn btn-apple">
+          <svg class="apple-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.828 12.378c-.02-2.606 2.13-3.86 2.228-3.91-1.212-1.77-3.097-2.01-3.768-2.036-1.597-.167-3.12 1.055-3.93 1.055-.815 0-2.14-1.03-3.52-1.004-1.81.026-3.486 1.054-4.42 2.68-1.884 3.27-.48 8.113 1.33 10.733.89 1.284 1.94 2.73 3.325 2.68 1.32-.05 1.823-.855 3.43-.855 1.6 0 2.053.855 3.45.83 1.433-.026 2.345-1.305 3.224-2.58 1.01-1.48 1.427-2.915 1.446-2.99-.03-.02-2.77-1.065-2.8-4.23zM15.39 3.415c.73-.88 1.22-2.11 1.085-3.337-1.05.043-2.32.7-3.073 1.58-.675.78-1.265 2.04-1.107 3.243 1.173.09 2.37-.6 3.096-1.486z" fill="currentColor"/>
+          </svg>
+          <span>Continue with Apple</span>
+        </button>
       </div>
+    </div>
   </div>
   <header class="app-header">
     <div class="header-content">
