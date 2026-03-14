@@ -504,17 +504,10 @@ function tryInitializeFirebase() {
             const safeModal = document.getElementById("loginModal");
             if (safeModal && !localStorage.getItem('trunk_local_data')) {
                 safeModal.classList.remove("hidden");
-                
-                const actionBtns = document.getElementById("modalActionButtons");
-                const warningDiv = document.getElementById("offlineSetupWarning");
-                const mTitle = document.getElementById("modalTitle");
-                const mSub = document.getElementById("modalSubtitle");
-                
-                // Hide the buttons and show the intentional warning
-                if (actionBtns) actionBtns.classList.add("hidden");
-                if (warningDiv) warningDiv.classList.remove("hidden");
-                if (mTitle) mTitle.innerText = "Offline";
-                if (mSub) mSub.innerText = "Please connect to the internet.";
+                const mLog = document.getElementById("modalLoginBtn");
+                const mApp = document.getElementById("modalAppleBtn");
+                if (mLog) mLog.innerText = "Requires Internet to Login";
+                if (mApp) mApp.innerText = "Requires Internet to Login";
             }
         }
     }
