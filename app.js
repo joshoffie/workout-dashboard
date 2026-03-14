@@ -1051,7 +1051,7 @@ const deleteCancelBtn = document.getElementById('deleteCancelBtn');
 
 function initAuthListener() {
     // ⚡ FIX: Moved into the correct scope so the button can read it
-    const CURRENT_TOS_VERSION = 1.0;
+    const CURRENT_TOS_VERSION = 1.1;
     
     auth.onAuthStateChanged(async (user) => {
       if (user) {
