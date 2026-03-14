@@ -500,14 +500,30 @@ function tryInitializeFirebase() {
         if (firebaseLoadAttempts < 50) { 
             setTimeout(tryInitializeFirebase, 100);
         } else {
-            console.error("❌ Firebase SDK failed to load. App is running entirely offline.");
             const safeModal = document.getElementById("loginModal");
             if (safeModal && !localStorage.getItem('trunk_local_data')) {
                 safeModal.classList.remove("hidden");
-                const mLog = document.getElementById("modalLoginBtn");
-                const mApp = document.getElementById("modalAppleBtn");
-                if (mLog) mLog.innerText = "Requires Internet to Login";
-                if (mApp) mApp.innerText = "Requires Internet to Login";
+                
+                // Target elements individually to preserve CSS layout context
+                const warningDiv = document.getElementById("offlineSetupWarning");
+                const mTitle = document.getElementById("modalTitle");
+                const mSub = document.getElementById("modalSubtitle");
+                
+                const bTutorial = document.getElementById("startTutorialBtn");
+                const bTerms = document.getElementById("modalTermsText");
+                const bGoogle = document.getElementById("modalLoginBtn");
+                const bApple = document.getElementById("modalAppleBtn");
+                
+                // Hide buttons individually
+                if (bTutorial) bTutorial.classList.add("hidden");
+                if (bTerms) bTerms.classList.add("hidden");
+                if (bGoogle) bGoogle.classList.add("hidden");
+                if (bApple) bApple.classList.add("hidden");
+                
+                // Show warning and update text
+                if (warningDiv) warningDiv.classList.remove("hidden");
+                if (mTitle) mTitle.innerText = "Offline";
+                if (mSub) mSub.innerText = "Please connect to the internet.";
             }
         }
     }
